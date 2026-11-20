@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useLanguage } from "@/lib/i18n/context";
 import { Clock, MapPin, Building2, ArrowRight, HeartHandshake, ShieldCheck, Droplet } from "lucide-react";
 import Link from "next/link";
@@ -21,64 +21,67 @@ interface UrgentCase {
   purpose: string;
 }
 
-const SAMPLE_URGENT_CASES: UrgentCase[] = [
-  {
-    id: "case-101",
-    patientName: "Tasneem Rahman",
-    bloodGroup: "O-",
-    units: 2,
-    pledgedUnits: 0,
-    hospital: "Dhaka Medical College Hospital (DMCH ICU-3)",
-    district: "Dhaka",
-    urgency: "CRITICAL",
-    hoursLeft: 1.75, // 1h 45m -> Tier 2 Code Red
-    expiresAt: new Date(Date.now() + 105 * 60 * 1000).toISOString(),
-    verified: true,
-    purpose: "Emergency Cesarean Surgery",
-  },
-  {
-    id: "case-102",
-    patientName: "Abdul Gafur",
-    bloodGroup: "B+",
-    units: 3,
-    pledgedUnits: 1,
-    hospital: "Chittagong Medical College Hospital",
-    district: "Chittagong",
-    urgency: "CRITICAL",
-    hoursLeft: 0.45, // 27 mins -> Tier 1 ICU Golden Window
-    expiresAt: new Date(Date.now() + 27 * 60 * 1000).toISOString(),
-    verified: true,
-    purpose: "Trauma Road Accident Recovery",
-  },
-  {
-    id: "case-103",
-    patientName: "Meghla Akter",
-    bloodGroup: "AB-",
-    units: 1,
-    pledgedUnits: 0,
-    hospital: "Sylhet MAG Osmani Medical College",
-    district: "Sylhet",
-    urgency: "URGENT",
-    hoursLeft: 4.5, // 4h 30m -> Tier 3 Elevated
-    expiresAt: new Date(Date.now() + 270 * 60 * 1000).toISOString(),
-    verified: true,
-    purpose: "Thalassemia Transfusion",
-  },
-  {
-    id: "case-104",
-    patientName: "Farhan Hossain",
-    bloodGroup: "A+",
-    units: 2,
-    pledgedUnits: 1,
-    hospital: "Rajshahi Medical College Hospital",
-    district: "Rajshahi",
-    urgency: "URGENT",
-    hoursLeft: 7.5, // 7h 30m -> Tier 4 Standard
-    expiresAt: new Date(Date.now() + 450 * 60 * 1000).toISOString(),
-    verified: true,
-    purpose: "Open Heart Bypass Surgery",
-  },
-];
+function getSampleCases(): UrgentCase[] {
+  const baseTime = Date.now();
+  return [
+    {
+      id: "case-101",
+      patientName: "Tasneem Rahman",
+      bloodGroup: "O-",
+      units: 2,
+      pledgedUnits: 0,
+      hospital: "Dhaka Medical College Hospital (DMCH ICU-3)",
+      district: "Dhaka",
+      urgency: "CRITICAL",
+      hoursLeft: 1.75, // 1h 45m -> Tier 2 Code Red
+      expiresAt: new Date(baseTime + 105 * 60 * 1000).toISOString(),
+      verified: true,
+      purpose: "Emergency Cesarean Surgery",
+    },
+    {
+      id: "case-102",
+      patientName: "Abdul Gafur",
+      bloodGroup: "B+",
+      units: 3,
+      pledgedUnits: 1,
+      hospital: "Chittagong Medical College Hospital",
+      district: "Chittagong",
+      urgency: "CRITICAL",
+      hoursLeft: 0.45, // 27 mins -> Tier 1 ICU Golden Window
+      expiresAt: new Date(baseTime + 27 * 60 * 1000).toISOString(),
+      verified: true,
+      purpose: "Trauma Road Accident Recovery",
+    },
+    {
+      id: "case-103",
+      patientName: "Meghla Akter",
+      bloodGroup: "AB-",
+      units: 1,
+      pledgedUnits: 0,
+      hospital: "Sylhet MAG Osmani Medical College",
+      district: "Sylhet",
+      urgency: "URGENT",
+      hoursLeft: 4.5, // 4h 30m -> Tier 3 Elevated
+      expiresAt: new Date(baseTime + 270 * 60 * 1000).toISOString(),
+      verified: true,
+      purpose: "Thalassemia Transfusion",
+    },
+    {
+      id: "case-104",
+      patientName: "Farhan Hossain",
+      bloodGroup: "A+",
+      units: 2,
+      pledgedUnits: 1,
+      hospital: "Rajshahi Medical College Hospital",
+      district: "Rajshahi",
+      urgency: "URGENT",
+      hoursLeft: 7.5, // 7h 30m -> Tier 4 Standard
+      expiresAt: new Date(baseTime + 450 * 60 * 1000).toISOString(),
+      verified: true,
+      purpose: "Open Heart Bypass Surgery",
+    },
+  ];
+}
 
 function UrgentTransfusionCard({
   req,
@@ -116,10 +119,11 @@ function UrgentTransfusionCard({
 
           {/* Dynamic Time Escalation Badge */}
           <span
+            suppressHydrationWarning
             className={`text-[10px] sm:text-[11px] font-bold tracking-wide px-2.5 py-0.5 rounded-full flex items-center gap-1.5 shadow-2xs border ${countdown.badgeClass}`}
           >
             <Clock size={11} className={countdown.isCodeRed ? "animate-pulse" : ""} />
-            <span className="tabular-nums">
+            <span className="tabular-nums" suppressHydrationWarning>
               {countdown.isExpired ? (language === "bn" ? "সময় শেষ" : "Expired") : countdown.formattedCountdown}
             </span>
           </span>
@@ -188,7 +192,49 @@ function UrgentTransfusionCard({
 
 export function UrgentTransfusionQueue() {
   const { language } = useLanguage();
-  const [cases] = useState<UrgentCase[]>(SAMPLE_URGENT_CASES);
+  const [cases, setCases] = useState<UrgentCase[]>(getSampleCases);
+
+  useEffect(() => {
+    let isSubscribed = true;
+
+    const fetchLiveCases = async () => {
+      try {
+        const res = await fetch("/api/requests/search?status=pending&limit=4");
+        if (res.ok) {
+          const data = await res.json();
+          if (isSubscribed && data.requests && data.requests.length > 0) {
+            const liveCases: UrgentCase[] = data.requests.map((r: any) => ({
+              id: String(r._id),
+              patientName: r.recipientName,
+              bloodGroup: r.bloodGroup,
+              units: r.unitsNeeded || 1,
+              pledgedUnits: r.pledgedUnits || 0,
+              hospital: r.hospital,
+              district: r.district,
+              urgency: (r.urgency === "critical" ? "CRITICAL" : "URGENT") as "CRITICAL" | "URGENT",
+              hoursLeft: 2,
+              expiresAt: r.expiresAt || new Date(Date.now() + 2 * 3600 * 1000).toISOString(),
+              verified: Boolean(r.isVerifiedGenuine),
+              purpose: r.medicalReason || r.bloodComponent || "Emergency Hospital Transfusion",
+            }));
+            setCases(liveCases);
+            return;
+          }
+        }
+      } catch {
+        // Fallback to sample cases smoothly
+      }
+      if (isSubscribed) {
+        setCases(getSampleCases());
+      }
+    };
+
+    fetchLiveCases();
+
+    return () => {
+      isSubscribed = false;
+    };
+  }, []);
 
   return (
     <section className="py-6 sm:py-8 border-b border-[var(--border-subtle)] bg-[var(--bg-main)]">

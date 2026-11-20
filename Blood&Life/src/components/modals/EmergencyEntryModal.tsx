@@ -210,7 +210,7 @@ export function EmergencyEntryModal() {
               </span>
               <div className="flex items-center gap-1.5 text-xl sm:text-2xl font-black text-red-600 dark:text-red-400">
                 <Clock size={20} className="animate-pulse shrink-0" />
-                <span className="tabular-nums">{countdown.formattedCountdown}</span>
+                <span className="tabular-nums" suppressHydrationWarning>{countdown.formattedCountdown}</span>
               </div>
             </div>
 

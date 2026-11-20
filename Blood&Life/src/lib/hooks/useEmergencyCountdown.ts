@@ -18,16 +18,22 @@ export interface EmergencyCountdownState {
   borderClass: string;
   pulseClass: string;
   isCodeRed: boolean;
+  isMounted: boolean;
 }
 
 /**
  * Custom hook for live time-dependent emergency countdown and dynamic tier escalation.
  * Updates in real-time every 1000ms.
+ * Resilient against background tab suspension and tab closing by calculating directly against
+ * the target wall-clock epoch timestamp.
  */
 export function useEmergencyCountdown(
   expiresAtInput?: Date | string | null,
   fallbackUrgency: "critical" | "urgent" | "standard" = "urgent"
 ): EmergencyCountdownState {
+  const [mounted, setMounted] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
+
   // Resolve target expiration timestamp
   const targetTimestamp = useMemo(() => {
     if (!expiresAtInput) {
@@ -39,14 +45,31 @@ export function useEmergencyCountdown(
     return isNaN(parsed) ? Date.now() + 4 * 60 * 60 * 1000 : parsed;
   }, [expiresAtInput, fallbackUrgency]);
 
-  const [now, setNow] = useState(() => Date.now());
-
   useEffect(() => {
+    setMounted(true);
+    // Instant wall-clock synchronization upon client mounting
+    setNow(Date.now());
+
+    // Continuous 1000ms real-time ticker
     const timer = setInterval(() => {
       setNow(Date.now());
     }, 1000);
 
-    return () => clearInterval(timer);
+    // Re-synchronize instantaneously when user switches back to tab or device wakes up
+    const handleSync = () => {
+      if (document.visibilityState === "visible") {
+        setNow(Date.now());
+      }
+    };
+
+    window.addEventListener("focus", handleSync);
+    document.addEventListener("visibilitychange", handleSync);
+
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener("focus", handleSync);
+      document.removeEventListener("visibilitychange", handleSync);
+    };
   }, []);
 
   const totalSeconds = Math.max(0, Math.floor((targetTimestamp - now) / 1000));
@@ -122,5 +145,6 @@ export function useEmergencyCountdown(
     borderClass,
     pulseClass,
     isCodeRed,
+    isMounted: mounted,
   };
 }
