@@ -65,6 +65,9 @@ export function DualSearchFeed() {
   const [donors, setDonors] = useState<DonorCardData[]>([]);
   const [requests, setRequests] = useState<RequestCardData[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [cursor, setCursor] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState<boolean>(false);
+  const [loadingMore, setLoadingMore] = useState<boolean>(false);
   const [revealedContacts, setRevealedContacts] = useState<Record<string, string>>({});
   const [revealingId, setRevealingId] = useState<string | null>(null);
   const [privacyError, setPrivacyError] = useState<string | null>(null);
@@ -88,6 +91,8 @@ export function DualSearchFeed() {
         const res = await fetch(`/api/donors/search?${params.toString()}`);
         const data = await res.json();
         setDonors(data.donors || []);
+        setCursor(data.nextCursor || null);
+        setHasMore(Boolean(data.hasMore));
       } else {
         const params = new URLSearchParams();
         if (selectedBlood !== "all") params.set("bloodGroup", selectedBlood);
@@ -97,6 +102,8 @@ export function DualSearchFeed() {
         const res = await fetch(`/api/requests/search?${params.toString()}`);
         const data = await res.json();
         setRequests(data.requests || []);
+        setCursor(data.nextCursor || null);
+        setHasMore(Boolean(data.hasMore));
       }
     } catch {
       // Handle fetch failure gracefully
@@ -104,6 +111,33 @@ export function DualSearchFeed() {
       setLoading(false);
     }
   }, [activeTab, selectedBlood, selectedDivision, selectedDistrict]);
+
+  const handleLoadMore = async () => {
+    if (!cursor || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const endpoint = activeTab === "donors" ? "/api/donors/search" : "/api/requests/search";
+      const params = new URLSearchParams();
+      if (selectedBlood !== "all") params.set("bloodGroup", selectedBlood);
+      if (selectedDivision !== "all") params.set("division", selectedDivision);
+      if (selectedDistrict !== "all") params.set("district", selectedDistrict);
+      params.set("cursor", cursor);
+
+      const res = await fetch(`${endpoint}?${params.toString()}`);
+      const data = await res.json();
+      if (activeTab === "donors") {
+        setDonors((prev) => [...prev, ...(data.donors || [])]);
+      } else {
+        setRequests((prev) => [...prev, ...(data.requests || [])]);
+      }
+      setCursor(data.nextCursor || null);
+      setHasMore(Boolean(data.hasMore));
+    } catch (e) {
+      console.error("Load more error:", e);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   useEffect(() => {
     fetchResults();
@@ -405,6 +439,27 @@ export function DualSearchFeed() {
             </p>
           </div>
         )
+      )}
+
+      {/* Load More Action Button */}
+      {hasMore && !loading && (
+        <div className="pt-6 text-center">
+          <button
+            type="button"
+            onClick={handleLoadMore}
+            disabled={loadingMore}
+            className="px-6 py-2.5 rounded-xl border border-[var(--border-subtle)] hover:border-red-500 bg-[var(--surface-card)] text-xs font-bold text-[var(--text-primary)] hover:text-red-500 transition-all disabled:opacity-50 inline-flex items-center gap-2 shadow-xs cursor-pointer"
+          >
+            {loadingMore ? (
+              <>
+                <div className="w-3.5 h-3.5 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
+                <span>{language === "bn" ? "লোড হচ্ছে..." : "Loading more..."}</span>
+              </>
+            ) : (
+              <span>{language === "bn" ? "আরও দেখুন (Load More)" : "Load More"}</span>
+            )}
+          </button>
+        </div>
       )}
     </div>
   );

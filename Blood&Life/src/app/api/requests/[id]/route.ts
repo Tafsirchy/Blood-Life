@@ -48,3 +48,53 @@ export async function GET(
     return NextResponse.json({ error: "Failed to fetch request details" }, { status: 500 });
   }
 }
+
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await getServerSession();
+    if (!session) {
+      return NextResponse.json({ error: "Please sign in" }, { status: 401 });
+    }
+
+    const { id } = await params;
+    const body = await req.json();
+    await connectDB();
+
+    const request = await DonationRequest.findById(id);
+    if (!request) {
+      return NextResponse.json({ error: "Emergency request not found" }, { status: 404 });
+    }
+
+    // Only owner of the request or Volunteer/Admin can update/cancel
+    const isOwner = request.requesterId === session.userId;
+    const isStaff = session.role === "Volunteer" || session.role === "Admin";
+
+    if (!isOwner && !isStaff) {
+      return NextResponse.json(
+        { error: "Forbidden: You are not authorized to update this request" },
+        { status: 403 }
+      );
+    }
+
+    if (body.status) {
+      request.status = body.status; // e.g. "canceled" | "done"
+    }
+
+    if (body.message) {
+      request.message = body.message;
+    }
+
+    await request.save();
+
+    return NextResponse.json({
+      success: true,
+      message: `Request marked as ${request.status}.`,
+      request,
+    });
+  } catch (error) {
+    return NextResponse.json({ error: "Failed to update emergency case" }, { status: 500 });
+  }
+}

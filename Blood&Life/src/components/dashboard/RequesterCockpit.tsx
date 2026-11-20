@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useLanguage } from "@/lib/i18n/context";
 import {
   FileText,
@@ -23,47 +23,11 @@ interface RequesterCase {
   units: number;
   hospital: string;
   district: string;
-  status: "pending" | "verified" | "matched" | "completed";
-  assignedDonor?: {
-    name: string;
-    phone: string;
-    bloodGroup: string;
-  };
+  status: string;
+  isVerifiedGenuine?: boolean;
+  assignedDonorName?: string;
   createdAt: string;
 }
-
-const SAMPLE_REQUESTER_CASES: RequesterCase[] = [
-  {
-    id: "req-501",
-    patientName: "Tasneem Rahman",
-    bloodGroup: "O-",
-    units: 2,
-    hospital: "Dhaka Medical College Hospital (ICU)",
-    district: "Dhaka",
-    status: "matched",
-    assignedDonor: {
-      name: "Tafsirul Islam",
-      phone: "+880 1711-223344",
-      bloodGroup: "O-",
-    },
-    createdAt: "Today, 10:15 AM",
-  },
-  {
-    id: "req-498",
-    patientName: "Nazmul Ahsan",
-    bloodGroup: "B+",
-    units: 1,
-    hospital: "National Heart Foundation, Mirpur",
-    district: "Dhaka",
-    status: "completed",
-    assignedDonor: {
-      name: "Sadman Sakib",
-      phone: "+880 1822-998877",
-      bloodGroup: "B+",
-    },
-    createdAt: "12 Oct 2025",
-  },
-];
 
 interface RequesterCockpitProps {
   onOpenSos: () => void;
@@ -71,6 +35,64 @@ interface RequesterCockpitProps {
 
 export function RequesterCockpit({ onOpenSos }: RequesterCockpitProps) {
   const { language } = useLanguage();
+  const [cases, setCases] = useState<RequesterCase[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchCases = async () => {
+    try {
+      const meRes = await fetch("/api/auth/me");
+      const meData = await meRes.json();
+      if (!meData.authenticated || !meData.user) return;
+      const userId = meData.user.id || meData.user._id;
+      const res = await fetch(`/api/requests/search?requesterId=${userId}&status=all`);
+      const data = await res.json();
+      if (data.requests) {
+        setCases(
+          data.requests.map((r: any) => ({
+            id: r._id,
+            patientName: r.recipientName,
+            bloodGroup: r.bloodGroup,
+            units: r.unitsNeeded,
+            hospital: r.hospital,
+            district: r.district,
+            status: r.status,
+            isVerifiedGenuine: r.isVerifiedGenuine,
+            assignedDonorName: r.assignedDonorName,
+            createdAt: r.createdAt ? new Date(r.createdAt).toLocaleDateString() : "Recent",
+          }))
+        );
+      }
+    } catch (e) {
+      console.error("Error fetching requester cases:", e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchCases();
+  }, []);
+
+  const handleCancelCase = async (id: string) => {
+    const confirmMsg =
+      language === "bn"
+        ? "আপনি কি নিশ্চিত যে এই আবেদনটি বাতিল করতে চান?"
+        : "Are you sure you want to cancel this emergency request?";
+    if (!window.confirm(confirmMsg)) return;
+
+    try {
+      const res = await fetch(`/api/requests/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "canceled" }),
+      });
+      if (res.ok) {
+        setCases((prev: RequesterCase[]) => prev.map((c: RequesterCase) => (c.id === id ? { ...c, status: "canceled" } : c)));
+      }
+    } catch (e) {
+      console.error("Error cancelling case:", e);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -102,91 +124,76 @@ export function RequesterCockpit({ onOpenSos }: RequesterCockpitProps) {
 
       {/* Case Tracker Cards */}
       <div className="space-y-4">
-        {SAMPLE_REQUESTER_CASES.map((item) => (
-          <div
-            key={item.id}
-            className="card-clinical p-6 border-2 border-[var(--border-subtle)] hover:border-red-500/30 transition-all space-y-5"
-          >
-            {/* Header info */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[var(--border-subtle)] pb-3">
-              <div className="flex items-center gap-2">
-                <span className="badge-blood text-sm font-black px-2.5 py-1">
-                  {item.bloodGroup}
-                </span>
-                <div>
-                  <h3 className="text-sm font-bold text-[var(--text-primary)]">
-                    {item.patientName} ({item.units} {language === "bn" ? "ব্যাগ" : "Units"})
-                  </h3>
-                  <p className="text-[11px] text-[var(--text-muted)]">
-                    {item.hospital} • {item.district}
-                  </p>
-                </div>
-              </div>
-
-              <div className="text-xs font-mono text-[var(--text-muted)] self-start sm:self-center">
-                #{item.id.toUpperCase()} • {item.createdAt}
-              </div>
-            </div>
-
-            {/* Stepper Progress Bar */}
-            <div className="grid grid-cols-4 gap-2 text-center text-[11px] font-bold">
-              <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-500">
-                1. {language === "bn" ? "আবেদন দাখিল" : "Submitted"}
-              </div>
-              <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-500">
-                2. {language === "bn" ? "প্রেসক্রিপশন যাচাই" : "Verified"}
-              </div>
-              <div
-                className={`p-2 rounded-lg border ${
-                  item.status === "matched" || item.status === "completed"
-                    ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-500"
-                    : "bg-[var(--bg-main)] border-[var(--border-subtle)] text-[var(--text-muted)]"
-                }`}
-              >
-                3. {language === "bn" ? "রক্তদাতা নিশ্চিত" : "Donor Pledged"}
-              </div>
-              <div
-                className={`p-2 rounded-lg border ${
-                  item.status === "completed"
-                    ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-500"
-                    : "bg-[var(--bg-main)] border-[var(--border-subtle)] text-[var(--text-muted)]"
-                }`}
-              >
-                4. {language === "bn" ? "রক্তদান সম্পন্ন" : "Transfused"}
-              </div>
-            </div>
-
-            {/* Assigned Donor Card */}
-            {item.assignedDonor && (
-              <div className="p-4 rounded-xl bg-red-500/5 border border-red-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-red-500/15 text-red-500 flex items-center justify-center shrink-0">
-                    <UserCheck size={20} />
-                  </div>
+        {loading ? (
+          <div className="card-clinical p-8 text-center text-xs text-[var(--text-muted)]">
+            Loading emergency cases...
+          </div>
+        ) : cases.length === 0 ? (
+          <div className="card-clinical p-10 text-center space-y-3">
+            <CheckCircle2 size={36} className="text-emerald-500 mx-auto" />
+            <h3 className="text-sm font-bold text-[var(--text-primary)]">
+              {language === "bn" ? "কোন সক্রিয় আবেদন নেই" : "No Active Emergency Requests"}
+            </h3>
+            <p className="text-xs text-[var(--text-secondary)] max-w-sm mx-auto">
+              {language === "bn"
+                ? "জরুরি রক্তের প্রয়োজন হলে উপরের বাটনে ক্লিক করে নতুন আবেদন প্রচার করুন।"
+                : "Submit an emergency SOS broadcast whenever blood transfusion is urgently needed."}
+            </p>
+          </div>
+        ) : (
+          cases.map((item: RequesterCase) => (
+            <div
+              key={item.id}
+              className="card-clinical p-6 border-2 border-[var(--border-subtle)] hover:border-red-500/30 transition-all space-y-5"
+            >
+              {/* Header info */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[var(--border-subtle)] pb-3">
+                <div className="flex items-center gap-2">
+                  <span className="badge-blood text-sm font-black px-2.5 py-1">
+                    {item.bloodGroup}
+                  </span>
                   <div>
-                    <span className="text-[10px] font-black uppercase tracking-wider text-red-500 block">
-                      {language === "bn" ? "নিযুক্ত স্বেচ্ছাসেবী রক্তদাতা" : "Assigned Volunteer Donor"}
-                    </span>
-                    <h4 className="text-xs font-bold text-[var(--text-primary)]">
-                      {item.assignedDonor.name} ({item.assignedDonor.bloodGroup})
-                    </h4>
-                    <p className="text-[11px] font-mono text-[var(--text-muted)]">
-                      {item.assignedDonor.phone}
+                    <h3 className="text-sm font-bold text-[var(--text-primary)]">
+                      {item.patientName} ({item.units} {language === "bn" ? "ব্যাগ" : "Units"})
+                    </h3>
+                    <p className="text-[11px] text-[var(--text-muted)]">
+                      {item.hospital} • {item.district}
                     </p>
                   </div>
                 </div>
 
-                <a
-                  href={`tel:${item.assignedDonor.phone}`}
-                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold inline-flex items-center gap-1.5 self-start sm:self-auto transition-colors"
-                >
-                  <PhoneCall size={14} />
-                  <span>{language === "bn" ? "সরাসরি কল দিন" : "Call Donor Directly"}</span>
-                </a>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-mono text-[var(--text-muted)]">
+                    #{item.id.slice(-6).toUpperCase()} • {item.createdAt}
+                  </span>
+                  {item.status !== "canceled" && item.status !== "done" && item.status !== "expired" && (
+                    <button
+                      onClick={() => handleCancelCase(item.id)}
+                      className="px-2.5 py-1 rounded-lg border border-red-500/30 text-red-500 hover:bg-red-500/10 text-[11px] font-bold transition-colors"
+                    >
+                      {language === "bn" ? "আবেদন বাতিল" : "Cancel SOS"}
+                    </button>
+                  )}
+                </div>
               </div>
-            )}
-          </div>
-        ))}
+
+              {/* Status Indicator */}
+              <div className="flex items-center justify-between text-xs font-bold px-1">
+                <span className="text-[var(--text-secondary)]">
+                  {language === "bn" ? "বর্তমান অবস্থা:" : "Current Status:"}{" "}
+                  <strong className="text-red-500 uppercase">{item.status}</strong>
+                </span>
+                <Link
+                  href={`/requests/${item.id}`}
+                  className="text-red-500 hover:underline inline-flex items-center gap-1 text-[11px]"
+                >
+                  <span>{language === "bn" ? "বিস্তারিত দেখুন" : "View Live Ticket"}</span>
+                  <ArrowRight size={12} />
+                </Link>
+              </div>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );

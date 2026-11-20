@@ -64,24 +64,85 @@ const SAMPLE_USERS: AdminUser[] = [
 
 export function AdminCommandCenter() {
   const { language } = useLanguage();
-  const [users, setUsers] = useState<AdminUser[]>(SAMPLE_USERS);
+  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
 
-  const handleToggleStatus = (userId: string) => {
-    setUsers((prev) =>
-      prev.map((u) =>
-        u.id === userId
-          ? { ...u, status: u.status === "Active" ? "Blocked" : "Active" }
-          : u
-      )
-    );
+  const loadUsers = async () => {
+    try {
+      const res = await fetch("/api/admin/users");
+      const data = await res.json();
+      if (data.users) {
+        setUsers(
+          data.users.map((u: any) => ({
+            id: u._id,
+            name: u.name,
+            email: u.email,
+            phone: u.phone,
+            bloodGroup: u.bloodGroup,
+            district: u.district,
+            role: u.role,
+            status: u.status,
+            donations: u.totalDonations || 0,
+          }))
+        );
+      }
+    } catch (e) {
+      console.error("Failed to load users:", e);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleRoleChange = (userId: string, newRole: AdminUser["role"]) => {
-    setUsers((prev) =>
-      prev.map((u) => (u.id === userId ? { ...u, role: newRole } : u))
-    );
+  React.useEffect(() => {
+    loadUsers();
+  }, []);
+
+  const handleToggleStatus = async (userId: string) => {
+    const target = users.find((u) => u.id === userId);
+    if (!target) return;
+    const newStatus = target.status === "Active" ? "Blocked" : "Active";
+    setActionLoading(userId);
+    try {
+      const res = await fetch("/api/admin/users", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, status: newStatus }),
+      });
+      if (res.ok) {
+        setUsers((prev) =>
+          prev.map((u) => (u.id === userId ? { ...u, status: newStatus } : u))
+        );
+      }
+    } catch (e) {
+      console.error("Error updating user status:", e);
+    } finally {
+      setActionLoading(null);
+    }
   };
+
+  const handleRoleChange = async (userId: string, newRole: AdminUser["role"]) => {
+    setActionLoading(userId);
+    try {
+      const res = await fetch("/api/admin/users", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, role: newRole }),
+      });
+      if (res.ok) {
+        setUsers((prev) =>
+          prev.map((u) => (u.id === userId ? { ...u, role: newRole } : u))
+        );
+      }
+    } catch (e) {
+      console.error("Error updating user role:", e);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const totalVolunteers = users.filter((u) => u.role === "Volunteer").length;
 
   const filteredUsers = users.filter(
     (u) =>
@@ -99,7 +160,7 @@ export function AdminCommandCenter() {
             <Users size={20} />
           </div>
           <div>
-            <span className="text-xl font-black text-[var(--text-primary)]">38,420</span>
+            <span className="text-xl font-black text-[var(--text-primary)]">{users.length}</span>
             <span className="text-[11px] text-[var(--text-muted)] block">
               {language === "bn" ? "মোট নিবন্ধিত ব্যবহারকারী" : "Total Users"}
             </span>
@@ -111,7 +172,7 @@ export function AdminCommandCenter() {
             <ShieldAlert size={20} />
           </div>
           <div>
-            <span className="text-xl font-black text-[var(--text-primary)]">142</span>
+            <span className="text-xl font-black text-[var(--text-primary)]">{totalVolunteers}</span>
             <span className="text-[11px] text-[var(--text-muted)] block">
               {language === "bn" ? "ভেরিফাইড ভলান্টিয়ার" : "Active Volunteers"}
             </span>

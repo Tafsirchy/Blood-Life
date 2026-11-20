@@ -59,12 +59,37 @@ const SAMPLE_DONATIONS: DonationRecord[] = [
 export function DonorCockpit() {
   const { language } = useLanguage();
   const [selectedCert, setSelectedCert] = useState<DonationRecord | null>(null);
+  const [userProfile, setUserProfile] = useState<any>(null);
 
-  // 90-Day Cooldown Simulation: Day 48 of 90
+  React.useEffect(() => {
+    fetch("/api/auth/me")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.user) setUserProfile(d.user);
+      })
+      .catch(() => {});
+  }, []);
+
+  // Biological Cooldown Calculation
   const totalCooldownDays = 90;
-  const elapsedDays = 48;
-  const remainingDays = totalCooldownDays - elapsedDays;
-  const progressPercent = Math.round((elapsedDays / totalCooldownDays) * 100);
+  let elapsedDays = 90;
+  let remainingDays = 0;
+  let progressPercent = 100;
+  let nextEligibleDate = language === "bn" ? "আজই প্রস্তুত" : "Eligible Today";
+
+  if (userProfile?.lastDonationDate) {
+    const lastDate = new Date(userProfile.lastDonationDate).getTime();
+    elapsedDays = Math.max(0, Math.floor((Date.now() - lastDate) / (1000 * 60 * 60 * 24)));
+    if (elapsedDays < 90) {
+      remainingDays = totalCooldownDays - elapsedDays;
+      progressPercent = Math.round((elapsedDays / totalCooldownDays) * 100);
+      const nextDate = new Date(lastDate + 90 * 24 * 60 * 60 * 1000);
+      nextEligibleDate = nextDate.toLocaleDateString();
+    }
+  }
+
+  const totalDonations = userProfile?.totalDonations || 0;
+  const livesSaved = totalDonations * 3;
 
   // SVG Dial Circumference
   const radius = 60;
@@ -95,7 +120,7 @@ export function DonorCockpit() {
                 : `${remainingDays} days remaining until your iron and hemoglobin reserves fully replenish.`}
             </p>
             <div className="pt-2 text-xs font-bold text-amber-500">
-              {language === "bn" ? "পরবর্তী রক্তদান: ১৪ ডিসেম্বর ২০২৬" : "Next Eligible: Dec 14, 2026"}
+              {language === "bn" ? `পরবর্তী রক্তদান: ${nextEligibleDate}` : `Next Eligible: ${nextEligibleDate}`}
             </div>
           </div>
 
@@ -152,19 +177,19 @@ export function DonorCockpit() {
 
           <div className="grid grid-cols-3 gap-3 pt-4 border-t border-[var(--border-subtle)]">
             <div className="p-2.5 rounded-lg bg-[var(--bg-main)] text-center">
-              <span className="text-xl font-black text-red-500 block">3</span>
+              <span className="text-xl font-black text-red-500 block">{totalDonations}</span>
               <span className="text-[10px] font-bold text-[var(--text-muted)]">
                 {language === "bn" ? "বার রক্তদান" : "Donations"}
               </span>
             </div>
             <div className="p-2.5 rounded-lg bg-[var(--bg-main)] text-center">
-              <span className="text-xl font-black text-emerald-500 block">3</span>
+              <span className="text-xl font-black text-emerald-500 block">{livesSaved}</span>
               <span className="text-[10px] font-bold text-[var(--text-muted)]">
                 {language === "bn" ? "জীবন রক্ষা" : "Lives Saved"}
               </span>
             </div>
             <div className="p-2.5 rounded-lg bg-[var(--bg-main)] text-center">
-              <span className="text-xl font-black text-blue-500 block">O-</span>
+              <span className="text-xl font-black text-blue-500 block">{userProfile?.bloodGroup || "O+"}</span>
               <span className="text-[10px] font-bold text-[var(--text-muted)]">
                 {language === "bn" ? "ব্লাড গ্রুপ" : "Blood Group"}
               </span>

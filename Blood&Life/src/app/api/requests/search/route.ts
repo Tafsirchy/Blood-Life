@@ -10,6 +10,7 @@ export async function GET(req: NextRequest) {
     const division = searchParams.get("division");
     const district = searchParams.get("district");
     const urgency = searchParams.get("urgency");
+    const requesterId = searchParams.get("requesterId");
     const status = searchParams.get("status") || "pending";
     const cursor = searchParams.get("cursor") || undefined;
     const limit = Number(searchParams.get("limit")) || 12;
@@ -17,6 +18,10 @@ export async function GET(req: NextRequest) {
     await connectDB();
 
     const filter: Record<string, unknown> = {};
+
+    if (requesterId) {
+      filter.requesterId = requesterId;
+    }
 
     if (status !== "all") {
       filter.status = status;

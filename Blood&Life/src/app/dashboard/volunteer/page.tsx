@@ -63,13 +63,43 @@ const SAMPLE_PENDING_CASES: PendingCase[] = [
 
 export default function VolunteerTriageStation() {
   const { language } = useLanguage();
-  const [cases, setCases] = useState<PendingCase[]>(SAMPLE_PENDING_CASES);
-  const [selectedCaseId, setSelectedCaseId] = useState<string>(SAMPLE_PENDING_CASES[0]?.id || "");
+  const [cases, setCases] = useState<PendingCase[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedCaseId, setSelectedCaseId] = useState<string>("");
   const [zoomLevel, setZoomLevel] = useState<number>(1);
   const [actionLoading, setActionLoading] = useState(false);
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    fetch("/api/requests/search?status=pending&limit=50")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.requests && data.requests.length > 0) {
+          const mapped: PendingCase[] = data.requests.map((r: any) => ({
+            id: r._id,
+            patientName: r.recipientName,
+            bloodGroup: r.bloodGroup,
+            units: r.unitsNeeded,
+            hospital: r.hospital,
+            district: r.district,
+            urgency: r.urgency,
+            requesterName: r.requesterName,
+            requesterPhone: r.requesterPhone || "N/A",
+            createdAt: r.createdAt ? new Date(r.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "Recently",
+            prescriptionUrl: r.prescriptionUrl || "https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?auto=format&fit=crop&w=1000&q=80",
+            doctorNotes: r.message || r.medicalReason || "Emergency surgical requisition.",
+          }));
+          setCases(mapped);
+          setSelectedCaseId(mapped[0]?.id || "");
+        } else {
+          setCases([]);
+        }
+      })
+      .catch((err) => console.error("Error loading triage queue:", err))
+      .finally(() => setLoading(false));
+  }, []);
 
   const activeCase = cases.find((c) => c.id === selectedCaseId) || cases[0];
 

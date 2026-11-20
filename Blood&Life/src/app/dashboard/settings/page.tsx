@@ -12,11 +12,50 @@ export default function DashboardSettingsPage() {
   const [division, setDivision] = useState("Dhaka");
   const [district, setDistrict] = useState("Dhaka");
   const [saved, setSaved] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSave = (e: React.FormEvent) => {
+  React.useEffect(() => {
+    fetch("/api/users/profile")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.user) {
+          if (d.user.division) setDivision(d.user.division);
+          if (d.user.district) setDistrict(d.user.district);
+          if (d.user.privacy) {
+            setHidePhone(d.user.privacy.hidePhoneNumber ?? true);
+            setNotifyOnView(d.user.privacy.notifyOnProfileView ?? true);
+          }
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/users/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          division,
+          district,
+          hidePhoneNumber: hidePhone,
+          notifyOnProfileView: notifyOnView,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to update settings");
+
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3500);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -136,11 +175,24 @@ export default function DashboardSettingsPage() {
           </div>
         </div>
 
+        {error && (
+          <div className="p-3.5 rounded-xl bg-red-500/15 border border-red-500/30 text-red-500 text-xs font-bold">
+            {error}
+          </div>
+        )}
+
         <button
           type="submit"
-          className="btn-emergency !py-2.5 !px-6 text-xs font-bold"
+          disabled={loading}
+          className="btn-emergency !py-2.5 !px-6 text-xs font-bold disabled:opacity-50"
         >
-          {language === "bn" ? "পরিবর্তনগুলো সংরক্ষণ করুন" : "Save Preferences"}
+          {loading
+            ? language === "bn"
+              ? "সংরক্ষণ হচ্ছে..."
+              : "Saving..."
+            : language === "bn"
+            ? "পরিবর্তনগুলো সংরক্ষণ করুন"
+            : "Save Preferences"}
         </button>
       </form>
     </div>
