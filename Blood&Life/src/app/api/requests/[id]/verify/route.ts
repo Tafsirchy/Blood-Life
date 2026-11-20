@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectToDatabase } from "@/lib/db";
+import { connectDB } from "@/lib/db";
 import { DonationRequest } from "@/models/DonationRequest";
-import { getSession } from "@/lib/auth/session";
+import { getValidatedSession } from "@/lib/auth/session";
 import { dispatchVerificationAlerts } from "@/lib/notifications/dispatcher";
+import { isValidObjectId } from "@/lib/security/validators";
+import { sanitizeText } from "@/lib/security/sanitize";
 
 export async function POST(
   req: NextRequest,
@@ -10,18 +12,22 @@ export async function POST(
 ) {
   try {
     const { id } = await context.params;
+    if (!isValidObjectId(id)) {
+      return NextResponse.json({ error: "Invalid request ID format" }, { status: 400 });
+    }
+
     const body = await req.json();
     const { action, rejectReason } = body; // action: 'VERIFY' | 'REJECT'
 
-    const session = await getSession();
+    const session = await getValidatedSession();
     if (!session || (session.role !== "Volunteer" && session.role !== "Admin")) {
       return NextResponse.json(
-        { error: "Unauthorized. Volunteer or Admin role required." },
+        { error: "Unauthorized. Active Volunteer or Admin role required." },
         { status: 403 }
       );
     }
 
-    await connectToDatabase();
+    await connectDB();
     const request = await DonationRequest.findById(id);
 
     if (!request) {
@@ -45,15 +51,16 @@ export async function POST(
         request,
       });
     } else if (action === "REJECT") {
+      const sanitizedReason = rejectReason ? sanitizeText(rejectReason, 200) : "Invalid prescription";
       request.status = "canceled";
-      request.message = `${request.message || ""} [Rejected by Volunteer: ${rejectReason || "Invalid prescription"}]`;
+      request.message = `${request.message || ""} [Rejected by Volunteer: ${sanitizedReason}]`;
       await request.save();
 
       dispatchVerificationAlerts({
         requestId: String(request._id),
         requesterId: request.requesterId,
         action: "REJECT",
-        rejectReason,
+        rejectReason: sanitizedReason,
       }).catch((e) => console.error("Verification alert error:", e));
 
       return NextResponse.json({

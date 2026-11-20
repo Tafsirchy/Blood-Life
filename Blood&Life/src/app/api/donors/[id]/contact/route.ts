@@ -4,6 +4,7 @@ import { connectDB } from "@/lib/db";
 import { User } from "@/models/User";
 import { Notification } from "@/models/Notification";
 import { revealDonorContact, maskPhoneNumber } from "@/lib/security/privacyShield";
+import { isValidObjectId } from "@/lib/security/validators";
 
 export async function GET(
   req: NextRequest,
@@ -11,6 +12,10 @@ export async function GET(
 ) {
   try {
     const { id: donorId } = await params;
+    if (!isValidObjectId(donorId)) {
+      return NextResponse.json({ error: "Invalid donor ID format" }, { status: 400 });
+    }
+
     await connectDB();
 
     const donor = await User.findById(donorId).lean();

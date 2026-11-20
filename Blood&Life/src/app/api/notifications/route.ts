@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
 import { Notification } from "@/models/Notification";
 import { getServerSession } from "@/lib/auth/session";
+import { isValidObjectId } from "@/lib/security/validators";
 
 export async function GET(req: NextRequest) {
   try {
@@ -63,6 +64,9 @@ export async function PATCH(req: NextRequest) {
     }
 
     if (id) {
+      if (!isValidObjectId(id)) {
+        return NextResponse.json({ error: "Invalid notification ID format" }, { status: 400 });
+      }
       const updated = await Notification.findOneAndUpdate(
         { _id: id, recipientId: session.userId },
         { $set: { isRead: true } },

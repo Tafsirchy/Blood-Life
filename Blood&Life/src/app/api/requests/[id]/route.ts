@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/db";
 import { DonationRequest } from "@/models/DonationRequest";
 import { getServerSession, getValidatedSession } from "@/lib/auth/session";
 import { sanitizeText } from "@/lib/security/sanitize";
+import { isValidObjectId } from "@/lib/security/validators";
 
 export async function GET(
   req: NextRequest,
@@ -10,6 +11,10 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+    if (!isValidObjectId(id)) {
+      return NextResponse.json({ error: "Invalid request ID format" }, { status: 400 });
+    }
+
     await connectDB();
 
     const request = await DonationRequest.findById(id).lean();
@@ -61,6 +66,10 @@ export async function PATCH(
     }
 
     const { id } = await params;
+    if (!isValidObjectId(id)) {
+      return NextResponse.json({ error: "Invalid request ID format" }, { status: 400 });
+    }
+
     const body = await req.json();
     await connectDB();
 

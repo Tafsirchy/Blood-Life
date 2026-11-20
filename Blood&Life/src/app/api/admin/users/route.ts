@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/db";
 import { User } from "@/models/User";
 import { AuditLog } from "@/models/AuditLog";
 import { getServerSession } from "@/lib/auth/session";
+import { isValidObjectId } from "@/lib/security/validators";
 
 export async function GET() {
   try {
@@ -35,8 +36,8 @@ export async function PATCH(req: NextRequest) {
     const body = await req.json();
     const { userId, role, status } = body;
 
-    if (!userId) {
-      return NextResponse.json({ error: "userId is required" }, { status: 400 });
+    if (!userId || !isValidObjectId(userId)) {
+      return NextResponse.json({ error: "A valid userId ObjectId is required" }, { status: 400 });
     }
 
     await connectDB();

@@ -25,6 +25,42 @@ export async function middleware(request: NextRequest) {
     "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:;"
   );
 
+  // Payload Size Limiter (2MB threshold to prevent memory exhaustion / DoS)
+  const contentLength = request.headers.get("content-length");
+  if (contentLength && parseInt(contentLength, 10) > 2 * 1024 * 1024) {
+    return new NextResponse(
+      JSON.stringify({ error: "Payload too large: maximum request body is 2MB" }),
+      { status: 413, headers: { "Content-Type": "application/json" } }
+    );
+  }
+
+  // Cross-Origin Mutation Guard (CSRF Defense-in-depth on state-changing API endpoints)
+  if (
+    pathname.startsWith("/api/") &&
+    ["POST", "PATCH", "DELETE", "PUT"].includes(request.method) &&
+    !pathname.startsWith("/api/cron/")
+  ) {
+    const origin = request.headers.get("origin");
+    const host = request.headers.get("host");
+
+    if (origin && host) {
+      try {
+        const originHost = new URL(origin).host;
+        if (originHost !== host) {
+          return new NextResponse(
+            JSON.stringify({ error: "Forbidden: Cross-origin request blocked" }),
+            { status: 403, headers: { "Content-Type": "application/json" } }
+          );
+        }
+      } catch {
+        return new NextResponse(
+          JSON.stringify({ error: "Forbidden: Invalid request origin" }),
+          { status: 403, headers: { "Content-Type": "application/json" } }
+        );
+      }
+    }
+  }
+
   // Protected Dashboard Routes
   if (pathname.startsWith("/dashboard")) {
     const token = request.cookies.get(SESSION_COOKIE_NAME)?.value;

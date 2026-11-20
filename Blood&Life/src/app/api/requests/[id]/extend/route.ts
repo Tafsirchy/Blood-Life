@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
 import { DonationRequest } from "@/models/DonationRequest";
 import { getValidatedSession } from "@/lib/auth/session";
+import { isValidObjectId } from "@/lib/security/validators";
 
 /**
  * Patient Requisition Deadline Extension
@@ -18,6 +19,10 @@ export async function POST(
     }
 
     const { id: requestId } = await params;
+    if (!isValidObjectId(requestId)) {
+      return NextResponse.json({ error: "Invalid request ID format" }, { status: 400 });
+    }
+
     const body = await req.json();
     const additionalHours = Number(body.additionalHours) || 2; // Default 2 hours
 

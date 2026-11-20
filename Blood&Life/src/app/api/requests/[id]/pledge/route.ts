@@ -5,6 +5,7 @@ import { User } from "@/models/User";
 import { getValidatedSession } from "@/lib/auth/session";
 import { dispatchPledgeAlerts } from "@/lib/notifications/dispatcher";
 import { checkRateLimit } from "@/lib/security/rateLimiter";
+import { isValidObjectId } from "@/lib/security/validators";
 
 export async function POST(
   req: NextRequest,
@@ -32,6 +33,10 @@ export async function POST(
     }
 
     const { id: requestId } = await params;
+    if (!isValidObjectId(requestId)) {
+      return NextResponse.json({ error: "Invalid request ID format" }, { status: 400 });
+    }
+
     await connectDB();
 
     const [donationCase, donor] = await Promise.all([
