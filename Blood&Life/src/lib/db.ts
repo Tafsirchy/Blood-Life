@@ -28,6 +28,13 @@ if (!global.mongooseCache) {
 }
 
 export async function connectDB(): Promise<typeof mongoose> {
+  try {
+    dns.setDefaultResultOrder?.("ipv4first");
+    dns.setServers(["8.8.8.8", "1.1.1.1"]);
+  } catch (err) {
+    // Edge runtime fallback
+  }
+
   if (cached.conn) {
     return cached.conn;
   }
