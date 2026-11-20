@@ -1,0 +1,136 @@
+@import "tailwindcss";
+
+:root {
+  --color-brand-red: #dc2626;
+  --color-brand-red-light: #ef4444;
+  --color-brand-emerald: #059669;
+  --color-brand-amber: #d97706;
+
+  /* Clinical Light Mode */
+  --bg-main: #f8fafc;
+  --bg-surface: #ffffff;
+  --surface-card: #ffffff;
+  --border-subtle: #e2e8f0;
+  --border-strong: #cbd5e1;
+
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+}
+
+.dark {
+  /* High-Contrast Clinical Dark Mode (Obsidian) */
+  --bg-main: #070b13;
+  --bg-surface: #0b111e;
+  --surface-card: #0f172a;
+  --border-subtle: #1e293b;
+  --border-strong: #334155;
+
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--bg-main);
+  color: var(--text-primary);
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-main);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-brand-red);
+}
+
+/* Soothing Clinical UI Utilities */
+.card-clinical {
+  background-color: var(--bg-surface);
+  border-radius: 1rem;
+  border: 1px solid var(--border-subtle);
+  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.05), 0 1px 2px -1px rgba(15, 23, 42, 0.03);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.card-clinical:hover {
+  border-color: var(--border-strong);
+  box-shadow: 0 6px 16px -2px rgba(15, 23, 42, 0.07), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
+}
+
+.badge-blood {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  background-color: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+.dark .badge-blood {
+  background-color: rgba(153, 27, 27, 0.25);
+  color: #fca5a5;
+  border-color: rgba(239, 68, 68, 0.35);
+}
+
+/* Emergency Clinical Button Accents */
+.btn-emergency {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 0.75rem;
+  font-weight: 700;
+  font-size: 0.875rem;
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(220, 38, 38, 0.25);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.btn-emergency:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(220, 38, 38, 0.35);
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+}
+.btn-emergency:active {
+  transform: translateY(0);
+}
+
+/* Emergency Live Pulse Marquee Animation */
+@keyframes ribbonMarquee {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.animate-ribbon-marquee {
+  display: flex;
+  width: max-content;
+  animation: ribbonMarquee 32s linear infinite;
+  will-change: transform;
+}
+
+.animate-ribbon-marquee:hover {
+  animation-play-state: paused;
+}
+

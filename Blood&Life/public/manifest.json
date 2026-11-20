@@ -1,0 +1,23 @@
+{
+  "name": "BLOOD&LIFE (ব্লাড অ্যান্ড লাইফ) — National Emergency Blood Dispatch",
+  "short_name": "BLOOD&LIFE",
+  "description": "Zero-cost digital blood donation and emergency life-saving network across all 64 districts in Bangladesh.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#090D16",
+  "theme_color": "#dc2626",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "2172x724",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    }
+  ],
+  "categories": ["medical", "health", "social", "emergency"]
+}
