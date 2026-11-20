@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "@/lib/auth/session";
+import { getValidatedSession } from "@/lib/auth/session";
 import { connectDB } from "@/lib/db";
 import { User } from "@/models/User";
 import { Notification } from "@/models/Notification";
@@ -18,9 +18,9 @@ export async function GET(
       return NextResponse.json({ error: "Donor record not found" }, { status: 404 });
     }
 
-    const session = await getServerSession();
+    const session = await getValidatedSession();
 
-    // If unauthenticated, return masked phone without revealing
+    // If unauthenticated or suspended, return masked phone without revealing
     if (!session) {
       return NextResponse.json({
         donorId,

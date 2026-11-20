@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
 import { DonationRequest } from "@/models/DonationRequest";
-import { getServerSession } from "@/lib/auth/session";
+import { getValidatedSession } from "@/lib/auth/session";
 
 /**
  * Patient Requisition Deadline Extension
@@ -12,9 +12,9 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession();
+    const session = await getValidatedSession();
     if (!session) {
-      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+      return NextResponse.json({ error: "Authentication with an active account required" }, { status: 401 });
     }
 
     const { id: requestId } = await params;

@@ -2,17 +2,33 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
 import { DonationRequest } from "@/models/DonationRequest";
 import { User } from "@/models/User";
-import { getServerSession } from "@/lib/auth/session";
+import { getValidatedSession } from "@/lib/auth/session";
 import { dispatchPledgeAlerts } from "@/lib/notifications/dispatcher";
+import { checkRateLimit } from "@/lib/security/rateLimiter";
 
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession();
+    const session = await getValidatedSession();
     if (!session) {
-      return NextResponse.json({ error: "Please log in to pledge a donation" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Please log in with an active account to pledge a donation" },
+        { status: 401 }
+      );
+    }
+
+    // Rate Limiting: 8 pledges per 5 minutes per donor
+    const pledgeLimit = await checkRateLimit(`pledge-donor:${session.userId}`, 8, 300);
+    if (!pledgeLimit.success) {
+      return NextResponse.json(
+        { error: "Too many pledge attempts. Please wait a few moments before trying again." },
+        {
+          status: 429,
+          headers: { "Retry-After": String(Math.max(1, Math.ceil(pledgeLimit.resetMs / 1000))) },
+        }
+      );
     }
 
     const { id: requestId } = await params;

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
 import { DonationRequest } from "@/models/DonationRequest";
-import { getServerSession } from "@/lib/auth/session";
+import { getServerSession, getValidatedSession } from "@/lib/auth/session";
+import { sanitizeText } from "@/lib/security/sanitize";
 
 export async function GET(
   req: NextRequest,
@@ -54,9 +55,9 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession();
+    const session = await getValidatedSession();
     if (!session) {
-      return NextResponse.json({ error: "Please sign in" }, { status: 401 });
+      return NextResponse.json({ error: "Please sign in with an active account" }, { status: 401 });
     }
 
     const { id } = await params;
@@ -94,8 +95,8 @@ export async function PATCH(
       request.status = body.status;
     }
 
-    if (body.message) {
-      request.message = body.message;
+    if (body.message !== undefined) {
+      request.message = sanitizeText(body.message, 1000);
     }
 
     await request.save();
