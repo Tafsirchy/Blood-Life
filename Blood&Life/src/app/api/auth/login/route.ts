@@ -3,22 +3,23 @@ import { connectDB } from "@/lib/db";
 import { User } from "@/models/User";
 import { signSessionJWT } from "@/lib/auth/jwt";
 import { SESSION_COOKIE_NAME } from "@/lib/auth/session";
+import bcrypt from "bcryptjs";
 import { z } from "zod";
 
 const loginSchema = z.object({
   email: z.string().email(),
-  password: z.string().min(1),
+  password: z.string().min(1, "Password is required"),
 });
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { email } = loginSchema.parse(body);
+    const { email, password } = loginSchema.parse(body);
 
     await connectDB();
 
-    const user = await User.findOne({ email: email.toLowerCase() });
-    if (!user) {
+    const user = await User.findOne({ email: email.toLowerCase() }).select("+password");
+    if (!user || !user.password) {
       return NextResponse.json(
         { error: "Invalid email or credentials" },
         { status: 401 }
@@ -29,6 +30,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { error: "Your account has been suspended. Contact support." },
         { status: 403 }
+      );
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return NextResponse.json(
+        { error: "Invalid email or credentials" },
+        { status: 401 }
       );
     }
 

@@ -114,25 +114,35 @@ export async function POST(req: NextRequest) {
       eligibilityNotes,
     });
 
-    // Also upsert/update User record so they appear in donor searches if blood group is known
+    // Safely update or create User record without overwriting roles or passwords
     if (validated.bloodGroup !== "Unknown") {
-      await User.findOneAndUpdate(
-        { email: validated.email },
-        {
+      const existingUser = await User.findOne({ email: validated.email.toLowerCase() });
+      if (existingUser) {
+        // Clinical update: do NOT overwrite role, password, status, or phone
+        existingUser.isAvailable = eligibilityStatus === "eligible";
+        if (cooldownDate) {
+          existingUser.cooldownUntil = cooldownDate;
+        }
+        if (validated.lastDonationDate) {
+          existingUser.lastDonationDate = new Date(validated.lastDonationDate);
+        }
+        await existingUser.save();
+      } else {
+        await User.create({
           name: validated.fullName,
-          email: validated.email,
+          email: validated.email.toLowerCase(),
           phone: validated.phone,
           bloodGroup: validated.bloodGroup,
           division: validated.division,
           district: validated.district,
           upazila: validated.upazila,
           role: "Donor",
+          status: "Active",
           isAvailable: eligibilityStatus === "eligible",
           cooldownUntil: cooldownDate || undefined,
           lastDonationDate: validated.lastDonationDate ? new Date(validated.lastDonationDate) : undefined,
-        },
-        { upsert: true, new: true, setDefaultsOnInsert: true }
-      );
+        });
+      }
     }
 
     return NextResponse.json({

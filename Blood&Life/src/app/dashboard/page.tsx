@@ -15,6 +15,27 @@ export default function DashboardPage() {
   const { language } = useLanguage();
   const [activeTab, setActiveTab] = useState<RoleTab>("donor");
   const [isSosOpen, setIsSosOpen] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    fetch("/api/auth/me")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.authenticated && data.user) {
+          const role = data.user.role;
+          setUserRole(role);
+          if (role === "Admin") {
+            setActiveTab("admin");
+          } else if (role === "Volunteer") {
+            setActiveTab("volunteer");
+          }
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const isVolunteerOrAdmin = userRole === "Volunteer" || userRole === "Admin";
+  const isAdmin = userRole === "Admin";
 
   return (
     <div className="space-y-6">
@@ -56,37 +77,41 @@ export default function DashboardPage() {
             <span>{language === "bn" ? "রোগী/স্বজন" : "Requester"}</span>
           </button>
 
-          <button
-            onClick={() => setActiveTab("volunteer")}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-              activeTab === "volunteer"
-                ? "bg-emerald-600 text-white shadow-sm"
-                : "text-[var(--text-secondary)] hover:text-emerald-500"
-            }`}
-          >
-            <ShieldCheck size={13} />
-            <span>{language === "bn" ? "ভলান্টিয়ার" : "Volunteer"}</span>
-          </button>
+          {isVolunteerOrAdmin && (
+            <button
+              onClick={() => setActiveTab("volunteer")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                activeTab === "volunteer"
+                  ? "bg-emerald-600 text-white shadow-sm"
+                  : "text-[var(--text-secondary)] hover:text-emerald-500"
+              }`}
+            >
+              <ShieldCheck size={13} />
+              <span>{language === "bn" ? "ভলান্টিয়ার" : "Volunteer"}</span>
+            </button>
+          )}
 
-          <button
-            onClick={() => setActiveTab("admin")}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-              activeTab === "admin"
-                ? "bg-zinc-800 text-white shadow-sm"
-                : "text-[var(--text-secondary)] hover:text-zinc-400"
-            }`}
-          >
-            <ShieldAlert size={13} />
-            <span>{language === "bn" ? "এডমিন" : "Admin"}</span>
-          </button>
+          {isAdmin && (
+            <button
+              onClick={() => setActiveTab("admin")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                activeTab === "admin"
+                  ? "bg-zinc-800 text-white shadow-sm"
+                  : "text-[var(--text-secondary)] hover:text-zinc-400"
+              }`}
+            >
+              <ShieldAlert size={13} />
+              <span>{language === "bn" ? "এডমিন" : "Admin"}</span>
+            </button>
+          )}
         </div>
       </div>
 
       {/* Render Active Role Cockpit */}
       {activeTab === "donor" && <DonorCockpit />}
       {activeTab === "requester" && <RequesterCockpit onOpenSos={() => setIsSosOpen(true)} />}
-      {activeTab === "volunteer" && <VolunteerCockpit />}
-      {activeTab === "admin" && <AdminCommandCenter />}
+      {activeTab === "volunteer" && isVolunteerOrAdmin && <VolunteerCockpit />}
+      {activeTab === "admin" && isAdmin && <AdminCommandCenter />}
 
       {/* SOS Modal */}
       <SosBroadcastModal

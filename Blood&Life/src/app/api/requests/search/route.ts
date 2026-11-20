@@ -55,8 +55,39 @@ export async function GET(req: NextRequest) {
       sortOrder: -1,
     });
 
+    // Anti-Scraping Privacy Shield: sanitize patient/requester contact details
+    const sanitizedRequests = result.data.map((item: any) => ({
+      _id: item._id,
+      recipientName: item.recipientName,
+      bloodGroup: item.bloodGroup,
+      unitsNeeded: item.unitsNeeded,
+      urgency: item.urgency,
+      hospital: item.hospital,
+      division: item.division,
+      district: item.district,
+      upazila: item.upazila,
+      scheduledDate: item.scheduledDate,
+      scheduledTime: item.scheduledTime,
+      medicalReason: item.medicalReason,
+      bloodComponent: item.bloodComponent,
+      message: item.message,
+      prescriptionUrl: item.prescriptionUrl,
+      isVerifiedGenuine: item.isVerifiedGenuine,
+      verifiedBy: item.verifiedBy,
+      status: item.status,
+      expiresAt: item.expiresAt,
+      fulfilledUnits: item.fulfilledUnits,
+      pledgedUnits: item.pledgedUnits,
+      requesterName: item.requesterName,
+      requesterPhone: item.requesterPhone
+        ? item.requesterPhone.slice(0, 4) + "•••" + item.requesterPhone.slice(-3)
+        : "",
+      assignedDonorName: item.assignedDonorName,
+      createdAt: item.createdAt,
+    }));
+
     return NextResponse.json({
-      requests: result.data,
+      requests: sanitizedRequests,
       nextCursor: result.nextCursor,
       hasMore: result.hasMore,
     });

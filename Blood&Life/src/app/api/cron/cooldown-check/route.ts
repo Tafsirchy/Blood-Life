@@ -5,12 +5,15 @@ import { sendTransactionalEmail } from "@/lib/notifications/email";
 
 export async function GET(req: NextRequest) {
   try {
-    // Secret verification for cron safety
+    // Fail-Closed Cron Authorization
     const authHeader = req.headers.get("authorization");
     const cronSecret = process.env.CRON_SECRET;
 
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-      return NextResponse.json({ error: "Unauthorized cron call" }, { status: 401 });
+    if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+      return NextResponse.json(
+        { error: "Unauthorized: Invalid or missing cron secret" },
+        { status: 401 }
+      );
     }
 
     await connectToDatabase();
