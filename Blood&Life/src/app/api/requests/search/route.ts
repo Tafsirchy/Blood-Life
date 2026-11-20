@@ -32,8 +32,8 @@ export async function GET(req: NextRequest) {
           { expiresAt: { $gt: new Date() } },
         ];
       }
-    } else {
-      // Exclude expired by default from general live queries
+    } else if (!requesterId) {
+      // Only exclude expired from general public live feeds; allow requesters to view their complete history
       filter.status = { $ne: "expired" };
     }
 

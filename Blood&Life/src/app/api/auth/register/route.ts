@@ -41,8 +41,8 @@ export async function POST(req: NextRequest) {
 
     await connectDB();
 
-    const existingUser = await User.findOne({ email: validated.email.toLowerCase() });
-    if (existingUser) {
+    const existingUser = await User.findOne({ email: validated.email.toLowerCase() }).select("+password");
+    if (existingUser && existingUser.password) {
       return NextResponse.json(
         { error: "An account with this email already exists" },
         { status: 409 }
@@ -56,41 +56,58 @@ export async function POST(req: NextRequest) {
     const hashedVerificationToken = crypto.createHash("sha256").update(rawVerificationToken).digest("hex");
     const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
-    const newUser = await User.create({
-      name: validated.name,
-      email: validated.email.toLowerCase(),
-      password: hashedPassword,
-      phone: validated.phone,
-      bloodGroup: validated.bloodGroup,
-      division: validated.division,
-      district: validated.district,
-      upazila: validated.upazila,
-      role: "Donor",
-      status: "Active",
-      isAvailable: true,
-      totalDonations: 0,
-      privacy: {
-        hidePhoneNumber: true,
-        requireApprovalBeforeReveal: false,
-        notifyOnProfileView: true,
-      },
-      isEmailVerified: false,
-      emailVerificationToken: hashedVerificationToken,
-      emailVerificationExpires: verificationExpires,
-      emailNotifications: true,
-      tokenVersion: 0,
-    });
+    let userDoc;
+    if (existingUser) {
+      // Claim pre-existing intake record created without a password
+      existingUser.name = validated.name;
+      existingUser.password = hashedPassword;
+      existingUser.phone = validated.phone;
+      existingUser.bloodGroup = validated.bloodGroup;
+      existingUser.division = validated.division;
+      existingUser.district = validated.district;
+      existingUser.upazila = validated.upazila;
+      existingUser.isEmailVerified = false;
+      existingUser.emailVerificationToken = hashedVerificationToken;
+      existingUser.emailVerificationExpires = verificationExpires;
+      await existingUser.save();
+      userDoc = existingUser;
+    } else {
+      userDoc = await User.create({
+        name: validated.name,
+        email: validated.email.toLowerCase(),
+        password: hashedPassword,
+        phone: validated.phone,
+        bloodGroup: validated.bloodGroup,
+        division: validated.division,
+        district: validated.district,
+        upazila: validated.upazila,
+        role: "Donor",
+        status: "Active",
+        isAvailable: true,
+        totalDonations: 0,
+        privacy: {
+          hidePhoneNumber: true,
+          requireApprovalBeforeReveal: false,
+          notifyOnProfileView: true,
+        },
+        isEmailVerified: false,
+        emailVerificationToken: hashedVerificationToken,
+        emailVerificationExpires: verificationExpires,
+        emailNotifications: true,
+        tokenVersion: 0,
+      });
+    }
 
     // Dispatch Verification Email
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-    const verificationUrl = `${appUrl}/auth/verify-email?token=${rawVerificationToken}&email=${encodeURIComponent(newUser.email)}`;
+    const verificationUrl = `${appUrl}/auth/verify-email?token=${rawVerificationToken}&email=${encodeURIComponent(userDoc.email)}`;
     const emailContent = buildVerificationEmailTemplate({
-      name: newUser.name,
+      name: userDoc.name,
       verificationUrl,
     });
 
     await sendTransactionalEmail({
-      to: newUser.email,
+      to: userDoc.email,
       subject: "✉️ আপনার ইমেইল ভেরিফাই করুন (Verify Your Email) — BLOOD&LIFE",
       html: emailContent.html,
       text: emailContent.text,
@@ -98,12 +115,12 @@ export async function POST(req: NextRequest) {
 
     // Create session JWT
     const token = await signSessionJWT({
-      userId: String(newUser._id),
-      email: newUser.email,
-      name: newUser.name,
-      role: newUser.role,
-      bloodGroup: newUser.bloodGroup,
-      district: newUser.district,
+      userId: String(userDoc._id),
+      email: userDoc.email,
+      name: userDoc.name,
+      role: userDoc.role,
+      bloodGroup: userDoc.bloodGroup,
+      district: userDoc.district,
       isEmailVerified: false,
       tokenVersion: 0,
     });
@@ -113,11 +130,11 @@ export async function POST(req: NextRequest) {
       requiresVerification: true,
       message: "Account created! A verification link has been sent to your email.",
       user: {
-        id: newUser._id,
-        name: newUser.name,
-        email: newUser.email,
-        role: newUser.role,
-        bloodGroup: newUser.bloodGroup,
+        id: userDoc._id,
+        name: userDoc.name,
+        email: userDoc.email,
+        role: userDoc.role,
+        bloodGroup: userDoc.bloodGroup,
         isEmailVerified: false,
       },
     });

@@ -80,7 +80,18 @@ export async function PATCH(
     }
 
     if (body.status) {
-      request.status = body.status; // e.g. "canceled" | "done"
+      const ALLOWED_STATUSES = ["pending", "inprogress", "done", "canceled", "expired"];
+      if (!ALLOWED_STATUSES.includes(body.status)) {
+        return NextResponse.json({ error: "Invalid status value" }, { status: 400 });
+      }
+      // Requesters can only cancel their own cases; staff can change any status
+      if (!isStaff && body.status !== "canceled") {
+        return NextResponse.json(
+          { error: "Forbidden: Requesters are only permitted to cancel active requests." },
+          { status: 403 }
+        );
+      }
+      request.status = body.status;
     }
 
     if (body.message) {

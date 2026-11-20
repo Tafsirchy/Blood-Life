@@ -28,7 +28,10 @@ interface NotificationItem {
 
 function formatRelativeTime(dateStr: string, language: string): string {
   try {
-    const diffMs = Date.now() - new Date(dateStr).getTime();
+    if (!dateStr) return language === "bn" ? "এইমাত্র" : "Just now";
+    const parsedTime = new Date(dateStr).getTime();
+    if (isNaN(parsedTime)) return language === "bn" ? "এইমাত্র" : "Just now";
+    const diffMs = Date.now() - parsedTime;
     const diffSec = Math.floor(diffMs / 1000);
     const diffMin = Math.floor(diffSec / 60);
     const diffHour = Math.floor(diffMin / 60);
@@ -46,7 +49,7 @@ function formatRelativeTime(dateStr: string, language: string): string {
       return `${diffDay}d ago`;
     }
   } catch {
-    return "";
+    return language === "bn" ? "এইমাত্র" : "Just now";
   }
 }
 

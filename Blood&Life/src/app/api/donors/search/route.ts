@@ -18,6 +18,10 @@ export async function GET(req: NextRequest) {
     const filter: Record<string, unknown> = {
       status: "Active",
       isAvailable: true,
+      $or: [
+        { cooldownUntil: { $exists: false } },
+        { cooldownUntil: { $lte: new Date() } },
+      ],
     };
 
     if (bloodGroup && bloodGroup !== "all") {

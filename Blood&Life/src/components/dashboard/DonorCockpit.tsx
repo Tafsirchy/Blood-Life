@@ -214,7 +214,20 @@ export function DonorCockpit() {
         </div>
 
         <div className="space-y-3">
-          {SAMPLE_DONATIONS.map((item) => (
+          {(!userProfile?.totalDonations || userProfile.totalDonations === 0) ? (
+            <div className="p-8 text-center rounded-xl bg-[var(--bg-main)] border border-[var(--border-subtle)] space-y-2">
+              <Award size={32} className="text-[var(--text-muted)] mx-auto opacity-40" />
+              <h4 className="text-xs font-bold text-[var(--text-primary)]">
+                {language === "bn" ? "এখনও কোনো রক্তদান সম্পন্ন হয়নি" : "No Completed Donations Yet"}
+              </h4>
+              <p className="text-[11px] text-[var(--text-muted)] max-w-sm mx-auto">
+                {language === "bn"
+                  ? "জরুরী রক্তদান সম্পন্ন করার পর এখানে আপনার ভেরিফাইড সার্টিফিকেট যুক্ত হবে।"
+                  : "Official vector appreciation certificates will appear here after your first completed transfusion."}
+              </p>
+            </div>
+          ) : (
+            SAMPLE_DONATIONS.map((item) => (
             <div
               key={item.id}
               className="p-4 rounded-xl bg-[var(--bg-main)] border border-[var(--border-subtle)] flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-red-500/40 transition-colors"
@@ -248,7 +261,7 @@ export function DonorCockpit() {
                 <span>{language === "bn" ? "সার্টিফিকেট দেখুন" : "View Certificate"}</span>
               </button>
             </div>
-          ))}
+          )))}
         </div>
       </div>
 
