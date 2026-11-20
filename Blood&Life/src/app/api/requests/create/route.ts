@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
 import { DonationRequest } from "@/models/DonationRequest";
 import { getServerSession } from "@/lib/auth/session";
+import { dispatchEmergencyRequestAlerts } from "@/lib/notifications/dispatcher";
 import { z } from "zod";
 
 const requestCreateSchema = z.object({
@@ -76,6 +77,18 @@ export async function POST(req: NextRequest) {
       requesterEmail: session.email,
       requesterPhone: validated.requesterPhone,
     });
+
+    // Fire non-blocking multi-channel alert dispatch (In-App, Push, Telegram)
+    dispatchEmergencyRequestAlerts({
+      requestId: String(newRequest._id),
+      recipientName: newRequest.recipientName,
+      bloodGroup: newRequest.bloodGroup,
+      unitsNeeded: newRequest.unitsNeeded,
+      hospital: newRequest.hospital,
+      district: newRequest.district,
+      urgency: newRequest.urgency,
+      requesterId: session.userId,
+    }).catch((e) => console.error("Async emergency alert error:", e));
 
     return NextResponse.json({
       success: true,

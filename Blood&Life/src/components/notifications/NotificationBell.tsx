@@ -1,84 +1,128 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useLanguage } from "@/lib/i18n/context";
-import { Bell, ShieldCheck, Heart, AlertCircle, CheckCircle2, X } from "lucide-react";
+import {
+  Bell,
+  ShieldCheck,
+  Heart,
+  AlertCircle,
+  CheckCircle2,
+  Droplet,
+  Lock,
+  Info,
+} from "lucide-react";
 import Link from "next/link";
 
 interface NotificationItem {
   id: string;
-  type: "MATCH" | "VERIFIED" | "COOLDOWN";
+  category: "MATCH" | "VERIFIED" | "PLEDGE" | "COOLDOWN" | "SECURITY" | "SYSTEM";
   titleEn: string;
   titleBn: string;
   messageEn: string;
   messageBn: string;
-  timeAgoEn: string;
-  timeAgoBn: string;
-  read: boolean;
   link: string;
+  isRead: boolean;
+  createdAt: string;
 }
 
-const INITIAL_NOTIFICATIONS: NotificationItem[] = [
-  {
-    id: "notif-1",
-    type: "MATCH",
-    titleEn: "Urgent O- Transfusion Request",
-    titleBn: "জরুরী O- রক্তের আবেদন",
-    messageEn: "Dhaka Medical College ICU needs 2 units of O- blood.",
-    messageBn: "ঢাকা মেডিকেল কলেজ আইসিইউ-তে ২ ব্যাগ O- রক্ত জরুরী প্রয়োজন।",
-    timeAgoEn: "5 mins ago",
-    timeAgoBn: "৫ মিনিট আগে",
-    read: false,
-    link: "/requests/sample-1",
-  },
-  {
-    id: "notif-2",
-    type: "VERIFIED",
-    titleEn: "Case Verified Genuine",
-    titleBn: "প্রেসক্রিপশন ভেরিফাইড",
-    messageEn: "Volunteer Dr. Rahman approved your request bed ticket.",
-    messageBn: "ভলান্টিয়ার কর্তৃক আপনার আবেদনটি যাচাই ও ভেরিফাইড করা হয়েছে।",
-    timeAgoEn: "1 hour ago",
-    timeAgoBn: "১ ঘণ্টা আগে",
-    read: false,
-    link: "/requests/sample-2",
-  },
-  {
-    id: "notif-3",
-    type: "COOLDOWN",
-    titleEn: "90-Day Cooldown Safe",
-    titleBn: "৯০ দিনের স্বাস্থ্য বিরতি",
-    messageEn: "You are on day 42 of 90. Next eligible date: Dec 14.",
-    messageBn: "আপনার ৯০ দিনের বিরতির ৪২তম দিন চলছে। পরবর্তী রক্তদানের তারিখ: ১৪ ডিসেম্বর।",
-    timeAgoEn: "Yesterday",
-    timeAgoBn: "গতকাল",
-    read: true,
-    link: "/dashboard",
-  },
-];
+function formatRelativeTime(dateStr: string, language: string): string {
+  try {
+    const diffMs = Date.now() - new Date(dateStr).getTime();
+    const diffSec = Math.floor(diffMs / 1000);
+    const diffMin = Math.floor(diffSec / 60);
+    const diffHour = Math.floor(diffMin / 60);
+    const diffDay = Math.floor(diffHour / 24);
+
+    if (language === "bn") {
+      if (diffMin < 1) return "এইমাত্র";
+      if (diffMin < 60) return `${diffMin} মিনিট আগে`;
+      if (diffHour < 24) return `${diffHour} ঘণ্টা আগে`;
+      return `${diffDay} দিন আগে`;
+    } else {
+      if (diffMin < 1) return "Just now";
+      if (diffMin < 60) return `${diffMin}m ago`;
+      if (diffHour < 24) return `${diffHour}h ago`;
+      return `${diffDay}d ago`;
+    }
+  } catch {
+    return "";
+  }
+}
 
 export function NotificationBell() {
   const { language } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
-  const [notifications, setNotifications] = useState<NotificationItem[]>(INITIAL_NOTIFICATIONS);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [unreadCount, setUnreadCount] = useState<number>(0);
+  const [loading, setLoading] = useState<boolean>(false);
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  const fetchNotifications = useCallback(async () => {
+    try {
+      const res = await fetch("/api/notifications");
+      if (!res.ok) return;
+      const data = await res.json();
+      setNotifications(data.notifications || []);
+      setUnreadCount(data.unreadCount || 0);
+    } catch {
+      // Gracefully silent on failure
+    }
+  }, []);
 
-  const markAllAsRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+  useEffect(() => {
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 30000); // 30s poll
+    return () => clearInterval(interval);
+  }, [fetchNotifications]);
+
+  const markAllAsRead = async () => {
+    try {
+      setUnreadCount(0);
+      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+      await fetch("/api/notifications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "markAllRead" }),
+      });
+    } catch {
+      // Revert if error
+      fetchNotifications();
+    }
+  };
+
+  const handleNotificationClick = async (item: NotificationItem) => {
+    setIsOpen(false);
+    if (!item.isRead) {
+      try {
+        setNotifications((prev) =>
+          prev.map((n) => (n.id === item.id ? { ...n, isRead: true } : n))
+        );
+        setUnreadCount((prev) => Math.max(0, prev - 1));
+        await fetch("/api/notifications", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: item.id }),
+        });
+      } catch {
+        // silent
+      }
+    }
   };
 
   return (
     <div className="relative">
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => {
+          setIsOpen(!isOpen);
+          if (!isOpen) fetchNotifications();
+        }}
         className="p-2 rounded-xl border border-[var(--border-subtle)] hover:bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:text-red-500 transition-colors relative"
         aria-label="Notifications"
       >
         <Bell size={18} />
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-600 text-[9px] font-black text-white">
-            {unreadCount}
+          <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-600 text-[9px] font-black text-white animate-pulse">
+            {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
       </button>
@@ -101,57 +145,92 @@ export function NotificationBell() {
             {unreadCount > 0 && (
               <button
                 onClick={markAllAsRead}
-                className="text-[11px] font-bold text-red-500 hover:text-red-600"
+                className="text-[11px] font-bold text-red-500 hover:text-red-600 cursor-pointer"
               >
-                {language === "bn" ? "পড়েছি চিহ্নিত করুন" : "Mark read"}
+                {language === "bn" ? "সবগুলো পড়া হয়েছে" : "Mark all read"}
               </button>
             )}
           </div>
 
           {/* List */}
           <div className="max-h-80 overflow-y-auto divide-y divide-[var(--border-subtle)]">
-            {notifications.map((item) => (
-              <Link
-                key={item.id}
-                href={item.link}
-                onClick={() => setIsOpen(false)}
-                className={`p-3.5 flex items-start gap-3 hover:bg-[var(--bg-main)] transition-colors block ${
-                  !item.read ? "bg-red-500/[0.03]" : ""
-                }`}
-              >
-                <div className="mt-0.5">
-                  {item.type === "MATCH" && (
-                    <div className="w-7 h-7 rounded-lg bg-red-500/15 text-red-500 flex items-center justify-center">
-                      <AlertCircle size={14} />
-                    </div>
-                  )}
-                  {item.type === "VERIFIED" && (
-                    <div className="w-7 h-7 rounded-lg bg-emerald-500/15 text-emerald-500 flex items-center justify-center">
-                      <ShieldCheck size={14} />
-                    </div>
-                  )}
-                  {item.type === "COOLDOWN" && (
-                    <div className="w-7 h-7 rounded-lg bg-blue-500/15 text-blue-500 flex items-center justify-center">
-                      <Heart size={14} />
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2 mb-0.5">
-                    <h5 className="text-xs font-bold text-[var(--text-primary)] truncate">
-                      {language === "bn" ? item.titleBn : item.titleEn}
-                    </h5>
-                    <span className="text-[10px] text-[var(--text-muted)] shrink-0 font-medium">
-                      {language === "bn" ? item.timeAgoBn : item.timeAgoEn}
-                    </span>
+            {notifications.length === 0 ? (
+              <div className="p-8 text-center space-y-2">
+                <CheckCircle2 size={30} className="text-emerald-500/50 mx-auto" />
+                <p className="text-xs font-bold text-[var(--text-primary)]">
+                  {language === "bn" ? "কোন নতুন নোটিফিকেশন নেই" : "No New Notifications"}
+                </p>
+                <p className="text-[11px] text-[var(--text-muted)] max-w-xs mx-auto">
+                  {language === "bn"
+                    ? "জরুরী রক্তের আবেদন বা অঙ্গীকার সম্পর্কিত সকল আপডেট এখানে প্রদর্শিত হবে।"
+                    : "Emergency blood matches, donor pledges, and case updates will appear here."}
+                </p>
+              </div>
+            ) : (
+              notifications.map((item) => (
+                <Link
+                  key={item.id}
+                  href={item.link || "/dashboard"}
+                  onClick={() => handleNotificationClick(item)}
+                  className={`p-3.5 flex items-start gap-3 hover:bg-[var(--bg-main)] transition-colors block ${
+                    !item.isRead ? "bg-red-500/[0.04]" : ""
+                  }`}
+                >
+                  <div className="mt-0.5 shrink-0">
+                    {item.category === "MATCH" && (
+                      <div className="w-7 h-7 rounded-lg bg-red-500/15 text-red-500 flex items-center justify-center">
+                        <Droplet size={14} />
+                      </div>
+                    )}
+                    {item.category === "PLEDGE" && (
+                      <div className="w-7 h-7 rounded-lg bg-emerald-500/15 text-emerald-500 flex items-center justify-center">
+                        <Heart size={14} />
+                      </div>
+                    )}
+                    {item.category === "VERIFIED" && (
+                      <div className="w-7 h-7 rounded-lg bg-blue-500/15 text-blue-500 flex items-center justify-center">
+                        <ShieldCheck size={14} />
+                      </div>
+                    )}
+                    {item.category === "COOLDOWN" && (
+                      <div className="w-7 h-7 rounded-lg bg-purple-500/15 text-purple-500 flex items-center justify-center">
+                        <Heart size={14} />
+                      </div>
+                    )}
+                    {item.category === "SECURITY" && (
+                      <div className="w-7 h-7 rounded-lg bg-amber-500/15 text-amber-500 flex items-center justify-center">
+                        <Lock size={14} />
+                      </div>
+                    )}
+                    {item.category === "SYSTEM" && (
+                      <div className="w-7 h-7 rounded-lg bg-slate-500/15 text-slate-500 flex items-center justify-center">
+                        <Info size={14} />
+                      </div>
+                    )}
                   </div>
-                  <p className="text-xs text-[var(--text-secondary)] line-clamp-2 leading-relaxed">
-                    {language === "bn" ? item.messageBn : item.messageEn}
-                  </p>
-                </div>
-              </Link>
-            ))}
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2 mb-0.5">
+                      <h5
+                        className={`text-xs truncate ${
+                          !item.isRead
+                            ? "font-black text-[var(--text-primary)]"
+                            : "font-semibold text-[var(--text-secondary)]"
+                        }`}
+                      >
+                        {language === "bn" ? item.titleBn : item.titleEn}
+                      </h5>
+                      <span className="text-[10px] text-[var(--text-muted)] shrink-0 font-medium">
+                        {formatRelativeTime(item.createdAt, language)}
+                      </span>
+                    </div>
+                    <p className="text-xs text-[var(--text-secondary)] line-clamp-2 leading-relaxed">
+                      {language === "bn" ? item.messageBn : item.messageEn}
+                    </p>
+                  </div>
+                </Link>
+              ))
+            )}
           </div>
 
           <div className="p-2.5 bg-[var(--bg-main)] border-t border-[var(--border-subtle)] text-center">
@@ -160,7 +239,7 @@ export function NotificationBell() {
               onClick={() => setIsOpen(false)}
               className="text-xs font-bold text-red-500 hover:text-red-400"
             >
-              {language === "bn" ? "সব জরুরী আবেদন দেখুন" : "View Emergency Queue"}
+              {language === "bn" ? "সব জরুরী আবেদন দেখুন →" : "View Emergency Queue →"}
             </Link>
           </div>
         </div>

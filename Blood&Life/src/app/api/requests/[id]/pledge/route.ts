@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/db";
 import { DonationRequest } from "@/models/DonationRequest";
 import { User } from "@/models/User";
 import { getServerSession } from "@/lib/auth/session";
+import { dispatchPledgeAlerts } from "@/lib/notifications/dispatcher";
 
 export async function POST(
   req: NextRequest,
@@ -83,6 +84,16 @@ export async function POST(
     donationCase.assignedDonorId = session.userId;
     donationCase.assignedDonorName = donor.name;
     await donationCase.save();
+
+    // Notify patient relative / requester that a donor pledged blood
+    dispatchPledgeAlerts({
+      requestId: String(donationCase._id),
+      recipientName: donationCase.recipientName,
+      requesterId: donationCase.requesterId,
+      donorName: donor.name,
+      donorBloodGroup: donor.bloodGroup,
+      hospital: donationCase.hospital,
+    }).catch((e) => console.error("Async pledge notification error:", e));
 
     return NextResponse.json({
       success: true,

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/db";
 import { User } from "@/models/User";
+import { Notification } from "@/models/Notification";
 import { sendTransactionalEmail } from "@/lib/notifications/email";
 
 export async function GET(req: NextRequest) {
@@ -46,6 +47,18 @@ export async function GET(req: NextRequest) {
           </div>
         `,
       });
+
+      // Trigger In-App Notification
+      Notification.create({
+        recipientId: String(donor._id),
+        category: "COOLDOWN",
+        titleEn: "🎉 90-Day Medical Cooldown Complete!",
+        titleBn: "🎉 ৯০ দিনের স্বাস্থ্য বিরতি সম্পন্ন হয়েছে!",
+        messageEn: "Your 90-day medical interval has concluded. Your profile is active and eligible for donation.",
+        messageBn: "আপনার ৯০ দিনের স্বাস্থ্য বিরতি সম্পন্ন হয়েছে। রক্তদানে অংশ নিতে আপনার প্রোফাইল সক্রিয় করা হয়েছে।",
+        link: "/dashboard",
+        isRead: false,
+      }).catch((e) => console.error("Cooldown in-app error:", e));
     }
 
     return NextResponse.json({

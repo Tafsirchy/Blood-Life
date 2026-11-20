@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/db";
 import { DonationRequest } from "@/models/DonationRequest";
 import { getSession } from "@/lib/auth/session";
+import { dispatchVerificationAlerts } from "@/lib/notifications/dispatcher";
 
 export async function POST(
   req: NextRequest,
@@ -32,6 +33,12 @@ export async function POST(
       request.verifiedBy = session.name || session.email;
       await request.save();
 
+      dispatchVerificationAlerts({
+        requestId: String(request._id),
+        requesterId: request.requesterId,
+        action: "VERIFY",
+      }).catch((e) => console.error("Verification alert error:", e));
+
       return NextResponse.json({
         success: true,
         message: "Request marked as Verified Genuine.",
@@ -41,6 +48,13 @@ export async function POST(
       request.status = "canceled";
       request.message = `${request.message || ""} [Rejected by Volunteer: ${rejectReason || "Invalid prescription"}]`;
       await request.save();
+
+      dispatchVerificationAlerts({
+        requestId: String(request._id),
+        requesterId: request.requesterId,
+        action: "REJECT",
+        rejectReason,
+      }).catch((e) => console.error("Verification alert error:", e));
 
       return NextResponse.json({
         success: true,

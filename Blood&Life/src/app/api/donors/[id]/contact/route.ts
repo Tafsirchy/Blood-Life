@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "@/lib/auth/session";
 import { connectDB } from "@/lib/db";
 import { User } from "@/models/User";
+import { Notification } from "@/models/Notification";
 import { revealDonorContact, maskPhoneNumber } from "@/lib/security/privacyShield";
 
 export async function GET(
@@ -49,6 +50,19 @@ export async function GET(
         },
         { status: 429 }
       );
+    }
+
+    if (donor.privacy?.notifyOnProfileView) {
+      Notification.create({
+        recipientId: String(donor._id),
+        category: "SECURITY",
+        titleEn: "Contact Number Accessed 🛡️",
+        titleBn: "ফোন নম্বর দেখা হয়েছে 🛡️",
+        messageEn: `A verified user (${session.name || "Requester"}) viewed your contact number for an emergency transfusion inquiry.`,
+        messageBn: `একজন নিবন্ধিত ব্যবহারকারী (${session.name || "রোগীর স্বজন"}) জরুরী রক্তের প্রয়োজনে আপনার ফোন নম্বর সংগ্রহ করেছেন।`,
+        link: "/dashboard/settings",
+        isRead: false,
+      }).catch((e) => console.error("Donor view notif error:", e));
     }
 
     return NextResponse.json({
