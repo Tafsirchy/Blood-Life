@@ -55,6 +55,7 @@ function formatRelativeTime(dateStr: string, language: string): string {
 
 export function NotificationBell() {
   const { language } = useLanguage();
+  const [mounted, setMounted] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState<number>(0);
@@ -73,6 +74,7 @@ export function NotificationBell() {
   }, []);
 
   useEffect(() => {
+    setMounted(true);
     fetchNotifications();
     const interval = setInterval(fetchNotifications, 30000); // 30s poll
     return () => clearInterval(interval);
@@ -123,7 +125,7 @@ export function NotificationBell() {
         aria-label="Notifications"
       >
         <Bell size={18} />
-        {unreadCount > 0 && (
+        {mounted && unreadCount > 0 && (
           <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-600 text-[9px] font-black text-white animate-pulse">
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>

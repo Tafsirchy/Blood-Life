@@ -19,7 +19,15 @@ const requestCreateSchema = z.object({
   medicalReason: z.string().optional(),
   bloodComponent: z.enum(["whole_blood", "prbc", "platelets", "plasma"]).default("whole_blood"),
   message: z.string().optional(),
-  prescriptionUrl: z.string().optional(),
+  prescriptionUrl: z
+    .string()
+    .url("Invalid URL format")
+    .refine(
+      (url) => url.startsWith("https://") || url.startsWith("http://localhost"),
+      "Prescription URL must be secure (HTTPS)"
+    )
+    .optional()
+    .or(z.literal("")),
   requesterPhone: z.string().min(11, "Valid phone number required"),
 });
 

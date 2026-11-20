@@ -1,8 +1,18 @@
 import { SignJWT, jwtVerify } from "jose";
 import { UserRole } from "@/types";
 
+const secretString = process.env.AUTH_SECRET;
+
+if (process.env.NODE_ENV === "production") {
+  if (!secretString || secretString.length < 32) {
+    throw new Error(
+      "FATAL: AUTH_SECRET must be set and at least 32 characters long in production environment."
+    );
+  }
+}
+
 const JWT_SECRET = new TextEncoder().encode(
-  process.env.AUTH_SECRET || "development_secret_key_change_in_production_32char"
+  secretString || "development_secret_key_change_in_production_32char"
 );
 
 export interface SessionPayload {

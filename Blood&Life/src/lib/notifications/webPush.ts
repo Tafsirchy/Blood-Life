@@ -1,17 +1,20 @@
 import webpush from "web-push";
 
-// Default or environment VAPID keys
-const vapidPublicKey =
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ||
-  "BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBKr3qBUYIHBQFLXYp5NkHz8U";
-const vapidPrivateKey =
-  process.env.VAPID_PRIVATE_KEY || "UUxI6Sg_pP_c4f5k-5x3l5m3v9c-B6F1x5z_V7l3s2Q";
+// Environment VAPID keys - strictly no hardcoded fallback secrets in production
+const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
 const vapidEmail = process.env.VAPID_EMAIL || "mailto:contact@bloodlagbe.org";
 
-try {
-  webpush.setVapidDetails(vapidEmail, vapidPublicKey, vapidPrivateKey);
-} catch (err) {
-  console.warn("VAPID setup notice:", err);
+let vapidConfigured = false;
+if (vapidPublicKey && vapidPrivateKey) {
+  try {
+    webpush.setVapidDetails(vapidEmail, vapidPublicKey, vapidPrivateKey);
+    vapidConfigured = true;
+  } catch (err) {
+    console.warn("VAPID setup notice:", err);
+  }
+} else if (process.env.NODE_ENV === "production") {
+  console.warn("VAPID credentials missing in production environment. Web push will be disabled.");
 }
 
 export interface PushPayload {
@@ -31,6 +34,10 @@ export async function sendWebPush(
   },
   payload: PushPayload
 ) {
+  if (!vapidConfigured) {
+    return { success: false, error: "VAPID is not configured" };
+  }
+
   try {
     const stringPayload = JSON.stringify(payload);
     const result = await webpush.sendNotification(subscription, stringPayload);
