@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/db";
 import { User } from "@/models/User";
 import { signSessionJWT } from "@/lib/auth/jwt";
 import { SESSION_COOKIE_NAME } from "@/lib/auth/session";
+import { checkRateLimit } from "@/lib/security/rateLimiter";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 
@@ -13,12 +14,23 @@ const loginSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown-ip";
+    
+    // Strict Brute-Force Rate Limiting (5 failed attempts per 15 min per IP)
+    const rateLimit = await checkRateLimit(`login-ip:${ip}`, 10, 900);
+    if (!rateLimit.success) {
+      return NextResponse.json(
+        { error: "Too many login attempts. Please wait 15 minutes before trying again." },
+        { status: 429 }
+      );
+    }
+
     const body = await req.json();
     const { email, password } = loginSchema.parse(body);
 
     await connectDB();
 
-    const user = await User.findOne({ email: email.toLowerCase() }).select("+password");
+    const user = await User.findOne({ email: email.toLowerCase() }).select("+password +tokenVersion");
     if (!user || !user.password) {
       return NextResponse.json(
         { error: "Invalid email or credentials" },
@@ -48,6 +60,7 @@ export async function POST(req: NextRequest) {
       role: user.role,
       bloodGroup: user.bloodGroup,
       district: user.district,
+      tokenVersion: user.tokenVersion || 0,
     });
 
     const response = NextResponse.json({

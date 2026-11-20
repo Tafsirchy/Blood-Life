@@ -41,6 +41,9 @@ export interface IUser {
   cooldownUntil?: Date;
   totalDonations: number;
   privacy: DonorPrivacySettings;
+  resetPasswordToken?: string;
+  resetPasswordExpires?: Date;
+  tokenVersion?: number;
   createdAt: Date;
   updatedAt: Date;
 }

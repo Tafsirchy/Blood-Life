@@ -4,13 +4,18 @@ import { User } from "@/models/User";
 import bcrypt from "bcryptjs";
 import { signSessionJWT } from "@/lib/auth/jwt";
 import { SESSION_COOKIE_NAME } from "@/lib/auth/session";
+import { checkRateLimit } from "@/lib/security/rateLimiter";
 import { z } from "zod";
 
 const registerSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Invalid email format"),
   phone: z.string().min(11, "Phone number must be at least 11 digits"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .regex(/[a-zA-Z]/, "Password must contain at least one letter")
+    .regex(/[0-9]/, "Password must contain at least one number"),
   bloodGroup: z.enum(["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"]),
   division: z.string().min(1, "Division is required"),
   district: z.string().min(1, "District is required"),
@@ -19,6 +24,15 @@ const registerSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown-ip";
+    const rateLimit = await checkRateLimit(`register-ip:${ip}`, 5, 3600);
+    if (!rateLimit.success) {
+      return NextResponse.json(
+        { error: "Too many registration attempts. Please try again later." },
+        { status: 429 }
+      );
+    }
+
     const body = await req.json();
     const validated = registerSchema.parse(body);
 
@@ -28,7 +42,7 @@ export async function POST(req: NextRequest) {
     if (existingUser) {
       return NextResponse.json(
         { error: "An account with this email already exists" },
-        { status: 400 }
+        { status: 409 }
       );
     }
 
@@ -52,6 +66,7 @@ export async function POST(req: NextRequest) {
         requireApprovalBeforeReveal: false,
         notifyOnProfileView: true,
       },
+      tokenVersion: 0,
     });
 
     // Create session JWT
@@ -62,6 +77,7 @@ export async function POST(req: NextRequest) {
       role: newUser.role,
       bloodGroup: newUser.bloodGroup,
       district: newUser.district,
+      tokenVersion: 0,
     });
 
     const response = NextResponse.json({
@@ -84,9 +100,12 @@ export async function POST(req: NextRequest) {
     });
 
     return response;
-  } catch (error) {
+  } catch (error: any) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.issues[0]?.message || "Validation failed" }, { status: 400 });
+    }
+    if (error?.code === 11000) {
+      return NextResponse.json({ error: "An account with this email already exists" }, { status: 409 });
     }
     return NextResponse.json(
       { error: "Registration failed. Please check inputs and try again." },

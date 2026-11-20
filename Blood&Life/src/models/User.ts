@@ -37,6 +37,9 @@ const UserSchema = new Schema<UserDocument>(
       requireApprovalBeforeReveal: { type: Boolean, default: false },
       notifyOnProfileView: { type: Boolean, default: true },
     },
+    resetPasswordToken: { type: String, select: false },
+    resetPasswordExpires: { type: Date, select: false },
+    tokenVersion: { type: Number, default: 0 },
   },
   {
     timestamps: true,

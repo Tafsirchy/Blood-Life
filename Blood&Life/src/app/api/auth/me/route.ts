@@ -13,6 +13,19 @@ export async function GET() {
     await connectDB();
     const userDoc = await User.findById(session.userId).select("-password -__v").lean();
 
+    if (!userDoc || userDoc.status === "Blocked") {
+      return NextResponse.json({ authenticated: false, user: null, reason: "Account suspended or not found" });
+    }
+
+    // Verify token version for immediate revocation on password change or remote logout
+    if (
+      session.tokenVersion !== undefined &&
+      userDoc.tokenVersion !== undefined &&
+      session.tokenVersion !== userDoc.tokenVersion
+    ) {
+      return NextResponse.json({ authenticated: false, user: null, reason: "Session revoked" });
+    }
+
     return NextResponse.json({
       authenticated: true,
       user: userDoc || session,

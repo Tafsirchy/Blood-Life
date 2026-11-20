@@ -84,9 +84,17 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-[var(--text-secondary)] mb-1">
-                {language === "bn" ? "পাসওয়ার্ড" : "Password"}
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-bold text-[var(--text-secondary)]">
+                  {language === "bn" ? "পাসওয়ার্ড" : "Password"}
+                </label>
+                <Link
+                  href="/auth/forgot-password"
+                  className="text-[11px] font-semibold text-red-500 hover:text-red-400"
+                >
+                  {language === "bn" ? "পাসওয়ার্ড ভুলে গেছেন?" : "Forgot password?"}
+                </Link>
+              </div>
               <div className="relative">
                 <Lock size={16} className="absolute left-3 top-3 text-[var(--text-muted)]" />
                 <input

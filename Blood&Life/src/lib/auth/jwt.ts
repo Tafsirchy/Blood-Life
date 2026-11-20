@@ -12,6 +12,7 @@ export interface SessionPayload {
   role: UserRole;
   bloodGroup: string;
   district: string;
+  tokenVersion?: number;
 }
 
 export async function signSessionJWT(payload: SessionPayload): Promise<string> {
