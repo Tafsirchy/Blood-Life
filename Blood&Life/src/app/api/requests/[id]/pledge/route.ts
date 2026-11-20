@@ -62,46 +62,66 @@ export async function POST(
       );
     }
 
-    // Multi-unit pledge tracking
-    const currentPledged = (donationCase.pledgedUnits || 0) + 1;
-    donationCase.pledgedUnits = currentPledged;
-    
-    // Add to pledges audit list
-    donationCase.pledges = donationCase.pledges || [];
-    donationCase.pledges.push({
+    // Multi-unit pledge tracking with atomic concurrency control
+    const newPledge = {
       donorId: session.userId,
       donorName: donor.name,
       donorPhone: donor.phone,
       units: 1,
       status: "pledged",
       timestamp: new Date(),
-    });
+    };
+
+    // Atomic conditional increment: ensures concurrent clicks cannot oversaturate unitsNeeded
+    const updatedCase = await DonationRequest.findOneAndUpdate(
+      {
+        _id: requestId,
+        status: "pending",
+        $expr: { $lt: [{ $ifNull: ["$pledgedUnits", 0] }, "$unitsNeeded"] },
+      },
+      {
+        $inc: { pledgedUnits: 1 },
+        $push: { pledges: newPledge },
+        $set: {
+          assignedDonorId: session.userId,
+          assignedDonorName: donor.name,
+        },
+      },
+      { new: true }
+    );
+
+    if (!updatedCase) {
+      return NextResponse.json(
+        { error: "This emergency request has already been fully pledged by other donors." },
+        { status: 409 }
+      );
+    }
+
+    const currentPledged = updatedCase.pledgedUnits || 0;
 
     // If all required bags are secured, transition status to inprogress
-    if (currentPledged >= donationCase.unitsNeeded) {
-      donationCase.status = "inprogress";
+    if (currentPledged >= updatedCase.unitsNeeded && updatedCase.status === "pending") {
+      updatedCase.status = "inprogress";
+      await updatedCase.save();
     }
-    donationCase.assignedDonorId = session.userId;
-    donationCase.assignedDonorName = donor.name;
-    await donationCase.save();
 
     // Notify patient relative / requester that a donor pledged blood
     dispatchPledgeAlerts({
-      requestId: String(donationCase._id),
-      recipientName: donationCase.recipientName,
-      requesterId: donationCase.requesterId,
+      requestId: String(updatedCase._id),
+      recipientName: updatedCase.recipientName,
+      requesterId: updatedCase.requesterId,
       donorName: donor.name,
       donorBloodGroup: donor.bloodGroup,
-      hospital: donationCase.hospital,
+      hospital: updatedCase.hospital,
     }).catch((e) => console.error("Async pledge notification error:", e));
 
     return NextResponse.json({
       success: true,
-      message: currentPledged >= donationCase.unitsNeeded
+      message: currentPledged >= updatedCase.unitsNeeded
         ? "Thank you! All required blood bags have been pledged. Proceeding to hospital coordination."
-        : `Thank you! 1 unit pledged (${currentPledged} of ${donationCase.unitsNeeded} secured). Request remains active for remaining units.`,
+        : `Thank you! 1 unit pledged (${currentPledged} of ${updatedCase.unitsNeeded} secured). Request remains active for remaining units.`,
       pledgedUnits: currentPledged,
-      unitsNeeded: donationCase.unitsNeeded,
+      unitsNeeded: updatedCase.unitsNeeded,
       assignedDonor: {
         id: donor._id,
         name: donor.name,
