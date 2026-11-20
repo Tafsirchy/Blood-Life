@@ -41,6 +41,10 @@ export interface IUser {
   cooldownUntil?: Date;
   totalDonations: number;
   privacy: DonorPrivacySettings;
+  isEmailVerified?: boolean;
+  emailVerificationToken?: string;
+  emailVerificationExpires?: Date;
+  emailNotifications?: boolean;
   resetPasswordToken?: string;
   resetPasswordExpires?: Date;
   tokenVersion?: number;

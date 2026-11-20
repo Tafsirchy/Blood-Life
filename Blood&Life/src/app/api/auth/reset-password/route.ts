@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
 import { User } from "@/models/User";
+import { sendTransactionalEmail } from "@/lib/notifications/email";
+import { buildPasswordChangeAlertEmailTemplate } from "@/lib/notifications/emailTemplates";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { z } from "zod";
@@ -56,6 +58,21 @@ export async function POST(req: NextRequest) {
     user.tokenVersion = (user.tokenVersion || 0) + 1;
 
     await user.save();
+
+    // Security Alert Email Notification
+    const ip = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown";
+    const alertContent = buildPasswordChangeAlertEmailTemplate({
+      name: user.name,
+      timestamp: new Date().toUTCString(),
+      ip,
+    });
+
+    await sendTransactionalEmail({
+      to: user.email,
+      subject: "🚨 নিরাপত্তা সতর্কতা: পাসওয়ার্ড পরিবর্তিত হয়েছে (Security Alert: Password Changed)",
+      html: alertContent.html,
+      text: alertContent.text,
+    });
 
     return NextResponse.json({
       success: true,

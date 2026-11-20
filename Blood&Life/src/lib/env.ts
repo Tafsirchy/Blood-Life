@@ -10,6 +10,7 @@ const envSchema = z.object({
   CLOUDINARY_API_KEY: z.string().optional(),
   CLOUDINARY_API_SECRET: z.string().optional(),
   RESEND_API_KEY: z.string().optional(),
+  EMAIL_FROM: z.string().optional(),
   NEXT_PUBLIC_APP_URL: z.string().default("http://localhost:3000"),
 });
 
@@ -23,5 +24,6 @@ export const env = envSchema.parse({
   CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY,
   CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET,
   RESEND_API_KEY: process.env.RESEND_API_KEY,
+  EMAIL_FROM: process.env.EMAIL_FROM,
   NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
 });

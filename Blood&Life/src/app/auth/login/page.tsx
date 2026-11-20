@@ -14,11 +14,13 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [needsVerification, setNeedsVerification] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setNeedsVerification(false);
 
     try {
       const res = await fetch("/api/auth/login", {
@@ -29,6 +31,15 @@ export default function LoginPage() {
 
       const data = await res.json();
       if (!res.ok) {
+        if (data.requiresEmailVerification) {
+          setError(
+            language === "bn"
+              ? "আপনার ইমেইল এখনও ভেরিফাই করা হয়নি। অনুগ্রহ করে আপনার ইনবক্স চেক করুন অথবা নিচে ক্লিক করুন:"
+              : "Email not verified. Please check your inbox or click below to verify:"
+          );
+          setNeedsVerification(true);
+          return;
+        }
         throw new Error(data.error || "Login failed");
       }
 
@@ -60,8 +71,16 @@ export default function LoginPage() {
 
         <div className="card-clinical p-6 border-2 border-[var(--border-subtle)] space-y-4">
           {error && (
-            <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-bold">
-              {error}
+            <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-bold space-y-1">
+              <div>{error}</div>
+              {needsVerification && (
+                <Link
+                  href={`/auth/verify-email?email=${encodeURIComponent(email)}`}
+                  className="inline-block text-red-600 dark:text-red-400 underline font-extrabold hover:text-red-700 mt-1"
+                >
+                  {language === "bn" ? "ভেরিফিকেশন পেজে যান ও নতুন লিঙ্ক চান →" : "Verify Email Now →"}
+                </Link>
+              )}
             </div>
           )}
 

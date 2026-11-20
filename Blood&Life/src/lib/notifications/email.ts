@@ -3,33 +3,46 @@
  * Delivers instant notification emails to donors, requesters, and volunteers.
  */
 
-interface SendEmailParams {
-  to: string;
+export interface SendEmailParams {
+  to: string | string[];
   subject: string;
   html: string;
+  text?: string;
+  replyTo?: string;
 }
 
-export async function sendTransactionalEmail({ to, subject, html }: SendEmailParams) {
+export async function sendTransactionalEmail({ to, subject, html, text, replyTo }: SendEmailParams) {
   const apiKey = process.env.RESEND_API_KEY;
+  const fromAddress = process.env.EMAIL_FROM || "BLOOD&LIFE Emergency <onboarding@resend.dev>";
+
+  const recipients = Array.isArray(to) ? to : [to];
+  const plainText = text || html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 
   if (!apiKey) {
-    console.info(`[Email Dispatch Mock] To: ${to} | Subject: ${subject}`);
+    console.info(`[Email Dispatch Mock] To: ${recipients.join(", ")} | Subject: ${subject}`);
     return { success: true, mocked: true };
   }
 
   try {
+    const payload: Record<string, any> = {
+      from: fromAddress,
+      to: recipients,
+      subject,
+      html,
+      text: plainText,
+    };
+
+    if (replyTo) {
+      payload.reply_to = replyTo;
+    }
+
     const response = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        from: "BLOOD&LIFE Emergency <alert@bloodandlife.org>",
-        to: [to],
-        subject,
-        html,
-      }),
+      body: JSON.stringify(payload),
     });
 
     if (!response.ok) {
@@ -45,6 +58,8 @@ export async function sendTransactionalEmail({ to, subject, html }: SendEmailPar
     return { success: false, error: err.message };
   }
 }
+
+export const sendEmail = sendTransactionalEmail;
 
 /**
  * High-Conversion Emergency Match Email Template

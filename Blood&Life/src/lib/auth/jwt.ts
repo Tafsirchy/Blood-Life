@@ -12,6 +12,7 @@ export interface SessionPayload {
   role: UserRole;
   bloodGroup: string;
   district: string;
+  isEmailVerified?: boolean;
   tokenVersion?: number;
 }
 

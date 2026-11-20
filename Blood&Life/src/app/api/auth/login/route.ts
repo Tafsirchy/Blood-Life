@@ -53,6 +53,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (user.isEmailVerified === false) {
+      return NextResponse.json(
+        {
+          error: "Please verify your email address before signing in. Check your inbox for the verification link.",
+          requiresEmailVerification: true,
+          email: user.email,
+        },
+        { status: 403 }
+      );
+    }
+
     const token = await signSessionJWT({
       userId: String(user._id),
       email: user.email,
@@ -60,6 +71,7 @@ export async function POST(req: NextRequest) {
       role: user.role,
       bloodGroup: user.bloodGroup,
       district: user.district,
+      isEmailVerified: user.isEmailVerified ?? true,
       tokenVersion: user.tokenVersion || 0,
     });
 

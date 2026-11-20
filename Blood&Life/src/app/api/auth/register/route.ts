@@ -2,9 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
 import { User } from "@/models/User";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 import { signSessionJWT } from "@/lib/auth/jwt";
 import { SESSION_COOKIE_NAME } from "@/lib/auth/session";
 import { checkRateLimit } from "@/lib/security/rateLimiter";
+import { sendTransactionalEmail } from "@/lib/notifications/email";
+import { buildVerificationEmailTemplate } from "@/lib/notifications/emailTemplates";
 import { z } from "zod";
 
 const registerSchema = z.object({
@@ -48,6 +51,11 @@ export async function POST(req: NextRequest) {
 
     const hashedPassword = await bcrypt.hash(validated.password, 12);
 
+    // Cryptographic 32-byte Verification Token
+    const rawVerificationToken = crypto.randomBytes(32).toString("hex");
+    const hashedVerificationToken = crypto.createHash("sha256").update(rawVerificationToken).digest("hex");
+    const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
     const newUser = await User.create({
       name: validated.name,
       email: validated.email.toLowerCase(),
@@ -66,7 +74,26 @@ export async function POST(req: NextRequest) {
         requireApprovalBeforeReveal: false,
         notifyOnProfileView: true,
       },
+      isEmailVerified: false,
+      emailVerificationToken: hashedVerificationToken,
+      emailVerificationExpires: verificationExpires,
+      emailNotifications: true,
       tokenVersion: 0,
+    });
+
+    // Dispatch Verification Email
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const verificationUrl = `${appUrl}/auth/verify-email?token=${rawVerificationToken}&email=${encodeURIComponent(newUser.email)}`;
+    const emailContent = buildVerificationEmailTemplate({
+      name: newUser.name,
+      verificationUrl,
+    });
+
+    await sendTransactionalEmail({
+      to: newUser.email,
+      subject: "✉️ আপনার ইমেইল ভেরিফাই করুন (Verify Your Email) — BLOOD&LIFE",
+      html: emailContent.html,
+      text: emailContent.text,
     });
 
     // Create session JWT
@@ -77,17 +104,21 @@ export async function POST(req: NextRequest) {
       role: newUser.role,
       bloodGroup: newUser.bloodGroup,
       district: newUser.district,
+      isEmailVerified: false,
       tokenVersion: 0,
     });
 
     const response = NextResponse.json({
       success: true,
+      requiresVerification: true,
+      message: "Account created! A verification link has been sent to your email.",
       user: {
         id: newUser._id,
         name: newUser.name,
         email: newUser.email,
         role: newUser.role,
         bloodGroup: newUser.bloodGroup,
+        isEmailVerified: false,
       },
     });
 
