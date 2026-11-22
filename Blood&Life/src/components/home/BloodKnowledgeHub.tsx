@@ -19,6 +19,7 @@ import {
   Award,
 } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 type BloodGroup = "O-" | "O+" | "A-" | "A+" | "B-" | "B+" | "AB-" | "AB+";
 
@@ -151,6 +152,7 @@ const ALL_GROUPS: BloodGroup[] = ["O-", "O+", "A-", "A+", "B-", "B+", "AB-", "AB
 
 export function BloodKnowledgeHub() {
   const { language } = useLanguage();
+  const pathname = usePathname();
   const [activeTab, setActiveTab] = useState<"compatibility" | "components" | "guidelines">("compatibility");
   const [selectedGroup, setSelectedGroup] = useState<BloodGroup>("O+");
 
@@ -178,15 +180,17 @@ export function BloodKnowledgeHub() {
               : "Explore donor-recipient matching, component breakdown (1 donation = 3 lives), and evidence-based safety rules."}
           </p>
 
-          <div className="pt-3 flex justify-center">
-            <Link
-              href="/blood-info"
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-red-600 dark:text-red-400 hover:text-red-700 bg-red-500/5 hover:bg-red-500/10 border border-red-500/15 px-3 py-1 rounded-full transition-all"
-            >
-              <span>{language === "bn" ? "সম্পূর্ণ রক্ত তথ্য এনসাইক্লোপিডিয়া ও গাইড দেখুন" : "Explore Dedicated Blood Encyclopedia"}</span>
-              <ArrowRight size={12} />
-            </Link>
-          </div>
+          {pathname !== "/blood-info" && (
+            <div className="pt-3 flex justify-center">
+              <Link
+                href="/blood-info"
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-red-600 dark:text-red-400 hover:text-red-700 bg-red-500/5 hover:bg-red-500/10 border border-red-500/15 px-3 py-1 rounded-full transition-all"
+              >
+                <span>{language === "bn" ? "সম্পূর্ণ রক্ত তথ্য এনসাইক্লোপিডিয়া ও গাইড দেখুন" : "Explore Dedicated Blood Encyclopedia"}</span>
+                <ArrowRight size={12} />
+              </Link>
+            </div>
+          )}
         </div>
 
         {/* 3 Main Interactive View Switchers */}
