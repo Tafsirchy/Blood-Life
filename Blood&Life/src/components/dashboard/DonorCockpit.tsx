@@ -1,12 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useLanguage } from "@/lib/i18n/context";
 import {
   Heart,
   Calendar,
   Award,
-  Download,
   Clock,
   CheckCircle2,
   AlertCircle,
@@ -14,19 +13,41 @@ import {
   ExternalLink,
   Printer,
   Sparkles,
+  PlusCircle,
+  X,
+  PhoneCall,
+  User,
+  ShieldCheck,
 } from "lucide-react";
+import Link from "next/link";
 
-interface DonationRecord {
+interface TransfusionRecord {
   id: string;
   patientName: string;
   hospital: string;
   district: string;
   date: string;
   units: number;
+  bloodGroup: string;
+  certificateId: string;
   status: "COMPLETED";
 }
 
-const SAMPLE_DONATIONS: DonationRecord[] = [
+interface PledgedRequest {
+  _id: string;
+  recipientName: string;
+  bloodGroup: string;
+  hospital: string;
+  district: string;
+  status: string;
+  urgency: string;
+  unitsNeeded: number;
+  scheduledDate: string;
+  requesterPhone?: string;
+  createdAt: string;
+}
+
+const SAMPLE_DONATIONS: TransfusionRecord[] = [
   {
     id: "tx-881",
     patientName: "Tasneem Rahman",
@@ -34,6 +55,8 @@ const SAMPLE_DONATIONS: DonationRecord[] = [
     district: "Dhaka",
     date: "14 Oct 2025",
     units: 1,
+    bloodGroup: "O-",
+    certificateId: "BL-CERT-DMCH-881",
     status: "COMPLETED",
   },
   {
@@ -43,6 +66,8 @@ const SAMPLE_DONATIONS: DonationRecord[] = [
     district: "Dhaka",
     date: "10 Jul 2025",
     units: 1,
+    bloodGroup: "O-",
+    certificateId: "BL-CERT-BSMMU-720",
     status: "COMPLETED",
   },
   {
@@ -52,22 +77,83 @@ const SAMPLE_DONATIONS: DonationRecord[] = [
     district: "Dhaka",
     date: "04 Apr 2025",
     units: 1,
+    bloodGroup: "O-",
+    certificateId: "BL-CERT-DSH-615",
     status: "COMPLETED",
   },
 ];
 
 export function DonorCockpit() {
   const { language } = useLanguage();
-  const [selectedCert, setSelectedCert] = useState<DonationRecord | null>(null);
+  const [selectedCert, setSelectedCert] = useState<TransfusionRecord | null>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
+  const [activeSubTab, setActiveSubTab] = useState<"history" | "pledges">("history");
+  const [donations, setDonations] = useState<TransfusionRecord[]>([]);
+  const [pledges, setPledges] = useState<PledgedRequest[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  React.useEffect(() => {
-    fetch("/api/auth/me")
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.user) setUserProfile(d.user);
-      })
-      .catch(() => {});
+  // Modal to Log a Past Donation
+  const [isLogModalOpen, setIsLogModalOpen] = useState(false);
+  const [logForm, setLogForm] = useState({
+    recipientName: "",
+    hospital: "",
+    district: "Dhaka",
+    units: 1,
+    completedAt: new Date().toISOString().split("T")[0],
+  });
+  const [submittingLog, setSubmittingLog] = useState(false);
+
+  const fetchDonorData = async () => {
+    try {
+      setLoading(true);
+      const [meRes, donRes] = await Promise.all([
+        fetch("/api/auth/me"),
+        fetch("/api/donations"),
+      ]);
+
+      const meData = await meRes.json();
+      if (meData.user) {
+        setUserProfile(meData.user);
+      }
+
+      if (donRes.ok) {
+        const donData = await donRes.json();
+        const serverLogs: TransfusionRecord[] = (donData.transfusionLogs || []).map((l: any) => ({
+          id: l._id || l.certificateId,
+          patientName: l.recipientName,
+          hospital: l.hospital,
+          district: l.district || meData.user?.district || "Bangladesh",
+          date: new Date(l.completedAt).toLocaleDateString("en-GB", {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+          }),
+          units: 1,
+          bloodGroup: l.bloodGroup || meData.user?.bloodGroup || "O+",
+          certificateId: l.certificateId,
+          status: "COMPLETED",
+        }));
+
+        // If user already had donations or sample donations
+        if (serverLogs.length > 0) {
+          setDonations(serverLogs);
+        } else if (meData.user?.totalDonations > 0) {
+          setDonations(SAMPLE_DONATIONS);
+        } else {
+          setDonations([]);
+        }
+
+        setPledges(donData.pledgedRequests || []);
+      }
+    } catch (e) {
+      console.error("Error fetching donor history:", e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDonorData();
   }, []);
 
   // Biological Cooldown Calculation
@@ -88,7 +174,7 @@ export function DonorCockpit() {
     }
   }
 
-  const totalDonations = userProfile?.totalDonations || 0;
+  const totalDonations = userProfile?.totalDonations || donations.length || 0;
   const livesSaved = totalDonations * 3;
 
   // SVG Dial Circumference
@@ -100,6 +186,39 @@ export function DonorCockpit() {
     window.print();
   };
 
+  const handleLogDonationSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmittingLog(true);
+    try {
+      const res = await fetch("/api/donations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...logForm,
+          bloodGroup: userProfile?.bloodGroup || "O+",
+        }),
+      });
+      if (res.ok) {
+        setIsLogModalOpen(false);
+        setLogForm({
+          recipientName: "",
+          hospital: "",
+          district: "Dhaka",
+          units: 1,
+          completedAt: new Date().toISOString().split("T")[0],
+        });
+        await fetchDonorData();
+      } else {
+        const err = await res.json();
+        alert(err.error || "Failed to log donation");
+      }
+    } catch {
+      alert("Error submitting donation log");
+    } finally {
+      setSubmittingLog(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Top Hero Cards: 90-Day Cooldown Dial + Lifetime Impact */}
@@ -108,19 +227,24 @@ export function DonorCockpit() {
         <div className="md:col-span-6 card-clinical p-6 flex flex-col sm:flex-row items-center gap-6 justify-between border-2 border-amber-500/30">
           <div className="space-y-2 text-center sm:text-left">
             <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-500 text-[10px] font-bold uppercase tracking-wider">
-              <Clock size={11} className="animate-spin" />
+              <Clock size={11} className={remainingDays > 0 ? "animate-spin" : ""} />
               <span>{language === "bn" ? "স্বাস্থ্য বিরতি প্রটোকল" : "SAFE COOLDOWN ENGINE"}</span>
             </div>
             <h3 className="text-lg font-black text-[var(--text-primary)]">
               {language === "bn" ? "৯০ দিনের বৈজ্ঞানিক বিরতি" : "90-Day Biological Cooldown"}
             </h3>
             <p className="text-xs text-[var(--text-secondary)] leading-relaxed max-w-xs">
-              {language === "bn"
-                ? `আপনার শরীরের হিমোগ্লোবিন ও আয়রন সম্পূর্ণ স্বাভাবিক হতে আর ${remainingDays} দিন বাকি।`
-                : `${remainingDays} days remaining until your iron and hemoglobin reserves fully replenish.`}
+              {remainingDays > 0
+                ? language === "bn"
+                  ? `আপনার শরীরের হিমোগ্লোবিন ও আয়রন সম্পূর্ণ স্বাভাবিক হতে আর ${remainingDays} দিন বাকি।`
+                  : `${remainingDays} days remaining until your iron and hemoglobin reserves fully replenish.`
+                : language === "bn"
+                ? "আপনি শারীরিক ও ক্লিনিক্যালি সম্পূর্ণ সুস্থ এবং রক্তদানের জন্য প্রস্তুত!"
+                : "You have completed the cooldown and are medically eligible to donate blood today!"}
             </p>
-            <div className="pt-2 text-xs font-bold text-amber-500">
-              {language === "bn" ? `পরবর্তী রক্তদান: ${nextEligibleDate}` : `Next Eligible: ${nextEligibleDate}`}
+            <div className="pt-2 text-xs font-bold text-amber-500 flex items-center gap-1.5">
+              <ShieldCheck size={14} />
+              <span>{language === "bn" ? `পরবর্তী রক্তদান: ${nextEligibleDate}` : `Next Eligible: ${nextEligibleDate}`}</span>
             </div>
           </div>
 
@@ -149,10 +273,10 @@ export function DonorCockpit() {
             </svg>
             <div className="absolute flex flex-col items-center justify-center text-center">
               <span className="text-2xl font-black text-[var(--text-primary)]">
-                {remainingDays}d
+                {remainingDays > 0 ? `${remainingDays}d` : "READY"}
               </span>
               <span className="text-[10px] font-bold text-[var(--text-muted)] uppercase">
-                {language === "bn" ? "বাকি আছে" : "remaining"}
+                {remainingDays > 0 ? (language === "bn" ? "বাকি আছে" : "remaining") : (language === "bn" ? "প্রস্তুত" : "Eligible")}
               </span>
             </div>
           </div>
@@ -166,29 +290,29 @@ export function DonorCockpit() {
               <span>{language === "bn" ? "লাইফ সেভার অনার রোল" : "DONOR HONOR ROLL"}</span>
             </div>
             <h3 className="text-lg font-black text-[var(--text-primary)] mb-1">
-              {language === "bn" ? "আপনার জীবন বাঁচানোর পরিসংখ্যান" : "Your Lifetime Blood Impact"}
+              {language === "bn" ? "আপনার রক্তদান ও জীবনরক্ষার পরিসংখ্যান" : "Your Lifetime Blood Impact"}
             </h3>
             <p className="text-xs text-[var(--text-secondary)]">
               {language === "bn"
-                ? "স্বেচ্ছায় রক্তদানে আপনার অবদানে আজ বেঁচে আছে ৩টি পরিবার।"
-                : "Your voluntary donations have directly saved the lives of 3 critical patients."}
+                ? `স্বেচ্ছায় রক্তদানে আপনার অবদানে সরাসরি রক্ষা পেয়েছে ${livesSaved} জন মুমূর্ষু রোগীর অমূল্য জীবন।`
+                : `Your voluntary donations have directly helped preserve the lives of ${livesSaved} critical surgery patients.`}
             </p>
           </div>
 
           <div className="grid grid-cols-3 gap-3 pt-4 border-t border-[var(--border-subtle)]">
-            <div className="p-2.5 rounded-lg bg-[var(--bg-main)] text-center">
+            <div className="p-2.5 rounded-xl bg-[var(--bg-main)] text-center">
               <span className="text-xl font-black text-red-500 block">{totalDonations}</span>
               <span className="text-[10px] font-bold text-[var(--text-muted)]">
                 {language === "bn" ? "বার রক্তদান" : "Donations"}
               </span>
             </div>
-            <div className="p-2.5 rounded-lg bg-[var(--bg-main)] text-center">
+            <div className="p-2.5 rounded-xl bg-[var(--bg-main)] text-center">
               <span className="text-xl font-black text-emerald-500 block">{livesSaved}</span>
               <span className="text-[10px] font-bold text-[var(--text-muted)]">
                 {language === "bn" ? "জীবন রক্ষা" : "Lives Saved"}
               </span>
             </div>
-            <div className="p-2.5 rounded-lg bg-[var(--bg-main)] text-center">
+            <div className="p-2.5 rounded-xl bg-[var(--bg-main)] text-center">
               <span className="text-xl font-black text-blue-500 block">{userProfile?.bloodGroup || "O+"}</span>
               <span className="text-[10px] font-bold text-[var(--text-muted)]">
                 {language === "bn" ? "ব্লাড গ্রুপ" : "Blood Group"}
@@ -198,72 +322,279 @@ export function DonorCockpit() {
         </div>
       </div>
 
-      {/* Donation Timeline & Certificate Downloader */}
-      <div className="card-clinical p-6 border border-[var(--border-subtle)] space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--border-subtle)] pb-4">
-          <div>
-            <h3 className="text-base font-black text-[var(--text-primary)]">
-              {language === "bn" ? "রক্তদানের ইতিহাস ও ডিজিটাল সার্টিফিকেট" : "Donation Timeline & Digital Certificate"}
-            </h3>
-            <p className="text-xs text-[var(--text-secondary)] mt-0.5">
-              {language === "bn"
-                ? "প্রত্যেকটি সফল রক্তদানের জন্য জাতীয় জীবন রক্ষাকারী ডিজিটাল সার্টিফিকেট ডাউনলোড করুন।"
-                : "Generate and download official vector certificates of appreciation for each completed transfusion."}
-            </p>
+      {/* Donor Tabs: Donation History vs Active Pledges */}
+      <div className="card-clinical p-6 border border-[var(--border-subtle)] space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[var(--border-subtle)] pb-4">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setActiveSubTab("history")}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                activeSubTab === "history"
+                  ? "bg-red-600 text-white shadow-xs"
+                  : "bg-[var(--bg-main)] text-[var(--text-secondary)] hover:text-red-500 border border-[var(--border-subtle)]"
+              }`}
+            >
+              <Award size={13} />
+              <span>{language === "bn" ? "রক্তদানের ইতিহাস ও সার্টিফিকেট" : "Donation History & Certificates"}</span>
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-white/20">
+                {donations.length}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveSubTab("pledges")}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                activeSubTab === "pledges"
+                  ? "bg-red-600 text-white shadow-xs"
+                  : "bg-[var(--bg-main)] text-[var(--text-secondary)] hover:text-red-500 border border-[var(--border-subtle)]"
+              }`}
+            >
+              <Heart size={13} />
+              <span>{language === "bn" ? "আমার অঙ্গীকারসমূহ" : "My Active Pledges"}</span>
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-white/20">
+                {pledges.length}
+              </span>
+            </button>
           </div>
+
+          <button
+            type="button"
+            onClick={() => setIsLogModalOpen(true)}
+            className="px-3.5 py-1.5 rounded-xl bg-[var(--bg-main)] hover:bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 text-xs font-bold inline-flex items-center gap-1.5 transition-all self-start sm:self-auto"
+          >
+            <PlusCircle size={14} />
+            <span>{language === "bn" ? "নতুন রক্তদানের রেকর্ড যোগ করুন" : "+ Log Past Donation"}</span>
+          </button>
         </div>
 
-        <div className="space-y-3">
-          {(!userProfile?.totalDonations || userProfile.totalDonations === 0) ? (
-            <div className="p-8 text-center rounded-xl bg-[var(--bg-main)] border border-[var(--border-subtle)] space-y-2">
-              <Award size={32} className="text-[var(--text-muted)] mx-auto opacity-40" />
-              <h4 className="text-xs font-bold text-[var(--text-primary)]">
-                {language === "bn" ? "এখনও কোনো রক্তদান সম্পন্ন হয়নি" : "No Completed Donations Yet"}
-              </h4>
-              <p className="text-[11px] text-[var(--text-muted)] max-w-sm mx-auto">
-                {language === "bn"
-                  ? "জরুরী রক্তদান সম্পন্ন করার পর এখানে আপনার ভেরিফাইড সার্টিফিকেট যুক্ত হবে।"
-                  : "Official vector appreciation certificates will appear here after your first completed transfusion."}
-              </p>
-            </div>
-          ) : (
-            SAMPLE_DONATIONS.map((item) => (
-            <div
-              key={item.id}
-              className="p-4 rounded-xl bg-[var(--bg-main)] border border-[var(--border-subtle)] flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-red-500/40 transition-colors"
-            >
-              <div className="flex items-start gap-3">
-                <div className="w-9 h-9 rounded-xl bg-red-500/10 text-red-500 flex items-center justify-center shrink-0 mt-0.5">
-                  <Heart size={18} fill="currentColor" />
+        {/* SUBTAB 1: Donation History */}
+        {activeSubTab === "history" && (
+          <div className="space-y-3">
+            {loading ? (
+              <div className="p-8 text-center text-xs text-[var(--text-muted)]">
+                Loading donation history...
+              </div>
+            ) : donations.length === 0 ? (
+              <div className="p-8 text-center rounded-2xl bg-[var(--bg-main)] border border-[var(--border-subtle)] space-y-2">
+                <Award size={32} className="text-[var(--text-muted)] mx-auto opacity-40" />
+                <h4 className="text-xs font-bold text-[var(--text-primary)]">
+                  {language === "bn" ? "এখনও কোনো রক্তদান রেকর্ড যুক্ত করা হয়নি" : "No Completed Donations Logged Yet"}
+                </h4>
+                <p className="text-[11px] text-[var(--text-muted)] max-w-sm mx-auto">
+                  {language === "bn"
+                    ? "আপনি পূর্বে হাসপাতালে রক্তদান করে থাকলে উপরের '+ নতুন রক্তদানের রেকর্ড যোগ করুন' বাটনে ক্লিক করে তা যুক্ত করুন।"
+                    : "If you have donated blood before, click '+ Log Past Donation' above to track your history and generate official certificates."}
+                </p>
+              </div>
+            ) : (
+              donations.map((item) => (
+                <div
+                  key={item.id}
+                  className="p-4 rounded-2xl bg-[var(--bg-main)] border border-[var(--border-subtle)] flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-red-500/40 transition-all"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-red-500/10 text-red-600 dark:text-red-400 flex items-center justify-center shrink-0 mt-0.5">
+                      <Heart size={18} fill="currentColor" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs sm:text-sm font-bold text-[var(--text-primary)]">
+                        {item.patientName} • {item.hospital}
+                      </h4>
+                      <p className="text-[11px] text-[var(--text-muted)] flex flex-wrap items-center gap-2 mt-0.5 font-medium">
+                        <span>{item.date}</span>
+                        <span>•</span>
+                        <span>{item.district}</span>
+                        <span>•</span>
+                        <span className="text-emerald-500 font-bold flex items-center gap-1">
+                          <CheckCircle2 size={11} />
+                          {language === "bn" ? "ভেরিফাইড রক্তদান" : "Verified Donation"}
+                        </span>
+                        <span>•</span>
+                        <span className="font-mono text-[10px] text-[var(--text-muted)]">
+                          #{item.certificateId}
+                        </span>
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => setSelectedCert(item)}
+                    className="px-3 py-1.5 rounded-xl bg-[var(--bg-surface)] hover:bg-red-500/10 border border-[var(--border-subtle)] text-xs font-bold text-red-500 inline-flex items-center gap-1.5 self-start sm:self-auto transition-colors"
+                  >
+                    <Award size={13} />
+                    <span>{language === "bn" ? "সার্টিফিকেট দেখুন" : "View Certificate"}</span>
+                  </button>
                 </div>
-                <div>
-                  <h4 className="text-xs font-bold text-[var(--text-primary)]">
-                    {item.patientName} • {item.hospital}
-                  </h4>
-                  <p className="text-[11px] text-[var(--text-muted)] flex items-center gap-2 mt-0.5 font-medium">
-                    <span>{item.date}</span>
-                    <span>•</span>
-                    <span>{item.district}</span>
-                    <span>•</span>
-                    <span className="text-emerald-500 font-bold flex items-center gap-1">
-                      <CheckCircle2 size={11} />
-                      {language === "bn" ? "ভেরিফাইড রক্তদান" : "Verified"}
+              ))
+            )}
+          </div>
+        )}
+
+        {/* SUBTAB 2: Active Pledges */}
+        {activeSubTab === "pledges" && (
+          <div className="space-y-3">
+            {pledges.length === 0 ? (
+              <div className="p-8 text-center rounded-2xl bg-[var(--bg-main)] border border-[var(--border-subtle)] space-y-2">
+                <Heart size={32} className="text-[var(--text-muted)] mx-auto opacity-40" />
+                <h4 className="text-xs font-bold text-[var(--text-primary)]">
+                  {language === "bn" ? "কোন সক্রিয় অঙ্গীকার নেই" : "No Active Pledges Right Now"}
+                </h4>
+                <p className="text-[11px] text-[var(--text-muted)] max-w-sm mx-auto mb-2">
+                  {language === "bn"
+                    ? "জরুরি রক্তের আবেদন তালিকায় গিয়ে যে কোনো রোগীকে রক্তদানের অঙ্গীকার করতে পারেন।"
+                    : "Visit the live emergency transfusion queue to pledge blood for patients in critical need."}
+                </p>
+                <Link
+                  href="/search?tab=requests"
+                  className="px-3.5 py-1.5 rounded-xl bg-red-600 text-white text-xs font-bold inline-flex items-center gap-1.5"
+                >
+                  <span>{language === "bn" ? "জরুরি রক্তের আবেদন দেখুন" : "View Emergency Queue"}</span>
+                </Link>
+              </div>
+            ) : (
+              pledges.map((req) => (
+                <div
+                  key={req._id}
+                  className="p-4 rounded-2xl bg-[var(--bg-main)] border border-[var(--border-subtle)] flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-amber-500/40 transition-all"
+                >
+                  <div className="flex items-start gap-3">
+                    <span className="badge-blood text-sm font-black px-2.5 py-1">
+                      {req.bloodGroup}
                     </span>
-                  </p>
+                    <div>
+                      <h4 className="text-xs sm:text-sm font-bold text-[var(--text-primary)]">
+                        {req.recipientName} ({req.unitsNeeded} {language === "bn" ? "ব্যাগ প্রয়োজন" : "Units"})
+                      </h4>
+                      <p className="text-[11px] text-[var(--text-muted)] flex items-center gap-2 mt-0.5">
+                        <span>{req.hospital}</span>
+                        <span>•</span>
+                        <span>{req.district}</span>
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 self-start sm:self-auto">
+                    <Link
+                      href={`/search?tab=requests`}
+                      className="px-3 py-1.5 rounded-xl bg-[var(--bg-surface)] hover:bg-[var(--bg-main)] border border-[var(--border-subtle)] text-xs font-bold text-[var(--text-primary)] transition-colors"
+                    >
+                      {language === "bn" ? "আবেদন বিস্তারিত" : "View Case Details"}
+                    </Link>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Log Past Donation Modal */}
+      {isLogModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="card-clinical max-w-lg w-full p-6 space-y-4 relative border-2 border-red-500/30 animate-in fade-in zoom-in-95">
+            <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-3">
+              <div className="flex items-center gap-2">
+                <Heart size={18} className="text-red-500" />
+                <h3 className="text-sm font-black text-[var(--text-primary)]">
+                  {language === "bn" ? "পূর্ববর্তী রক্তদানের তথ্য সংরক্ষণ" : "Log a Past Blood Donation"}
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsLogModalOpen(false)}
+                className="p-1 rounded-lg hover:bg-[var(--bg-main)] text-[var(--text-muted)]"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handleLogDonationSubmit} className="space-y-3">
+              <div>
+                <label className="block text-xs font-bold text-[var(--text-secondary)] mb-1">
+                  {language === "bn" ? "রোগীর নাম বা ক্ষেত্র" : "Recipient Name / Note"}
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Surgery Patient or Relative"
+                  value={logForm.recipientName}
+                  onChange={(e) => setLogForm({ ...logForm, recipientName: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl bg-[var(--bg-main)] border border-[var(--border-subtle)] text-xs font-medium outline-none focus:border-red-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-[var(--text-secondary)] mb-1">
+                  {language === "bn" ? "হাসপাতাল বা ব্লাড ব্যাংক" : "Hospital or Blood Bank"}
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Dhaka Medical College Hospital"
+                  value={logForm.hospital}
+                  onChange={(e) => setLogForm({ ...logForm, hospital: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl bg-[var(--bg-main)] border border-[var(--border-subtle)] text-xs font-medium outline-none focus:border-red-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-[var(--text-secondary)] mb-1">
+                    {language === "bn" ? "রক্তদানের তারিখ" : "Donation Date"}
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={logForm.completedAt}
+                    onChange={(e) => setLogForm({ ...logForm, completedAt: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl bg-[var(--bg-main)] border border-[var(--border-subtle)] text-xs font-bold outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-[var(--text-secondary)] mb-1">
+                    {language === "bn" ? "রক্তের পরিমাণ (ব্যাগ)" : "Units Donated"}
+                  </label>
+                  <select
+                    value={logForm.units}
+                    onChange={(e) => setLogForm({ ...logForm, units: Number(e.target.value) })}
+                    className="w-full px-3 py-2 rounded-xl bg-[var(--bg-main)] border border-[var(--border-subtle)] text-xs font-bold outline-none"
+                  >
+                    <option value={1}>1 Unit (450ml)</option>
+                    <option value={2}>2 Units (Apheresis)</option>
+                  </select>
                 </div>
               </div>
 
-              <button
-                onClick={() => setSelectedCert(item)}
-                className="px-3 py-1.5 rounded-lg bg-[var(--bg-surface)] hover:bg-red-500/10 border border-[var(--border-subtle)] text-xs font-bold text-red-500 inline-flex items-center gap-1.5 self-start sm:self-auto transition-colors"
-              >
-                <Award size={13} />
-                <span>{language === "bn" ? "সার্টিফিকেট দেখুন" : "View Certificate"}</span>
-              </button>
-            </div>
-          )))}
+              <p className="text-[11px] text-[var(--text-muted)] pt-1">
+                {language === "bn"
+                  ? "💡 রেকর্ড সেভ করার সাথে সাথে আপনার মোট রক্তদান সংখ্যা বাড়বে এবং ৯০ দিনের বিরতি স্বয়ংক্রিয়ভাবে আপডেট হবে।"
+                  : "💡 Logging this donation updates your lifetime stats and recalculates your 90-day cooldown dial automatically."}
+              </p>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsLogModalOpen(false)}
+                  className="px-3.5 py-2 rounded-xl text-xs font-bold text-[var(--text-secondary)] hover:bg-[var(--bg-main)]"
+                >
+                  {language === "bn" ? "বাতিল" : "Cancel"}
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingLog}
+                  className="btn-emergency !py-2 !px-4 text-xs font-bold"
+                >
+                  {submittingLog
+                    ? language === "bn" ? "সংরক্ষণ হচ্ছে..." : "Saving..."
+                    : language === "bn" ? "রেকর্ড যুক্ত করুন" : "Save Record"}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Vector Printable Certificate Modal */}
       {selectedCert && (
@@ -287,9 +618,11 @@ export function DonorCockpit() {
 
               <div className="py-4 border-y border-[var(--border-subtle)] my-4 space-y-1">
                 <span className="text-xs text-[var(--text-muted)] block">Awarded to Voluntary Donor</span>
-                <span className="text-xl font-black text-red-500">Tafsirul Islam</span>
+                <span className="text-xl font-black text-red-500">
+                  {userProfile?.name || "Verified Blood Hero"}
+                </span>
                 <span className="text-xs font-bold text-[var(--text-secondary)] block">
-                  Blood Group: O- (Universal Hero) • 1 Unit
+                  Blood Group: {selectedCert.bloodGroup} • {selectedCert.units} Unit
                 </span>
               </div>
 
@@ -303,7 +636,7 @@ export function DonorCockpit() {
                 <div className="text-right">
                   <span className="text-[10px] text-[var(--text-muted)] block">Date & Certificate ID:</span>
                   <span className="font-mono font-bold text-[var(--text-primary)]">
-                    {selectedCert.date} • #{selectedCert.id.toUpperCase()}
+                    {selectedCert.date} • #{selectedCert.certificateId}
                   </span>
                 </div>
               </div>

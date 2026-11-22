@@ -122,10 +122,10 @@ export async function PATCH(
       if (!ALLOWED_STATUSES.includes(body.status)) {
         return NextResponse.json({ error: "Invalid status value" }, { status: 400 });
       }
-      // Requesters can only cancel their own cases; staff can change any status
-      if (!isStaff && body.status !== "canceled") {
+      // Requesters can cancel or mark completed their own cases; staff can change any status
+      if (!isStaff && body.status !== "canceled" && body.status !== "done") {
         return NextResponse.json(
-          { error: "Forbidden: Requesters are only permitted to cancel active requests." },
+          { error: "Forbidden: Requesters can only cancel or mark active requests as completed." },
           { status: 403 }
         );
       }

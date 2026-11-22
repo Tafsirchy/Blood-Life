@@ -5,7 +5,7 @@ import { useLanguage } from "@/lib/i18n/context";
 import { BloodLagbeLogo } from "@/components/brand/BloodLagbeLogo";
 import { DIVISIONS, DISTRICTS } from "@/lib/geo/bangladeshData";
 import { BloodGroup } from "@/types";
-import { UserPlus, Mail, Lock, Phone, User, MapPin } from "lucide-react";
+import { UserPlus, Mail, Lock, Phone, User, MapPin, Heart, FileText } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -18,6 +18,7 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [phone, setPhone] = useState("");
   const [bloodGroup, setBloodGroup] = useState<BloodGroup>("O+");
+  const [role, setRole] = useState<"Donor" | "Requester">("Donor");
   const [division, setDivision] = useState("Dhaka");
   const [district, setDistrict] = useState("Dhaka");
   const [upazila, setUpazila] = useState("Dhanmondi");
@@ -44,6 +45,7 @@ export default function RegisterPage() {
           division,
           district,
           upazila,
+          role,
         }),
       });
 
@@ -52,6 +54,7 @@ export default function RegisterPage() {
         throw new Error(data.error || "Registration failed");
       }
 
+      localStorage.setItem("dashboard_preferred_role", role.toLowerCase());
       router.push("/dashboard");
       router.refresh();
     } catch (err: any) {
@@ -209,6 +212,45 @@ export default function RegisterPage() {
                   ))}
                 </select>
               </div>
+            </div>
+
+            {/* Primary Intent / Role Selector */}
+            <div className="pt-1">
+              <label className="block text-xs font-bold text-[var(--text-secondary)] mb-1.5">
+                {language === "bn" ? "আপনার প্রাথমিক ভূমিকা নির্বাচন করুন:" : "Select Your Primary Account Role:"}
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setRole("Donor")}
+                  className={`p-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all ${
+                    role === "Donor"
+                      ? "bg-red-500/10 border-red-500 text-red-600 dark:text-red-400 ring-2 ring-red-500/20 shadow-xs"
+                      : "bg-[var(--bg-main)] border-[var(--border-subtle)] text-[var(--text-secondary)] hover:border-red-400"
+                  }`}
+                >
+                  <Heart size={14} className={role === "Donor" ? "fill-current text-red-600" : ""} />
+                  <span>{language === "bn" ? "রক্তদাতা (Donor)" : "Blood Donor"}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setRole("Requester")}
+                  className={`p-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all ${
+                    role === "Requester"
+                      ? "bg-red-500/10 border-red-500 text-red-600 dark:text-red-400 ring-2 ring-red-500/20 shadow-xs"
+                      : "bg-[var(--bg-main)] border-[var(--border-subtle)] text-[var(--text-secondary)] hover:border-red-400"
+                  }`}
+                >
+                  <FileText size={14} />
+                  <span>{language === "bn" ? "রক্ত গ্রহীতা (Requester)" : "Blood Requester"}</span>
+                </button>
+              </div>
+              <p className="text-[11px] text-[var(--text-muted)] mt-1.5">
+                {language === "bn"
+                  ? "💡 রেজিস্ট্রেশনের পর ড্যাশবোর্ড থেকে যে কোনো সময় এক ক্লিকেই রক্তদাতা ও গ্রহীতা মোডে সুইচ করতে পারবেন।"
+                  : "💡 You can seamlessly switch between Donor and Requester modes at any time from your dashboard."}
+              </p>
             </div>
 
             <button

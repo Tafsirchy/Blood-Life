@@ -23,6 +23,7 @@ const registerSchema = z.object({
   division: z.string().min(1, "Division is required"),
   district: z.string().min(1, "District is required"),
   upazila: z.string().min(1, "Upazila is required"),
+  role: z.enum(["Donor", "Requester"]).optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -81,7 +82,7 @@ export async function POST(req: NextRequest) {
         division: validated.division,
         district: validated.district,
         upazila: validated.upazila,
-        role: "Donor",
+        role: validated.role || "Donor",
         status: "Active",
         isAvailable: true,
         totalDonations: 0,
