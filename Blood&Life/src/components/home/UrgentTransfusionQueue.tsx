@@ -97,9 +97,9 @@ function UrgentTransfusionCard({
 
   return (
     <div
-      className={`bg-white dark:bg-zinc-900 rounded-2xl border p-4 sm:p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between group relative overflow-hidden ${
+      className={`bg-white dark:bg-zinc-900 rounded-3xl border p-5 sm:p-6 shadow-xs hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 flex flex-col justify-between group relative overflow-hidden ${
         countdown.isCodeRed
-          ? "border-red-500/80 dark:border-red-500/60 ring-1 ring-red-500/20"
+          ? "border-red-500/80 dark:border-red-500/60 ring-2 ring-red-500/15 shadow-red-500/5"
           : "border-zinc-200/90 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700"
       } ${countdown.isExpired ? "opacity-60 grayscale" : ""}`}
     >
@@ -240,7 +240,7 @@ export function UrgentTransfusionQueue() {
   }, []);
 
   return (
-    <section className="py-6 sm:py-8 border-b border-[var(--border-subtle)] bg-[var(--bg-main)]">
+    <section className="py-10 sm:py-14 border-b border-[var(--border-subtle)] bg-gradient-to-b from-white via-rose-50/15 to-white dark:from-zinc-900/40 dark:via-zinc-950 dark:to-zinc-900/40 relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6">
           <div>

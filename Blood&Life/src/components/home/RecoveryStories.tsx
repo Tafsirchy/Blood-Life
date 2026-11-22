@@ -53,10 +53,10 @@ export function RecoveryStories() {
   const current = stories[activeIndex];
 
   return (
-    <section className="py-6 sm:py-8 border-b border-[var(--border-subtle)] bg-[var(--bg-surface)]">
+    <section className="py-12 sm:py-16 border-b border-[var(--border-subtle)] bg-gradient-to-b from-white via-amber-50/15 to-white dark:from-zinc-900/60 dark:via-zinc-950 dark:to-zinc-900/60 relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="text-center max-w-2xl mx-auto mb-6">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-red-500 block mb-1">
+        <div className="text-center max-w-2xl mx-auto mb-8">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 block mb-1">
             {language === "bn" ? "বাস্তব জীবনের গল্প" : "VOICES OF HOPE"}
           </span>
           <h2 className="text-2xl sm:text-3xl font-black text-[var(--text-primary)]">

@@ -36,7 +36,7 @@ export function ClinicalFAQ() {
   ];
 
   return (
-    <section className="py-6 sm:py-8 border-b border-[var(--border-subtle)] bg-[var(--bg-main)]">
+    <section className="py-12 sm:py-16 border-b border-[var(--border-subtle)] bg-[var(--bg-main)]">
       <div className="max-w-4xl mx-auto px-4 sm:px-6">
         <div className="text-center mb-6">
           <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-500 text-[11px] font-bold uppercase tracking-wider mb-2">

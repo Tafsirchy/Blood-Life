@@ -78,17 +78,17 @@ export function EligibilityCalculator() {
   const result = calculateEligibility();
 
   return (
-    <section className="py-6 sm:py-8 border-b border-[var(--border-subtle)] bg-[var(--bg-main)]">
+    <section className="py-12 sm:py-16 border-b border-[var(--border-subtle)] bg-gradient-to-b from-white via-zinc-50/50 to-white dark:from-zinc-900/60 dark:via-zinc-950 dark:to-zinc-900/60 relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
           {/* Left Column: Context & Guidelines */}
           <div className="lg:col-span-5 space-y-4">
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-red-500/10 border border-red-500/20 text-red-500 text-[11px] font-bold uppercase tracking-wider">
-              <Calculator size={12} />
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[11px] font-bold uppercase tracking-wider shadow-2xs">
+              <ShieldCheck size={13} className="text-emerald-500" />
               <span>{language === "bn" ? "নিরাপদ রক্তদান গাইড" : "SAFETY & ELIGIBILITY"}</span>
             </div>
 
-            <h2 className="text-2xl sm:text-3xl font-black text-[var(--text-primary)]">
+            <h2 className="text-2xl sm:text-4xl font-black text-[var(--text-primary)] tracking-tight">
               {language === "bn" ? "আপনি কি আজ রক্তদান করতে প্রস্তুত?" : "Are You Eligible to Donate Blood Today?"}
             </h2>
 
@@ -98,12 +98,12 @@ export function EligibilityCalculator() {
                 : "Donor health and patient safety are our top priorities. Check your biological readiness and 90-day safe cooldown instantly."}
             </p>
 
-            <div className="p-4 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] space-y-2 text-xs">
+            <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-850 border border-zinc-200/80 dark:border-zinc-800 space-y-2 text-xs">
               <div className="flex items-center gap-2 font-bold text-[var(--text-primary)]">
                 <ShieldCheck size={16} className="text-emerald-500" />
                 <span>{language === "bn" ? "আন্তর্জাতিক রক্তদান মানদণ্ড:" : "Standard WHO Guidelines:"}</span>
               </div>
-              <ul className="space-y-1 text-[var(--text-secondary)] pl-6 list-disc">
+              <ul className="space-y-1.5 text-[var(--text-secondary)] pl-5 list-disc font-medium">
                 <li>{language === "bn" ? "পুরুষ ও নারী উভয়ের ক্ষেত্রে ৯০ দিনের বিরতি" : "90-day interval between donations"}</li>
                 <li>{language === "bn" ? "হিমোগ্লোবিন লেভেল ন্যূনতম ১২.৫ g/dL" : "Minimum hemoglobin 12.5 g/dL"}</li>
                 <li>{language === "bn" ? "শরীরের ওজন ন্যূনতম ৪৮ কেজি" : "Minimum weight of 48 kg"}</li>
@@ -113,7 +113,7 @@ export function EligibilityCalculator() {
 
           {/* Right Column: Interactive Calculator Box */}
           <div className="lg:col-span-7">
-            <div className="card-clinical p-6 border-2 border-[var(--border-subtle)] space-y-5">
+            <div className="bg-white dark:bg-zinc-900 rounded-3xl p-6 sm:p-8 border border-zinc-200/90 dark:border-zinc-800 shadow-md space-y-5">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Age Input */}
                 <div>

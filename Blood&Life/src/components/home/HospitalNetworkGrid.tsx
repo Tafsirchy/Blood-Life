@@ -82,8 +82,8 @@ export function HospitalNetworkGrid() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         {/* Section Header */}
         <div className="text-center max-w-2xl mx-auto mb-8 sm:mb-10">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-[11px] font-bold uppercase tracking-wider mb-2.5">
-            <Building2 size={12} className="text-red-600 dark:text-red-400" />
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400 text-[11px] font-bold uppercase tracking-wider mb-2.5">
+            <Building2 size={12} className="text-blue-600 dark:text-blue-400" />
             <span>{language === "bn" ? "হাসপাতাল ও ব্লাড ব্যাংক নেটওয়ার্ক" : "INSTITUTIONAL PARTNERS"}</span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-black text-[var(--text-primary)] tracking-tight">

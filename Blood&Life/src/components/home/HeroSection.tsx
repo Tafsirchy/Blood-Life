@@ -13,7 +13,7 @@ export function HeroSection({ onOpenSos }: HeroSectionProps) {
   const { t, language } = useLanguage();
 
   return (
-    <section className="relative overflow-hidden py-6 sm:py-8 lg:py-10 border-b border-[var(--border-subtle)]">
+    <section className="relative overflow-hidden py-10 sm:py-14 lg:py-16 border-b border-[var(--border-subtle)]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-center">
           {/* Left Column (60%): Typographical Value Proposition */}

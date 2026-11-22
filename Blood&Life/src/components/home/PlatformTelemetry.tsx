@@ -9,6 +9,7 @@ import {
   ShieldCheck,
   Activity,
   CheckCircle2,
+  Radio,
 } from "lucide-react";
 
 export function PlatformTelemetry() {
@@ -21,11 +22,12 @@ export function PlatformTelemetry() {
       labelEn: "Verified Transfusions Completed",
       labelBn: "সফল রক্তদান ও জীবন রক্ষা",
       descEn: "100% voluntary & free",
-      descBn: "সম্পূর্ণ বিনামূল্যে সরাসরি হাসপাতালে",
-      badgeEn: "Hospital Verified",
+      descBn: "সরাসরি হাসপাতালে সম্পূর্ণ বিনামূল্যে",
+      badgeEn: "Hospital Audited",
       badgeBn: "হাসপাতাল ভেরিফাইড",
-      accentBorder: "border-t-red-600",
-      iconBg: "bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 border-red-200/60 dark:border-red-900/50",
+      glowColor: "from-rose-500/20 to-red-500/5",
+      accentTextColor: "text-rose-400",
+      accentBorder: "border-rose-500/30",
     },
     {
       icon: Users,
@@ -34,111 +36,111 @@ export function PlatformTelemetry() {
       labelBn: "নিবন্ধিত স্বেচ্ছাসেবী রক্তদাতা",
       descEn: "Across all 64 districts",
       descBn: "৮টি বিভাগ ও ৬৪টি জেলায় প্রস্তুত",
-      badgeEn: "Ready to Dispatch",
+      badgeEn: "Live on Standby",
       badgeBn: "সারাদেশে প্রস্তুত",
-      accentBorder: "border-t-blue-600",
-      iconBg: "bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border-blue-200/60 dark:border-blue-900/50",
+      glowColor: "from-blue-500/20 to-cyan-500/5",
+      accentTextColor: "text-cyan-400",
+      accentBorder: "border-cyan-500/30",
     },
     {
       icon: Clock,
       value: "18 mins",
       labelEn: "Median Emergency Match Time",
       labelBn: "গড় জরুরী ম্যাচিং সময়",
-      descEn: "Geo-targeted push routing",
+      descEn: "Sub-20m rapid dispatch",
       descBn: "নিকটবর্তী ডোনারদের দ্রুত নোটিফিকেশন",
-      badgeEn: "Sub-20m Response",
+      badgeEn: "Fast Triage",
       badgeBn: "২০ মিনিটের মধ্যে সাড়া",
-      accentBorder: "border-t-amber-600",
-      iconBg: "bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border-amber-200/60 dark:border-amber-900/50",
+      glowColor: "from-amber-500/20 to-orange-500/5",
+      accentTextColor: "text-amber-400",
+      accentBorder: "border-amber-500/30",
     },
     {
       icon: ShieldCheck,
       value: "100%",
-      labelEn: "Volunteer Prescription Auditing",
+      labelEn: "Prescription Audited Safety",
       labelBn: "প্রেসক্রিপশন ও বেড-টিকিট যাচাই",
-      descEn: "Strict zero-broker protocol",
-      descBn: "দালালমুক্ত ও নিরাপদ সেবা নিশ্চয়তা",
-      badgeEn: "100% Doctor Audited",
+      descEn: "Zero-broker clinical protocol",
+      descBn: "দালালমুক্ত ও শতভাগ নিরাপদ নিশ্চয়তা",
+      badgeEn: "Doctor Verified",
       badgeBn: "ডাক্তার কর্তৃক অনুমোদিত",
-      accentBorder: "border-t-emerald-600",
-      iconBg: "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border-emerald-200/60 dark:border-emerald-900/50",
+      glowColor: "from-emerald-500/20 to-teal-500/5",
+      accentTextColor: "text-emerald-400",
+      accentBorder: "border-emerald-500/30",
     },
   ];
 
   return (
-    <section className="py-8 sm:py-12 border-b border-[var(--border-subtle)] bg-[var(--bg-main)]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        {/* Section Header */}
-        <div className="text-center max-w-2xl mx-auto mb-8 sm:mb-10">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-[11px] font-bold uppercase tracking-wider mb-2.5">
-            <Activity size={12} className="text-red-600 dark:text-red-400 animate-pulse" />
-            <span>{language === "bn" ? "লাইভ প্ল্যাটফর্ম টেলিমেট্রি" : "REAL-TIME IMPACT TELEMETRY"}</span>
+    <section className="py-14 sm:py-20 bg-zinc-950 text-white relative overflow-hidden border-y border-zinc-800">
+      {/* Background Architectural Mesh & Subtle Radial Lighting */}
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-zinc-900/60 via-zinc-950 to-zinc-950" />
+      <div className="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 w-[700px] h-[350px] bg-red-600/10 rounded-full blur-[120px]" />
+      <div className="pointer-events-none absolute -bottom-40 right-10 w-[500px] h-[300px] bg-emerald-500/10 rounded-full blur-[100px]" />
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 relative z-10">
+        {/* Section Header: Command Center Beacon */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12 sm:mb-16 pb-8 border-b border-zinc-800/80">
+          <div>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/15 border border-red-500/30 text-red-400 text-[11px] font-black uppercase tracking-wider mb-3">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
+              </span>
+              <span>{language === "bn" ? "লাইভ জাতীয় টেলিমেট্রি" : "NATIONAL SYSTEM TELEMETRY"}</span>
+            </div>
+            <h2 className="text-2xl sm:text-4xl font-black text-white tracking-tight">
+              {language === "bn" ? "স্বচ্ছতা ও জীবন বাঁচানোর বাস্তব চিত্র" : "Transparent National Life-Saving Metrics"}
+            </h2>
           </div>
-          <h2 className="text-2xl sm:text-3xl font-black text-[var(--text-primary)] tracking-tight">
-            {language === "bn" ? "স্বচ্ছতা ও জীবন বাঁচানোর বাস্তব চিত্র" : "Transparent National Life-Saving Metrics"}
-          </h2>
-          <p className="text-xs sm:text-sm text-[var(--text-secondary)] mt-2 leading-relaxed">
+
+          <p className="text-xs sm:text-sm text-zinc-400 max-w-md leading-relaxed">
             {language === "bn"
-              ? "প্রতিটি সংখ্যা একটি অমূল্য মানবজীবন রক্ষা এবং স্বেচ্ছাসেবী রক্তদাতাদের নিঃস্বার্থ সহমর্মিতার বাস্তব প্রতীক।"
-              : "Every single metric represents a human life preserved and selfless voluntary solidarity across Bangladesh."}
+              ? "প্রতিটি সংখ্যা একটি অমূল্য মানবজীবন রক্ষা এবং বাংলাদেশের ৬৪ জেলার স্বেচ্ছাসেবী রক্তদাতাদের নিঃস্বার্থ সহমর্মিতার বাস্তব প্রতীক।"
+              : "Every single metric represents a human life preserved and verified voluntary donor solidarity across Bangladesh."}
           </p>
         </div>
 
-        {/* 4 Metric Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+        {/* 4 Command-Center Live Metrics */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {metrics.map((m, idx) => {
             const Icon = m.icon;
             return (
               <div
                 key={idx}
-                className={`bg-white dark:bg-zinc-900/90 rounded-2xl border border-zinc-200/90 dark:border-zinc-800 p-5 sm:p-6 shadow-xs hover:shadow-md transition-all duration-200 flex flex-col justify-between relative overflow-hidden group border-t-4 ${m.accentBorder}`}
+                className={`relative rounded-3xl bg-zinc-900/70 backdrop-blur-md border ${m.accentBorder} p-6 sm:p-7 shadow-xl hover:shadow-2xl hover:border-zinc-700 transition-all duration-300 flex flex-col justify-between group overflow-hidden`}
               >
+                {/* Internal Glow Accent */}
+                <div className={`pointer-events-none absolute -top-12 -right-12 w-32 h-32 bg-gradient-to-br ${m.glowColor} rounded-full blur-2xl group-hover:scale-150 transition-transform`} />
+
                 <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <div
-                      className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 ${m.iconBg}`}
-                    >
-                      <Icon size={20} />
-                    </div>
-                    <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                      <span>{language === "bn" ? m.badgeBn : m.badgeEn}</span>
+                  <div className="flex items-center justify-between mb-6">
+                    <span className="text-[10px] font-extrabold uppercase tracking-widest text-zinc-400 border border-zinc-800 bg-zinc-950/60 px-2.5 py-0.5 rounded-full">
+                      {language === "bn" ? m.badgeBn : m.badgeEn}
                     </span>
+                    <div className="p-2 rounded-xl bg-zinc-800/80 text-zinc-300 group-hover:scale-110 transition-transform">
+                      <Icon size={18} className={m.accentTextColor} />
+                    </div>
                   </div>
 
-                  <div className="text-2xl sm:text-3xl font-black tracking-tight text-zinc-900 dark:text-zinc-50 mb-1">
+                  {/* High-Impact Stat Number */}
+                  <div className="text-3xl sm:text-4xl font-black text-white tracking-tight tabular-nums mb-1">
                     {m.value}
                   </div>
-                  <h3 className="text-xs sm:text-[13px] font-bold text-zinc-800 dark:text-zinc-200 mb-1">
+
+                  <h3 className="text-sm font-bold text-zinc-200 mb-1">
                     {language === "bn" ? m.labelBn : m.labelEn}
                   </h3>
                 </div>
 
-                <div className="pt-3 mt-3 border-t border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between text-[11px] text-zinc-500 dark:text-zinc-400">
+                <div className="pt-4 border-t border-zinc-800/60 text-xs text-zinc-400 flex items-center gap-1.5">
+                  <CheckCircle2 size={13} className={m.accentTextColor} />
                   <span>{language === "bn" ? m.descBn : m.descEn}</span>
-                  <CheckCircle2 size={12} className="text-emerald-500 shrink-0" />
                 </div>
               </div>
             );
           })}
         </div>
-
-        {/* Live Public Audit Assurance Ribbon */}
-        <div className="mt-6 rounded-xl bg-white dark:bg-zinc-900/70 border border-zinc-200/90 dark:border-zinc-800 p-3.5 sm:p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-zinc-600 dark:text-zinc-400 shadow-xs">
-          <div className="flex items-center gap-2.5">
-            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-ping shrink-0" />
-            <span className="font-semibold text-zinc-700 dark:text-zinc-300">
-              {language === "bn"
-                ? "সার্বজনীন স্বচ্ছতা অডিট: ডেটা প্রতি ঘণ্টায় হাসপাতাল সমন্বয় ডেস্ক ও ভেরিফিকেশন লগ থেকে আপডেট হয়।"
-                : "Public Transparency Audit: Metrics updated in real-time from hospital verification desks and transfusion logs."}
-            </span>
-          </div>
-          <span className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 shrink-0">
-            {language === "bn" ? "১০০% দালালমুক্ত মানবিক উদ্যোগ" : "100% Free Humanitarian Network"}
-          </span>
-        </div>
       </div>
     </section>
   );
 }
-

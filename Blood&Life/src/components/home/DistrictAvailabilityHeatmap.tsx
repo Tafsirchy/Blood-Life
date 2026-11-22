@@ -26,10 +26,10 @@ export function DistrictAvailabilityHeatmap() {
   const districtsInDiv = DISTRICTS.filter((d) => d.division.toLowerCase() === activeDivision.nameEn.toLowerCase());
 
   return (
-    <section className="py-6 sm:py-8 border-b border-[var(--border-subtle)] bg-[var(--bg-surface)]">
+    <section className="py-10 sm:py-14 border-b border-[var(--border-subtle)] bg-[var(--bg-surface)]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="text-center mb-5">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-red-500 block mb-1">
+        <div className="text-center mb-6">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 block mb-1">
             {language === "bn" ? "জাতীয় কভারেজ ও প্রাপ্যতা" : "NATIONAL DONOR HEATMAP"}
           </span>
           <h2 className="text-2xl sm:text-3xl font-black text-[var(--text-primary)]">
