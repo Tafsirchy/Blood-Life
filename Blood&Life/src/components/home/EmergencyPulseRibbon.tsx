@@ -218,7 +218,7 @@ export function EmergencyPulseRibbon() {
 
           {/* Right Action Anchor - Clean, professional, low-stress button */}
           <Link
-            href="/search"
+            href="/search?tab=requests"
             className="shrink-0 text-xs font-bold bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:hover:bg-white dark:text-zinc-900 px-3 py-1 rounded-full shadow-xs flex items-center gap-1.5 transition-all z-20 active:scale-95"
           >
             <span>{language === "bn" ? "সব দেখুন" : "View All"}</span>

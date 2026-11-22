@@ -5,6 +5,7 @@ import { BloodGroup } from "@/types";
 import { DIVISIONS, DISTRICTS } from "@/lib/geo/bangladeshData";
 import { useLanguage } from "@/lib/i18n/context";
 import { translateBloodGroup } from "@/lib/utils";
+import { useEmergencyCountdown } from "@/lib/hooks/useEmergencyCountdown";
 import { 
   Search, 
   Droplet, 
@@ -41,6 +42,7 @@ interface RequestCardData {
   recipientName: string;
   bloodGroup: BloodGroup;
   unitsNeeded: number;
+  pledgedUnits?: number;
   urgency: "critical" | "urgent" | "standard";
   hospital: string;
   division: string;
@@ -50,6 +52,94 @@ interface RequestCardData {
   scheduledTime: string;
   status: string;
   isVerifiedGenuine: boolean;
+  expiresAt?: string;
+}
+
+function SearchRequestCard({
+  req,
+  language,
+}: {
+  req: RequestCardData;
+  language: string;
+}) {
+  const countdown = useEmergencyCountdown(
+    req.expiresAt,
+    (req.urgency?.toLowerCase() || "urgent") as "critical" | "urgent",
+    req._id
+  );
+
+  return (
+    <div
+      className={`p-4 sm:p-5 rounded-2xl border bg-[var(--surface-card)] transition-all flex flex-col justify-between group shadow-xs ${
+        countdown.isCodeRed
+          ? "border-red-500/60 ring-1 ring-red-500/20"
+          : "border-[var(--border-subtle)] hover:border-red-500/40"
+      }`}
+    >
+      <div>
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-red-600 to-red-700 text-white font-black text-base flex items-center justify-center shadow-md shadow-red-600/20 shrink-0">
+              {req.bloodGroup}
+            </div>
+            <div>
+              <h3 className="text-sm sm:text-base font-bold text-[var(--text-primary)] group-hover:text-red-500 transition-colors">
+                {req.recipientName}
+              </h3>
+              <div className="flex items-center gap-1 text-xs text-[var(--text-muted)] mt-0.5">
+                <Hospital size={12} className="text-red-500 shrink-0" />
+                <span className="truncate max-w-[170px]">{req.hospital}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col items-end gap-1">
+            <span
+              suppressHydrationWarning
+              className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase flex items-center gap-1 border ${countdown.badgeClass}`}
+            >
+              <Clock size={10} className={countdown.isCodeRed ? "animate-pulse" : ""} />
+              <span className="tabular-nums" suppressHydrationWarning>
+                {countdown.isExpired ? (language === "bn" ? "সময় শেষ" : "Expired") : countdown.formattedCountdown}
+              </span>
+            </span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 p-2.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-subtle)] text-xs mb-3.5">
+          <div>
+            <span className="text-[10px] text-[var(--text-muted)] font-bold uppercase block">
+              {language === "bn" ? "প্রয়োজন" : "Needed"}
+            </span>
+            <span className="font-bold text-[var(--text-primary)]">
+              {req.unitsNeeded} {language === "bn" ? "ব্যাগ" : "bag(s)"}
+            </span>
+            {typeof req.pledgedUnits === "number" && (
+              <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold block mt-0.5">
+                {req.pledgedUnits} / {req.unitsNeeded} {language === "bn" ? "ব্যাগ নিশ্চিত" : "Secured"}
+              </span>
+            )}
+          </div>
+          <div>
+            <span className="text-[10px] text-[var(--text-muted)] font-bold uppercase block">
+              {language === "bn" ? "স্থান" : "Location"}
+            </span>
+            <span className="font-bold text-[var(--text-primary)] truncate block">
+              {req.district}, {req.upazila}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <Link
+        href={`/requests/${req._id}`}
+        className="w-full py-2.5 px-4 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-colors shadow-xs"
+      >
+        <span>{language === "bn" ? "বিস্তারিত ও রক্ত দিন" : "View Case & Pledge"}</span>
+        <ChevronRight size={14} />
+      </Link>
+    </div>
+  );
 }
 
 export function DualSearchFeed() {
@@ -73,6 +163,34 @@ export function DualSearchFeed() {
   const [privacyError, setPrivacyError] = useState<string | null>(null);
 
   const bloodGroups: BloodGroup[] = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
+
+  // Initialize filters and active tab from URL query params on client mount
+  useEffect(() => {
+    try {
+      const searchParams = new URLSearchParams(window.location.search);
+      const tabParam = searchParams.get("tab");
+      if (tabParam === "requests" || tabParam === "cases") {
+        setActiveTab("requests");
+      } else if (tabParam === "donors") {
+        setActiveTab("donors");
+      }
+
+      const bloodParam = searchParams.get("bloodGroup");
+      if (bloodParam) {
+        setSelectedBlood(bloodParam.replace(" ", "+"));
+      }
+
+      const divParam = searchParams.get("division");
+      if (divParam) {
+        setSelectedDivision(divParam);
+      }
+
+      const distParam = searchParams.get("district");
+      if (distParam) {
+        setSelectedDistrict(distParam);
+      }
+    } catch {}
+  }, []);
 
   const filteredDistricts = selectedDivision === "all"
     ? DISTRICTS
@@ -366,64 +484,7 @@ export function DualSearchFeed() {
         requests.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {requests.map((req) => (
-              <div
-                key={req._id}
-                className="p-4 sm:p-5 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-card)] hover:border-red-500/40 transition-all flex flex-col justify-between group shadow-xs"
-              >
-                <div>
-                  <div className="flex items-start justify-between gap-3 mb-3">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-red-600 to-red-700 text-white font-black text-base flex items-center justify-center shadow-md shadow-red-600/20 shrink-0">
-                        {req.bloodGroup}
-                      </div>
-                      <div>
-                        <h3 className="text-sm sm:text-base font-bold text-[var(--text-primary)] group-hover:text-red-500 transition-colors">
-                          {req.recipientName}
-                        </h3>
-                        <div className="flex items-center gap-1 text-xs text-[var(--text-muted)] mt-0.5">
-                          <Hospital size={12} className="text-red-500 shrink-0" />
-                          <span className="truncate max-w-[170px]">{req.hospital}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                      req.urgency === "critical"
-                        ? "bg-red-500/10 text-red-600 border border-red-500/20 animate-pulse"
-                        : "bg-amber-500/10 text-amber-600 border border-amber-500/20"
-                    }`}>
-                      {req.urgency}
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 p-2.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-subtle)] text-xs mb-3.5">
-                    <div>
-                      <span className="text-[10px] text-[var(--text-muted)] font-bold uppercase block">
-                        {language === "bn" ? "প্রয়োজন" : "Needed"}
-                      </span>
-                      <span className="font-bold text-[var(--text-primary)]">
-                        {req.unitsNeeded} {language === "bn" ? "ব্যাগ" : "bag(s)"}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-[var(--text-muted)] font-bold uppercase block">
-                        {language === "bn" ? "তারিখ ও সময়" : "Schedule"}
-                      </span>
-                      <span className="font-bold text-[var(--text-primary)]">
-                        {req.scheduledDate} ({req.scheduledTime})
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <Link
-                  href={`/requests/${req._id}`}
-                  className="w-full py-2.5 px-4 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-colors shadow-xs"
-                >
-                  <span>{language === "bn" ? "বিস্তারিত ও রক্ত দিন" : "View Case & Pledge"}</span>
-                  <ChevronRight size={14} />
-                </Link>
-              </div>
+              <SearchRequestCard key={req._id} req={req} language={language} />
             ))}
           </div>
         ) : (

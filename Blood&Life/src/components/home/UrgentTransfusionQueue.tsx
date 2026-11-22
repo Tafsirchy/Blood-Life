@@ -259,7 +259,7 @@ export function UrgentTransfusionQueue() {
           </div>
 
           <Link
-            href="/search"
+            href="/search?tab=requests"
             className="inline-flex items-center gap-1.5 text-xs font-bold text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 group shrink-0 transition-colors"
           >
             <span>{language === "bn" ? "সকল জরুরি আবেদন দেখুন" : "View All Emergency Requests"}</span>

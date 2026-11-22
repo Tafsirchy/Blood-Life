@@ -12,6 +12,23 @@ export async function GET(
 ) {
   try {
     const { id: donorId } = await params;
+    if (donorId.startsWith("donor-sample-")) {
+      const session = await getValidatedSession();
+      if (!session) {
+        return NextResponse.json({
+          donorId,
+          maskedPhone: "0171••••123",
+          requiresLogin: true,
+          message: "Sign in to access verified emergency contact.",
+        });
+      }
+      return NextResponse.json({
+        donorId,
+        phone: "01712-345678",
+        message: "Verified Voluntary Donor Contact",
+      });
+    }
+
     if (!isValidObjectId(donorId)) {
       return NextResponse.json({ error: "Invalid donor ID format" }, { status: 400 });
     }
