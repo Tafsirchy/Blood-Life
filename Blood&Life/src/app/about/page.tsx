@@ -58,9 +58,9 @@ export default function AboutPage() {
 
       <main className="flex-1">
         {/* Hero Section */}
-        <section className="py-8 sm:py-12 border-b border-[var(--border-subtle)] bg-[var(--bg-surface)]">
+        <section className="py-10 sm:py-16 border-b border-[var(--border-subtle)] bg-[var(--bg-surface)]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6">
-            <div className="max-w-3xl space-y-3">
+            <div className="max-w-3xl mx-auto text-center space-y-3">
               <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-red-500/10 border border-red-500/20 text-red-500 text-[11px] font-bold uppercase tracking-wider">
                 <Target size={12} />
                 <span>{language === "bn" ? "আমাদের লক্ষ্য ও দর্শন" : "OUR MISSION & IDENTITY"}</span>
@@ -70,7 +70,7 @@ export default function AboutPage() {
                   ? "ব্লাড অ্যান্ড লাইফ (BLOOD&LIFE) — প্রতিটি রক্তের ফোঁটায় জীবনের স্পন্দন"
                   : "BLOOD&LIFE — Transforming Emergency Blood Dispatch Across Bangladesh"}
               </h1>
-              <p className="text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed">
+              <p className="text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed max-w-2xl mx-auto">
                 {language === "bn"
                   ? "আমরা বিশ্বাস করি, রক্তের অভাবে যেন কোনো মানুষকে অকালে প্রাণ হারাতে না হয়। হাসপাতালের আইসিইউ বা জরুরি অস্ত্রোপচার কক্ষে অসহায় রোগীদের সাথে নিঃস্বার্থ রক্তদাতাদের তাৎক্ষণিক, নিরাপদ ও নিখরচায় যুক্ত করাই আমাদের অঙ্গীকার।"
                   : "No family should ever lose a loved one due to delayed blood transfusions. BLOOD&LIFE connects critical surgical cases with voluntary verified donors in minutes across all 64 districts in Bangladesh."}
@@ -80,9 +80,9 @@ export default function AboutPage() {
         </section>
 
         {/* 4 Core Pillars */}
-        <section className="py-8 sm:py-10 border-b border-[var(--border-subtle)] bg-[var(--bg-main)]">
+        <section className="py-8 sm:py-12 border-b border-[var(--border-subtle)] bg-[var(--bg-main)]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 space-y-6">
-            <div className="text-left space-y-1">
+            <div className="text-center space-y-1">
               <span className="text-[11px] font-bold uppercase tracking-wider text-red-500 block">
                 {language === "bn" ? "আমাদের মূল ভিত্তি" : "FOUR CORE PILLARS"}
               </span>

@@ -68,7 +68,7 @@ export default function FundingPage() {
       <main className="flex-1 py-8 sm:py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 space-y-8">
           {/* Header */}
-          <div className="max-w-2xl space-y-2">
+          <div className="max-w-3xl mx-auto text-center space-y-3 pb-2">
             <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 text-[11px] font-bold uppercase tracking-wider">
               <ShieldCheck size={12} />
               <span>{language === "bn" ? "স্বচ্ছ কমিউনিটি ফান্ড" : "TRANSPARENT LIFE SUPPORT FUND"}</span>
@@ -76,7 +76,7 @@ export default function FundingPage() {
             <h1 className="text-2xl sm:text-4xl font-black text-[var(--text-primary)] tracking-tight">
               {language === "bn" ? "অসহায় রোগীর জরুরী রক্তদান সহায়তা তহবিল" : "Community Emergency Blood Transfusion Fund"}
             </h1>
-            <p className="text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed">
+            <p className="text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed max-w-2xl mx-auto">
               {language === "bn"
                 ? "ব্লাড অ্যান্ড লাইফ (BLOOD&LIFE) প্ল্যাটফর্ম সম্পূর্ণ ফ্রি। তবে হাসপাতালের আইসিইউতে অসচ্ছল রোগীদের রক্তের ক্রস-ম্যাচিং টেস্ট ও ব্যাগ কেনার সামর্থ্য না থাকলে এই তহবিল থেকে সরাসরি সহায়তা দেওয়া হয়।"
                 : "BLOOD&LIFE operates with zero fees. However, impoverished ICU patients frequently lack the funds for laboratory cross-matching screening and sterile blood bags. This transparent fund subsidizes those clinical expenses."}
