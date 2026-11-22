@@ -54,7 +54,7 @@ export default function AboutPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[var(--bg-main)] text-[var(--text-primary)]">
-      <Navbar onOpenSos={() => {}} />
+      <Navbar />
 
       <main className="flex-1">
         {/* Hero Section */}

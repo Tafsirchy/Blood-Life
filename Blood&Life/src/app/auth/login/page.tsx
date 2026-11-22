@@ -1,15 +1,18 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, Suspense } from "react";
 import { useLanguage } from "@/lib/i18n/context";
 import { BloodLagbeLogo } from "@/components/brand/BloodLagbeLogo";
 import { LogIn, ArrowRight, ShieldCheck, Mail, Lock } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
-export default function LoginPage() {
+function LoginForm() {
   const { language } = useLanguage();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const from = searchParams.get("from") || "/dashboard";
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -43,7 +46,8 @@ export default function LoginPage() {
         throw new Error(data.error || "Login failed");
       }
 
-      router.push("/dashboard");
+      const destination = from.startsWith("/") ? from : "/dashboard";
+      router.push(destination);
       router.refresh();
     } catch (err: any) {
       setError(err.message);
@@ -159,5 +163,19 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[var(--bg-main)] flex items-center justify-center">
+          <div className="w-8 h-8 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
+        </div>
+      }
+    >
+      <LoginForm />
+    </Suspense>
   );
 }

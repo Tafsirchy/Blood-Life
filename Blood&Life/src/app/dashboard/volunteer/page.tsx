@@ -2,8 +2,6 @@
 
 import React, { useState } from "react";
 import { useLanguage } from "@/lib/i18n/context";
-import { Navbar } from "@/components/layout/Navbar";
-import { EmergencyFooter } from "@/components/home/EmergencyFooter";
 import {
   ShieldCheck,
   ZoomIn,
@@ -152,33 +150,30 @@ export default function VolunteerTriageStation() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[var(--bg-main)] text-[var(--text-primary)]">
-      <Navbar onOpenSos={() => {}} />
-
-      <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-8">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-6 border-b border-[var(--border-subtle)]">
-          <div>
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 text-[11px] font-bold uppercase tracking-wider mb-1.5">
-              <ShieldCheck size={13} />
-              <span>{language === "bn" ? "ভলান্টিয়ার ট্রায়াজ স্টেশন" : "VOLUNTEER VERIFICATION DESK"}</span>
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-black text-[var(--text-primary)]">
-              {language === "bn" ? "ডাক্তার প্রেসক্রিপশন ও বেড টিকিট যাচাইকরণ" : "Prescription Triage & Verification"}
-            </h1>
-            <p className="text-xs sm:text-sm text-[var(--text-secondary)] mt-1">
-              {language === "bn"
-                ? "হাসপাতালের কাগজপত্র ও ডাক্তারের সিল পরীক্ষা করে প্রকৃত জরুরী কেসগুলোকে ভেরিফাইড ব্যাজ প্রদান করুন।"
-                : "Inspect hospital bed tickets and physician seals to ensure zero brokers and 100% genuine patient aid."}
-            </p>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[var(--border-subtle)]">
+        <div>
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 text-[11px] font-bold uppercase tracking-wider mb-1.5">
+            <ShieldCheck size={13} />
+            <span>{language === "bn" ? "ভলান্টিয়ার ট্রায়াজ স্টেশন" : "VOLUNTEER VERIFICATION DESK"}</span>
           </div>
-
-          <div className="flex items-center gap-2 self-start sm:self-auto">
-            <span className="px-3 py-1 rounded-lg bg-red-500/10 text-red-500 border border-red-500/20 text-xs font-bold">
-              {cases.length} {language === "bn" ? "টি কেস অপেক্ষমান" : "Pending Cases"}
-            </span>
-          </div>
+          <h1 className="text-xl sm:text-2xl font-black text-[var(--text-primary)]">
+            {language === "bn" ? "ডাক্তার প্রেসক্রিপশন ও বেড টিকিট যাচাইকরণ" : "Prescription Triage & Verification"}
+          </h1>
+          <p className="text-xs text-[var(--text-secondary)] mt-1">
+            {language === "bn"
+              ? "হাসপাতালের কাগজপত্র ও ডাক্তারের সিল পরীক্ষা করে প্রকৃত জরুরী কেসগুলোকে ভেরিফাইড ব্যাজ প্রদান করুন।"
+              : "Inspect hospital bed tickets and physician seals to ensure zero brokers and 100% genuine patient aid."}
+          </p>
         </div>
+
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <span className="px-3 py-1 rounded-lg bg-red-500/10 text-red-500 border border-red-500/20 text-xs font-bold">
+            {cases.length} {language === "bn" ? "টি কেস অপেক্ষমান" : "Pending Cases"}
+          </span>
+        </div>
+      </div>
 
         {/* Success Alert Banner */}
         {successMessage && (
@@ -367,7 +362,6 @@ export default function VolunteerTriageStation() {
             )}
           </div>
         )}
-      </main>
 
       {/* Reject Modal */}
       {rejectModalOpen && (
@@ -405,8 +399,6 @@ export default function VolunteerTriageStation() {
           </div>
         </div>
       )}
-
-      <EmergencyFooter />
     </div>
   );
 }

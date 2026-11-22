@@ -11,7 +11,7 @@ export default function PrivacyPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[var(--bg-main)] text-[var(--text-primary)]">
-      <Navbar onOpenSos={() => {}} />
+      <Navbar />
 
       <main className="flex-1 py-8 sm:py-12">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 space-y-8">

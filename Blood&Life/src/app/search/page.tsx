@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Navbar } from "@/components/layout/Navbar";
 import { EmergencyFooter } from "@/components/home/EmergencyFooter";
 import { DualSearchFeed } from "@/components/search/DualSearchFeed";
@@ -11,6 +11,17 @@ import { Droplet } from "lucide-react";
 export default function SearchPage() {
   const { language } = useLanguage();
   const [isSosOpen, setIsSosOpen] = useState(false);
+
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("openSos") === "true" || params.get("sos") === "true") {
+        setIsSosOpen(true);
+      }
+    } catch {
+      // fallback
+    }
+  }, []);
 
   return (
     <div className="min-h-screen flex flex-col bg-[var(--bg-main)] text-[var(--text-primary)]">

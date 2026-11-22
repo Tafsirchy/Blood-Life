@@ -19,20 +19,60 @@ import {
   Lock,
   FileText,
   LayoutDashboard,
+  LogOut,
+  User as UserIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 interface NavbarProps {
-  onOpenSos: () => void;
+  onOpenSos?: () => void;
 }
 
 export function Navbar({ onOpenSos }: NavbarProps) {
   const { t, language } = useLanguage();
   const pathname = usePathname();
+  const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState<{ name: string; role: string; email: string } | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Synchronize authenticated user state
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.authenticated && d.user) {
+          setCurrentUser({
+            name: d.user.name,
+            role: d.user.role,
+            email: d.user.email,
+          });
+        } else {
+          setCurrentUser(null);
+        }
+      })
+      .catch(() => setCurrentUser(null));
+  }, [pathname]);
+
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+      setCurrentUser(null);
+      window.location.href = "/";
+    } catch {
+      window.location.href = "/";
+    }
+  };
+
+  const handleSosClick = () => {
+    if (onOpenSos) {
+      onOpenSos();
+    } else {
+      router.push("/search?openSos=true");
+    }
+  };
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -193,13 +233,52 @@ export function Navbar({ onOpenSos }: NavbarProps) {
           <ThemeToggle />
 
           <button
-            onClick={onOpenSos}
+            onClick={handleSosClick}
             type="button"
             className="btn-emergency !py-1.5 !px-3 text-xs font-bold hidden sm:inline-flex"
           >
             <ShieldAlert size={13} />
             <span>{t.nav.needBloodNow}</span>
           </button>
+
+          {/* User Profile or Sign In Buttons */}
+          {currentUser ? (
+            <div className="hidden sm:flex items-center gap-1.5 pl-1 border-l border-[var(--border-subtle)]">
+              <Link
+                href="/dashboard/settings"
+                className="px-2.5 py-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-main)] text-[11px] font-bold text-[var(--text-primary)] hover:border-red-500/40 transition-colors flex items-center gap-1.5"
+                title={currentUser.email}
+              >
+                <span className="w-5 h-5 rounded-md bg-red-600 text-white flex items-center justify-center text-[10px] font-black">
+                  {currentUser.name ? currentUser.name.charAt(0).toUpperCase() : "U"}
+                </span>
+                <span className="max-w-[75px] truncate">{currentUser.name}</span>
+              </Link>
+              <button
+                onClick={handleLogout}
+                className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-red-600 hover:bg-red-500/10 transition-colors cursor-pointer"
+                title={language === "bn" ? "লগআউট" : "Sign Out"}
+                aria-label="Sign Out"
+              >
+                <LogOut size={16} />
+              </button>
+            </div>
+          ) : (
+            <div className="hidden sm:flex items-center gap-1 pl-1 border-l border-[var(--border-subtle)]">
+              <Link
+                href="/auth/login"
+                className="px-2.5 py-1.5 rounded-lg text-xs font-bold text-[var(--text-secondary)] hover:text-red-500 hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+              >
+                {language === "bn" ? "লগইন" : "Sign In"}
+              </Link>
+              <Link
+                href="/auth/register"
+                className="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-red-600 dark:hover:bg-red-600 dark:hover:text-white transition-colors"
+              >
+                {language === "bn" ? "নিবন্ধন" : "Join"}
+              </Link>
+            </div>
+          )}
 
           {/* Mobile Drawer Button */}
           <button
@@ -261,6 +340,24 @@ export function Navbar({ onOpenSos }: NavbarProps) {
             {language === "bn" ? "আমাদের কথা" : "About Us"}
           </Link>
           <Link
+            href="/privacy"
+            onClick={() => setMobileOpen(false)}
+            className={`block px-3 py-2 rounded-lg transition-colors ${
+              pathname === "/privacy" ? "bg-red-500/10 text-red-500" : "text-[var(--text-primary)]"
+            }`}
+          >
+            {language === "bn" ? "ডোনার প্রাইভেসি শিল্ড" : "Privacy Shield"}
+          </Link>
+          <Link
+            href="/terms"
+            onClick={() => setMobileOpen(false)}
+            className={`block px-3 py-2 rounded-lg transition-colors ${
+              pathname === "/terms" ? "bg-red-500/10 text-red-500" : "text-[var(--text-primary)]"
+            }`}
+          >
+            {language === "bn" ? "শর্তাবলী" : "Terms & Guidelines"}
+          </Link>
+          <Link
             href="/dashboard"
             onClick={() => setMobileOpen(false)}
             className={`block px-3 py-2 rounded-lg transition-colors ${
@@ -269,16 +366,57 @@ export function Navbar({ onOpenSos }: NavbarProps) {
           >
             {t.nav.dashboard}
           </Link>
+
+          {/* Emergency SOS in Mobile Menu */}
           <button
             onClick={() => {
               setMobileOpen(false);
-              onOpenSos();
+              handleSosClick();
             }}
             className="w-full text-left px-3 py-2 rounded-lg text-red-500 font-bold flex items-center gap-1.5"
           >
             <ShieldAlert size={14} />
             <span>{t.nav.needBloodNow}</span>
           </button>
+
+          {/* Mobile Auth Actions */}
+          <div className="pt-2 mt-2 border-t border-[var(--border-subtle)] space-y-1">
+            {currentUser ? (
+              <div className="px-3 py-2 rounded-lg bg-[var(--bg-main)] flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-bold text-[var(--text-primary)] block">{currentUser.name}</span>
+                  <span className="text-[10px] text-[var(--text-muted)] font-medium block">{currentUser.role}</span>
+                </div>
+                <button
+                  onClick={() => {
+                    setMobileOpen(false);
+                    handleLogout();
+                  }}
+                  className="px-2.5 py-1 rounded-md text-xs font-bold text-red-500 hover:bg-red-500/10 flex items-center gap-1"
+                >
+                  <LogOut size={13} />
+                  <span>{language === "bn" ? "লগআউট" : "Sign Out"}</span>
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                <Link
+                  href="/auth/login"
+                  onClick={() => setMobileOpen(false)}
+                  className="py-2 text-center rounded-lg border border-[var(--border-subtle)] text-xs font-bold text-[var(--text-primary)] hover:border-red-500/40"
+                >
+                  {language === "bn" ? "লগইন" : "Sign In"}
+                </Link>
+                <Link
+                  href="/auth/register"
+                  onClick={() => setMobileOpen(false)}
+                  className="py-2 text-center rounded-lg bg-red-600 text-white text-xs font-bold hover:bg-red-700"
+                >
+                  {language === "bn" ? "নিবন্ধন" : "Join"}
+                </Link>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </nav>

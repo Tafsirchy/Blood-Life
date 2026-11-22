@@ -65,7 +65,12 @@ export default function RequestDetailContent({
       }
       setPledgeSuccess(data.message);
       if (request) {
-        setRequest({ ...request, status: "inprogress" });
+        const updatedPledged = typeof data.pledgedUnits === "number" ? data.pledgedUnits : (request.pledgedUnits || 0) + 1;
+        setRequest({
+          ...request,
+          pledgedUnits: updatedPledged,
+          status: updatedPledged >= request.unitsNeeded ? "inprogress" : request.status,
+        });
       }
     } catch (err) {
       setPledgeError(err instanceof Error ? err.message : "Pledge failed");
