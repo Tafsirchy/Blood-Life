@@ -128,7 +128,7 @@ export function Navbar({ onOpenSos }: NavbarProps) {
           </Link>
 
           <Link
-            href={pathname === "/" ? "#life-fund" : "/funding"}
+            href="/funding"
             className={`px-2 py-1 rounded-md transition-colors whitespace-nowrap ${
               pathname === "/funding"
                 ? "bg-red-500/10 text-red-600 dark:text-red-400 font-extrabold border border-red-500/20"
@@ -335,10 +335,10 @@ export function Navbar({ onOpenSos }: NavbarProps) {
             {t.nav.search}
           </Link>
           <Link
-            href={pathname === "/" ? "#life-fund" : "/funding"}
+            href="/funding"
             onClick={() => setMobileOpen(false)}
             className={`block px-3 py-2 rounded-lg transition-colors ${
-              pathname === "/funding" ? "bg-red-500/10 text-red-500" : "text-[var(--text-primary)]"
+              pathname === "/funding" ? "bg-red-500/10 text-red-500 font-bold" : "text-[var(--text-primary)]"
             }`}
           >
             {language === "bn" ? "লাইফ ফান্ড" : "Life Fund"}
