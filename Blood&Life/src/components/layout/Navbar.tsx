@@ -160,6 +160,19 @@ export function Navbar({ onOpenSos }: NavbarProps) {
             {dropdownOpen && (
               <div className="absolute left-0 mt-1.5 w-52 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] shadow-xl py-1.5 z-50 animate-in fade-in slide-in-from-top-1">
                 <Link
+                  href="/#blood-info"
+                  onClick={() => setDropdownOpen(false)}
+                  className={`flex items-center gap-2 px-3 py-2 text-xs transition-colors ${
+                    pathname === "/#blood-info"
+                      ? "bg-red-500/10 text-red-500 font-bold"
+                      : "text-[var(--text-primary)] hover:bg-[var(--bg-main)]"
+                  }`}
+                >
+                  <Droplet size={14} className="text-red-500" />
+                  <span>{language === "bn" ? "রক্তের তথ্য ও ম্যাচিং" : "Blood Info & Matching"}</span>
+                </Link>
+
+                <Link
                   href="/about"
                   onClick={() => setDropdownOpen(false)}
                   className={`flex items-center gap-2 px-3 py-2 text-xs transition-colors ${
@@ -329,6 +342,13 @@ export function Navbar({ onOpenSos }: NavbarProps) {
             }`}
           >
             {language === "bn" ? "লাইফ ফান্ড" : "Life Fund"}
+          </Link>
+          <Link
+            href="/#blood-info"
+            onClick={() => setMobileOpen(false)}
+            className="block px-3 py-2 rounded-lg transition-colors text-[var(--text-primary)] hover:bg-red-500/10 hover:text-red-500"
+          >
+            {language === "bn" ? "রক্তের তথ্য ও ম্যাচিং" : "Blood Info & Matching"}
           </Link>
           <Link
             href="/about"

@@ -91,6 +91,11 @@ export function EmergencyFooter() {
             </h4>
             <ul className="space-y-1.5 text-xs">
               <li>
+                <Link href="/#blood-info" className="hover:text-red-500 transition-colors">
+                  {language === "bn" ? "রক্তের সামঞ্জস্য ও গাইড" : "Blood Compatibility & Guide"}
+                </Link>
+              </li>
+              <li>
                 <Link href="/dashboard/volunteer" className="hover:text-red-500 transition-colors">
                   {language === "bn" ? "প্রেসক্রিপশন ভেরিফিকেশন" : "Prescription Verification"}
                 </Link>

@@ -8,6 +8,7 @@ import { DistrictAvailabilityHeatmap } from "@/components/home/DistrictAvailabil
 import { UrgentTransfusionQueue } from "@/components/home/UrgentTransfusionQueue";
 import { LifeSavingLifecycle } from "@/components/home/LifeSavingLifecycle";
 import { EligibilityCalculator } from "@/components/home/EligibilityCalculator";
+import { BloodKnowledgeHub } from "@/components/home/BloodKnowledgeHub";
 import { RareBloodVault } from "@/components/home/RareBloodVault";
 import { PlatformTelemetry } from "@/components/home/PlatformTelemetry";
 import { RecoveryStories } from "@/components/home/RecoveryStories";
@@ -45,7 +46,10 @@ export default function HomePage() {
         {/* Section 06: Interactive Safe Donation Eligibility Calculator */}
         <EligibilityCalculator />
 
-        {/* Section 07: Rare Blood Group Emergency Vault */}
+        {/* Section 07: Clinical Blood Knowledge Hub & Compatibility Matrix */}
+        <BloodKnowledgeHub />
+
+        {/* Section 08: Rare Blood Group Emergency Vault */}
         <RareBloodVault />
 
         {/* Section 08: Live Platform Telemetry & Transparency Counters */}
