@@ -5,6 +5,13 @@ import { Navbar } from "@/components/layout/Navbar";
 import { EmergencyFooter } from "@/components/home/EmergencyFooter";
 import { SosBroadcastModal } from "@/components/requests/SosBroadcastModal";
 import { useLanguage } from "@/lib/i18n/context";
+import { useEmergencyCountdown } from "@/lib/hooks/useEmergencyCountdown";
+import {
+  SAMPLE_EMERGENCY_CASES,
+  getPersistentEmergencyDeadline,
+  getPersistentPledgedUnits,
+  recordPersistentPledge,
+} from "@/lib/emergencyDeadlines";
 import { IDonationRequest } from "@/types";
 import { 
   Hospital, 
@@ -34,19 +41,54 @@ export default function RequestDetailContent({
   const [pledgeError, setPledgeError] = useState<string | null>(null);
   const [isSosOpen, setIsSosOpen] = useState(false);
 
+  const countdown = useEmergencyCountdown(
+    request?.expiresAt,
+    (request?.urgency?.toLowerCase() || "urgent") as "critical" | "urgent",
+    id
+  );
+
   useEffect(() => {
     async function fetchCase() {
       try {
         const res = await fetch(`/api/requests/${id}`);
-        const data = await res.json();
-        if (data.request) {
-          setRequest(data.request);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.request) {
+            setRequest(data.request);
+            setLoading(false);
+            return;
+          }
         }
       } catch {
-        // Handle fetch failure
-      } finally {
-        setLoading(false);
+        // Fallback to sample case if offline or ID is demonstration
       }
+
+      // Sample case fallback
+      if (id.startsWith("case-") && SAMPLE_EMERGENCY_CASES[id]) {
+        const sample = SAMPLE_EMERGENCY_CASES[id];
+        const persistedDeadline = getPersistentEmergencyDeadline(id, sample.defaultDurationMinutes);
+        const persistedPledged = getPersistentPledgedUnits(id, sample.pledgedUnits);
+        setRequest({
+          _id: sample.id,
+          recipientName: sample.patientName,
+          bloodGroup: sample.bloodGroup,
+          unitsNeeded: sample.unitsNeeded,
+          pledgedUnits: persistedPledged,
+          hospital: sample.hospital,
+          district: sample.district,
+          upazila: sample.upazila,
+          urgency: sample.urgency,
+          scheduledDate: new Date().toISOString().split("T")[0],
+          scheduledTime: "Immediate",
+          medicalReason: sample.medicalReason,
+          message: "Critical surgical blood requirement at hospital ICU/ward.",
+          requesterPhone: sample.requesterPhone,
+          status: persistedPledged >= sample.unitsNeeded ? "inprogress" : "pending",
+          createdAt: new Date().toISOString(),
+          expiresAt: persistedDeadline,
+        } as unknown as IDonationRequest);
+      }
+      setLoading(false);
     }
     fetchCase();
   }, [id]);
@@ -56,6 +98,21 @@ export default function RequestDetailContent({
     setPledgeError(null);
     setPledgeSuccess(null);
     try {
+      if (id.startsWith("case-")) {
+        const currentPledged = request?.pledgedUnits || 0;
+        const maxUnits = request?.unitsNeeded || 2;
+        const newUnits = recordPersistentPledge(id, currentPledged, maxUnits);
+        setPledgeSuccess("Thank you for committing to donate blood! The hospital staff and patient family have been notified.");
+        if (request) {
+          setRequest({
+            ...request,
+            pledgedUnits: newUnits,
+            status: newUnits >= request.unitsNeeded ? "inprogress" : request.status,
+          });
+        }
+        return;
+      }
+
       const res = await fetch(`/api/requests/${id}/pledge`, {
         method: "POST",
       });
@@ -134,13 +191,24 @@ export default function RequestDetailContent({
               </div>
             </div>
 
-            <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${
-              request.status === "pending"
-                ? "bg-red-500/10 text-red-600 border border-red-500/20"
-                : "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20"
-            }`}>
-              {request.status}
-            </span>
+            <div className="flex flex-wrap items-center gap-2">
+              <span
+                suppressHydrationWarning
+                className={`px-3 py-1 rounded-full text-xs font-bold uppercase flex items-center gap-1.5 border ${countdown.badgeClass}`}
+              >
+                <Clock size={12} className={countdown.isCodeRed ? "animate-pulse" : ""} />
+                <span className="tabular-nums" suppressHydrationWarning>
+                  {countdown.isExpired ? (language === "bn" ? "সময় শেষ" : "Expired") : countdown.formattedCountdown}
+                </span>
+              </span>
+              <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${
+                request.status === "pending"
+                  ? "bg-red-500/10 text-red-600 border border-red-500/20"
+                  : "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20"
+              }`}>
+                {request.status}
+              </span>
+            </div>
           </div>
 
           {/* Details Grid */}
@@ -149,8 +217,11 @@ export default function RequestDetailContent({
               <span className="text-[10px] font-bold text-[var(--text-muted)] uppercase block mb-1">
                 Units Needed
               </span>
-              <span className="text-base font-black text-[var(--text-primary)]">
+              <span className="text-base font-black text-[var(--text-primary)] block">
                 {request.unitsNeeded} Bag(s)
+              </span>
+              <span className="text-[10.5px] font-semibold text-emerald-600 dark:text-emerald-400 block mt-0.5">
+                {request.pledgedUnits || 0} / {request.unitsNeeded} Pledged
               </span>
             </div>
 

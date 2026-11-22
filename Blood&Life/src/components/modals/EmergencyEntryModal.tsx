@@ -18,6 +18,11 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useEmergencyCountdown } from "@/lib/hooks/useEmergencyCountdown";
+import {
+  getPersistentEmergencyDeadline,
+  getPersistentPledgedUnits,
+  SAMPLE_EMERGENCY_CASES,
+} from "@/lib/emergencyDeadlines";
 
 interface EmergencyAlertCase {
   id: string;
@@ -34,7 +39,7 @@ interface EmergencyAlertCase {
 
 // Fallback emergency case for immediate demonstration if DB has no critical records
 const DEMO_CODE_RED_CASE: EmergencyAlertCase = {
-  id: "case-dmch-emergency-1",
+  id: "case-101",
   patientName: "Tasneem Rahman",
   bloodGroup: "O-",
   unitsNeeded: 2,
@@ -42,7 +47,7 @@ const DEMO_CODE_RED_CASE: EmergencyAlertCase = {
   hospital: "Dhaka Medical College Hospital (DMCH ICU-3)",
   district: "Dhaka",
   medicalReason: "Emergency Cesarean Surgery (Severe Hemorrhage)",
-  expiresAt: new Date(Date.now() + 105 * 60 * 1000).toISOString(), // 1h 45m left
+  expiresAt: new Date(Date.now() + 105 * 60 * 1000).toISOString(),
   phone: "01712345678",
 };
 
@@ -53,8 +58,8 @@ export function EmergencyEntryModal() {
   const [isAudioEnabled, setIsAudioEnabled] = useState(false);
   const [hasShared, setHasShared] = useState(false);
 
-  // Hook for live ticking countdown
-  const countdown = useEmergencyCountdown(activeCase?.expiresAt, "critical");
+  // Hook for live ticking countdown with persistent case ID
+  const countdown = useEmergencyCountdown(activeCase?.expiresAt, "critical", activeCase?.id);
 
   useEffect(() => {
     // Check if dismissed in this session
@@ -85,7 +90,7 @@ export function EmergencyEntryModal() {
               hospital: critical.hospital,
               district: critical.district,
               medicalReason: critical.medicalReason || "Emergency Hospital Transfusion",
-              expiresAt: critical.expiresAt || new Date(Date.now() + 2 * 3600 * 1000).toISOString(),
+              expiresAt: critical.expiresAt || getPersistentEmergencyDeadline(critical._id, 120),
               phone: critical.requesterPhone,
             });
             // Show modal after brief 800ms landing animation
@@ -97,8 +102,23 @@ export function EmergencyEntryModal() {
         // Fallback to sample demo emergency
       }
 
-      // Default demo emergency trigger to guarantee life-saving preview
-      setActiveCase(DEMO_CODE_RED_CASE);
+      // Default demo emergency trigger to guarantee life-saving preview with persistent deadline
+      const sampleCase = SAMPLE_EMERGENCY_CASES["case-101"] || DEMO_CODE_RED_CASE;
+      const persistentDeadline = getPersistentEmergencyDeadline("case-101", 105);
+      const currentPledged = getPersistentPledgedUnits("case-101", sampleCase.pledgedUnits);
+
+      setActiveCase({
+        id: sampleCase.id,
+        patientName: sampleCase.patientName,
+        bloodGroup: sampleCase.bloodGroup,
+        unitsNeeded: sampleCase.unitsNeeded,
+        pledgedUnits: currentPledged,
+        hospital: sampleCase.hospital,
+        district: sampleCase.district,
+        medicalReason: sampleCase.medicalReason,
+        expiresAt: persistentDeadline,
+        phone: sampleCase.requesterPhone,
+      });
       setTimeout(() => setIsOpen(true), 900);
     };
 

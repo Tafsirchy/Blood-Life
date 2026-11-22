@@ -4,6 +4,7 @@ import { DonationRequest } from "@/models/DonationRequest";
 import { getServerSession, getValidatedSession } from "@/lib/auth/session";
 import { sanitizeText } from "@/lib/security/sanitize";
 import { isValidObjectId } from "@/lib/security/validators";
+import { SAMPLE_EMERGENCY_CASES } from "@/lib/emergencyDeadlines";
 
 export async function GET(
   req: NextRequest,
@@ -11,6 +12,33 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+    if (id.startsWith("case-")) {
+      const sample = SAMPLE_EMERGENCY_CASES[id];
+      if (sample) {
+        return NextResponse.json({
+          request: {
+            _id: sample.id,
+            recipientName: sample.patientName,
+            bloodGroup: sample.bloodGroup,
+            unitsNeeded: sample.unitsNeeded,
+            pledgedUnits: sample.pledgedUnits,
+            hospital: sample.hospital,
+            district: sample.district,
+            upazila: sample.upazila,
+            urgency: sample.urgency,
+            scheduledDate: new Date().toISOString().split("T")[0],
+            scheduledTime: "Emergency Immediate",
+            medicalReason: sample.medicalReason,
+            message: "Emergency surgical blood requirement at hospital ICU/ward.",
+            requesterPhone: sample.requesterPhone,
+            requesterId: "system-emergency-triage",
+            status: "pending",
+            createdAt: new Date().toISOString(),
+          },
+        });
+      }
+    }
+
     if (!isValidObjectId(id)) {
       return NextResponse.json({ error: "Invalid request ID format" }, { status: 400 });
     }

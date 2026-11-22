@@ -5,6 +5,10 @@ import { useLanguage } from "@/lib/i18n/context";
 import { Clock, MapPin, Building2, ArrowRight, HeartHandshake, ShieldCheck, Droplet } from "lucide-react";
 import Link from "next/link";
 import { useEmergencyCountdown } from "@/lib/hooks/useEmergencyCountdown";
+import {
+  getPersistentEmergencyDeadline,
+  getPersistentPledgedUnits,
+} from "@/lib/emergencyDeadlines";
 
 interface UrgentCase {
   id: string;
@@ -22,19 +26,18 @@ interface UrgentCase {
 }
 
 function getSampleCases(): UrgentCase[] {
-  const baseTime = Date.now();
   return [
     {
       id: "case-101",
       patientName: "Tasneem Rahman",
       bloodGroup: "O-",
       units: 2,
-      pledgedUnits: 0,
+      pledgedUnits: getPersistentPledgedUnits("case-101", 0),
       hospital: "Dhaka Medical College Hospital (DMCH ICU-3)",
       district: "Dhaka",
       urgency: "CRITICAL",
       hoursLeft: 1.75, // 1h 45m -> Tier 2 Code Red
-      expiresAt: new Date(baseTime + 105 * 60 * 1000).toISOString(),
+      expiresAt: getPersistentEmergencyDeadline("case-101", 105),
       verified: true,
       purpose: "Emergency Cesarean Surgery",
     },
@@ -43,12 +46,12 @@ function getSampleCases(): UrgentCase[] {
       patientName: "Abdul Gafur",
       bloodGroup: "B+",
       units: 3,
-      pledgedUnits: 1,
+      pledgedUnits: getPersistentPledgedUnits("case-102", 1),
       hospital: "Chittagong Medical College Hospital",
       district: "Chittagong",
       urgency: "CRITICAL",
       hoursLeft: 0.45, // 27 mins -> Tier 1 ICU Golden Window
-      expiresAt: new Date(baseTime + 27 * 60 * 1000).toISOString(),
+      expiresAt: getPersistentEmergencyDeadline("case-102", 27),
       verified: true,
       purpose: "Trauma Road Accident Recovery",
     },
@@ -57,12 +60,12 @@ function getSampleCases(): UrgentCase[] {
       patientName: "Meghla Akter",
       bloodGroup: "AB-",
       units: 1,
-      pledgedUnits: 0,
+      pledgedUnits: getPersistentPledgedUnits("case-103", 0),
       hospital: "Sylhet MAG Osmani Medical College",
       district: "Sylhet",
       urgency: "URGENT",
       hoursLeft: 4.5, // 4h 30m -> Tier 3 Elevated
-      expiresAt: new Date(baseTime + 270 * 60 * 1000).toISOString(),
+      expiresAt: getPersistentEmergencyDeadline("case-103", 270),
       verified: true,
       purpose: "Thalassemia Transfusion",
     },
@@ -71,12 +74,12 @@ function getSampleCases(): UrgentCase[] {
       patientName: "Farhan Hossain",
       bloodGroup: "A+",
       units: 2,
-      pledgedUnits: 1,
+      pledgedUnits: getPersistentPledgedUnits("case-104", 1),
       hospital: "Rajshahi Medical College Hospital",
       district: "Rajshahi",
       urgency: "URGENT",
       hoursLeft: 7.5, // 7h 30m -> Tier 4 Standard
-      expiresAt: new Date(baseTime + 450 * 60 * 1000).toISOString(),
+      expiresAt: getPersistentEmergencyDeadline("case-104", 450),
       verified: true,
       purpose: "Open Heart Bypass Surgery",
     },
@@ -90,7 +93,7 @@ function UrgentTransfusionCard({
   req: UrgentCase;
   language: string;
 }) {
-  const countdown = useEmergencyCountdown(req.expiresAt, req.urgency.toLowerCase() as "critical" | "urgent");
+  const countdown = useEmergencyCountdown(req.expiresAt, req.urgency.toLowerCase() as "critical" | "urgent", req.id);
 
   return (
     <div
@@ -213,7 +216,7 @@ export function UrgentTransfusionQueue() {
               district: r.district,
               urgency: (r.urgency === "critical" ? "CRITICAL" : "URGENT") as "CRITICAL" | "URGENT",
               hoursLeft: 2,
-              expiresAt: r.expiresAt || new Date(Date.now() + 2 * 3600 * 1000).toISOString(),
+              expiresAt: r.expiresAt || getPersistentEmergencyDeadline(String(r._id), 120),
               verified: Boolean(r.isVerifiedGenuine),
               purpose: r.medicalReason || r.bloodComponent || "Emergency Hospital Transfusion",
             }));

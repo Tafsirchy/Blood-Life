@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { getPersistentEmergencyDeadline } from "@/lib/emergencyDeadlines";
 
 export type UrgencyTierLevel = 0 | 1 | 2 | 3 | 4;
 
@@ -29,21 +30,30 @@ export interface EmergencyCountdownState {
  */
 export function useEmergencyCountdown(
   expiresAtInput?: Date | string | null,
-  fallbackUrgency: "critical" | "urgent" | "standard" = "urgent"
+  fallbackUrgency: "critical" | "urgent" | "standard" = "urgent",
+  caseId?: string
 ): EmergencyCountdownState {
   const [mounted, setMounted] = useState(false);
   const [now, setNow] = useState(() => Date.now());
 
   // Resolve target expiration timestamp
   const targetTimestamp = useMemo(() => {
-    if (!expiresAtInput) {
-      // Relative fallback if no explicit expiresAt is provided
-      const defaultHours = fallbackUrgency === "critical" ? 2 : fallbackUrgency === "urgent" ? 6 : 24;
-      return Date.now() + defaultHours * 60 * 60 * 1000;
+    if (expiresAtInput) {
+      const parsed = new Date(expiresAtInput).getTime();
+      if (!isNaN(parsed)) return parsed;
     }
-    const parsed = new Date(expiresAtInput).getTime();
-    return isNaN(parsed) ? Date.now() + 4 * 60 * 60 * 1000 : parsed;
-  }, [expiresAtInput, fallbackUrgency]);
+
+    if (caseId && typeof window !== "undefined") {
+      const defaultMins = fallbackUrgency === "critical" ? 105 : fallbackUrgency === "urgent" ? 270 : 1440;
+      const persistent = getPersistentEmergencyDeadline(caseId, defaultMins);
+      const parsed = new Date(persistent).getTime();
+      if (!isNaN(parsed)) return parsed;
+    }
+
+    // Relative fallback if no explicit expiresAt is provided
+    const defaultHours = fallbackUrgency === "critical" ? 2 : fallbackUrgency === "urgent" ? 6 : 24;
+    return Date.now() + defaultHours * 60 * 60 * 1000;
+  }, [expiresAtInput, fallbackUrgency, caseId]);
 
   useEffect(() => {
     setMounted(true);

@@ -6,6 +6,7 @@ import { getValidatedSession } from "@/lib/auth/session";
 import { dispatchPledgeAlerts } from "@/lib/notifications/dispatcher";
 import { checkRateLimit } from "@/lib/security/rateLimiter";
 import { isValidObjectId } from "@/lib/security/validators";
+import { SAMPLE_EMERGENCY_CASES } from "@/lib/emergencyDeadlines";
 
 export async function POST(
   req: NextRequest,
@@ -33,6 +34,17 @@ export async function POST(
     }
 
     const { id: requestId } = await params;
+    if (requestId.startsWith("case-")) {
+      const sample = SAMPLE_EMERGENCY_CASES[requestId];
+      if (sample) {
+        return NextResponse.json({
+          success: true,
+          message: "Thank you for committing to donate blood! The attending hospital coordinator and patient family have been notified.",
+          pledgedUnits: Math.min(sample.unitsNeeded, (sample.pledgedUnits || 0) + 1),
+        });
+      }
+    }
+
     if (!isValidObjectId(requestId)) {
       return NextResponse.json({ error: "Invalid request ID format" }, { status: 400 });
     }
