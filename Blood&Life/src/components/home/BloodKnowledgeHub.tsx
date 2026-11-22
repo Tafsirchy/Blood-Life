@@ -177,6 +177,16 @@ export function BloodKnowledgeHub() {
               ? "কার রক্ত কে নিতে পারবে, ১ ব্যাগ রক্তে কীভাবে ৩ জনের জীবন বাঁচে এবং রক্তদানের আগে-পরের সঠিক চিকিৎসা নির্দেশিকা জানুন।"
               : "Explore donor-recipient matching, component breakdown (1 donation = 3 lives), and evidence-based safety rules."}
           </p>
+
+          <div className="pt-3 flex justify-center">
+            <Link
+              href="/blood-info"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-red-600 dark:text-red-400 hover:text-red-700 bg-red-500/5 hover:bg-red-500/10 border border-red-500/15 px-3 py-1 rounded-full transition-all"
+            >
+              <span>{language === "bn" ? "সম্পূর্ণ রক্ত তথ্য এনসাইক্লোপিডিয়া ও গাইড দেখুন" : "Explore Dedicated Blood Encyclopedia"}</span>
+              <ArrowRight size={12} />
+            </Link>
+          </div>
         </div>
 
         {/* 3 Main Interactive View Switchers */}

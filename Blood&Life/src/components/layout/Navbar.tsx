@@ -85,7 +85,7 @@ export function Navbar({ onOpenSos }: NavbarProps) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const isAboutActive = ["/about", "/funding", "/privacy", "/terms"].includes(pathname);
+  const isAboutActive = ["/about", "/funding", "/privacy", "/terms", "/blood-info"].includes(pathname);
 
   return (
     <nav className="sticky top-0 z-40 bg-[var(--bg-surface)]/95 backdrop-blur-md border-b border-[var(--border-subtle)] px-3 sm:px-6 py-2 transition-colors">
@@ -160,10 +160,10 @@ export function Navbar({ onOpenSos }: NavbarProps) {
             {dropdownOpen && (
               <div className="absolute left-0 mt-1.5 w-52 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] shadow-xl py-1.5 z-50 animate-in fade-in slide-in-from-top-1">
                 <Link
-                  href="/#blood-info"
+                  href="/blood-info"
                   onClick={() => setDropdownOpen(false)}
                   className={`flex items-center gap-2 px-3 py-2 text-xs transition-colors ${
-                    pathname === "/#blood-info"
+                    pathname === "/blood-info"
                       ? "bg-red-500/10 text-red-500 font-bold"
                       : "text-[var(--text-primary)] hover:bg-[var(--bg-main)]"
                   }`}
@@ -344,9 +344,11 @@ export function Navbar({ onOpenSos }: NavbarProps) {
             {language === "bn" ? "লাইফ ফান্ড" : "Life Fund"}
           </Link>
           <Link
-            href="/#blood-info"
+            href="/blood-info"
             onClick={() => setMobileOpen(false)}
-            className="block px-3 py-2 rounded-lg transition-colors text-[var(--text-primary)] hover:bg-red-500/10 hover:text-red-500"
+            className={`block px-3 py-2 rounded-lg transition-colors ${
+              pathname === "/blood-info" ? "bg-red-500/10 text-red-500 font-bold" : "text-[var(--text-primary)]"
+            }`}
           >
             {language === "bn" ? "রক্তের তথ্য ও ম্যাচিং" : "Blood Info & Matching"}
           </Link>
