@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useLanguage } from "@/lib/i18n/context";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
@@ -15,74 +15,111 @@ interface UrgentAlert {
   district: { en: string; bn: string };
 }
 
+const DEFAULT_ALERTS: UrgentAlert[] = [
+  {
+    id: "1",
+    patient: "Kamal Hossain",
+    hospital: { en: "Dhaka Medical College Hospital", bn: "ঢাকা মেডিকেল কলেজ হাসপাতাল" },
+    bloodGroup: "O-",
+    units: 2,
+    reason: { en: "Emergency ICU", bn: "জরুরি আইসিইউ" },
+    district: { en: "Dhaka", bn: "ঢাকা" },
+  },
+  {
+    id: "2",
+    patient: "Fatima Begum",
+    hospital: { en: "Chittagong Medical College (ICU)", bn: "চট্টগ্রাম মেডিকেল কলেজ (আইসিইউ)" },
+    bloodGroup: "AB-",
+    units: 1,
+    reason: { en: "Cardiac OT", bn: "কার্ডিয়াক ওটি" },
+    district: { en: "Chittagong", bn: "চট্টগ্রাম" },
+  },
+  {
+    id: "3",
+    patient: "Abdur Rahim",
+    hospital: { en: "Rajshahi Sadar Hospital", bn: "রাজশাহী সদর হাসপাতাল" },
+    bloodGroup: "B-",
+    units: 2,
+    reason: { en: "Post-Accident Surgery", bn: "জরুরি সার্জারি" },
+    district: { en: "Rajshahi", bn: "রাজশাহী" },
+  },
+  {
+    id: "4",
+    patient: "Nasreen Akter",
+    hospital: { en: "Sylhet MAG Osmani Medical", bn: "সিলেট এমএজি ওসমানী মেডিকেল" },
+    bloodGroup: "A-",
+    units: 1,
+    reason: { en: "Thalassemia Crisis", bn: "থ্যালাসেমিয়া" },
+    district: { en: "Sylhet", bn: "সিলেট" },
+  },
+  {
+    id: "5",
+    patient: "Siddiqur Rahman",
+    hospital: { en: "Sir Salimullah Medical (Mitford)", bn: "স্যার সলিমুল্লাহ মেডিকেল (মিটফোর্ড)" },
+    bloodGroup: "O+",
+    units: 3,
+    reason: { en: "Vascular Emergency", bn: "জরুরি রক্তক্ষরণ" },
+    district: { en: "Dhaka", bn: "ঢাকা" },
+  },
+  {
+    id: "6",
+    patient: "Tahmina Khatun",
+    hospital: { en: "Mymensingh Medical College", bn: "ময়মনসিংহ মেডিকেল কলেজ" },
+    bloodGroup: "B+",
+    units: 2,
+    reason: { en: "Maternity OT", bn: "প্রসূতি ওটি" },
+    district: { en: "Mymensingh", bn: "ময়মনসিংহ" },
+  },
+  {
+    id: "7",
+    patient: "Asaduzzaman Noor",
+    hospital: { en: "Rangpur Medical College", bn: "রংপুর মেডিকেল কলেজ" },
+    bloodGroup: "AB+",
+    units: 1,
+    reason: { en: "Burn Unit Trauma", bn: "বার্ন ইউনিট ট্রমা" },
+    district: { en: "Rangpur", bn: "রংপুর" },
+  },
+];
+
 export function EmergencyPulseRibbon() {
   const { language } = useLanguage();
+  const [alerts, setAlerts] = useState<UrgentAlert[]>(DEFAULT_ALERTS);
 
-  const alerts: UrgentAlert[] = [
-    {
-      id: "1",
-      patient: "Kamal Hossain",
-      hospital: { en: "Dhaka Medical College Hospital", bn: "ঢাকা মেডিকেল কলেজ হাসপাতাল" },
-      bloodGroup: "O-",
-      units: 2,
-      reason: { en: "Emergency ICU", bn: "জরুরি আইসিইউ" },
-      district: { en: "Dhaka", bn: "ঢাকা" },
-    },
-    {
-      id: "2",
-      patient: "Fatima Begum",
-      hospital: { en: "Chittagong Medical College (ICU)", bn: "চট্টগ্রাম মেডিকেল কলেজ (আইসিইউ)" },
-      bloodGroup: "AB-",
-      units: 1,
-      reason: { en: "Cardiac OT", bn: "কার্ডিয়াক ওটি" },
-      district: { en: "Chittagong", bn: "চট্টগ্রাম" },
-    },
-    {
-      id: "3",
-      patient: "Abdur Rahim",
-      hospital: { en: "Rajshahi Sadar Hospital", bn: "রাজশাহী সদর হাসপাতাল" },
-      bloodGroup: "B-",
-      units: 2,
-      reason: { en: "Post-Accident Surgery", bn: "জরুরি সার্জারি" },
-      district: { en: "Rajshahi", bn: "রাজশাহী" },
-    },
-    {
-      id: "4",
-      patient: "Nasreen Akter",
-      hospital: { en: "Sylhet MAG Osmani Medical", bn: "সিলেট এমএজি ওসমানী মেডিকেল" },
-      bloodGroup: "A-",
-      units: 1,
-      reason: { en: "Thalassemia Crisis", bn: "থ্যালাসেমিয়া" },
-      district: { en: "Sylhet", bn: "সিলেট" },
-    },
-    {
-      id: "5",
-      patient: "Siddiqur Rahman",
-      hospital: { en: "Sir Salimullah Medical (Mitford)", bn: "স্যার সলিমুল্লাহ মেডিকেল (মিটফোর্ড)" },
-      bloodGroup: "O+",
-      units: 3,
-      reason: { en: "Vascular Emergency", bn: "জরুরি রক্তক্ষরণ" },
-      district: { en: "Dhaka", bn: "ঢাকা" },
-    },
-    {
-      id: "6",
-      patient: "Tahmina Khatun",
-      hospital: { en: "Mymensingh Medical College", bn: "ময়মনসিংহ মেডিকেল কলেজ" },
-      bloodGroup: "B+",
-      units: 2,
-      reason: { en: "Maternity OT", bn: "প্রসূতি ওটি" },
-      district: { en: "Mymensingh", bn: "ময়মনসিংহ" },
-    },
-    {
-      id: "7",
-      patient: "Asaduzzaman Noor",
-      hospital: { en: "Rangpur Medical College", bn: "রংপুর মেডিকেল কলেজ" },
-      bloodGroup: "AB+",
-      units: 1,
-      reason: { en: "Burn Unit Trauma", bn: "বার্ন ইউনিট ট্রমা" },
-      district: { en: "Rangpur", bn: "রংপুর" },
-    },
-  ];
+  useEffect(() => {
+    let isSubscribed = true;
+
+    async function fetchLiveBroadcasts() {
+      try {
+        const res = await fetch("/api/requests/search?status=pending&limit=10");
+        if (res.ok) {
+          const data = await res.json();
+          if (isSubscribed && data.requests && data.requests.length > 0) {
+            const live: UrgentAlert[] = data.requests.map((r: any) => ({
+              id: String(r._id),
+              patient: r.recipientName,
+              hospital: { en: r.hospital, bn: r.hospital },
+              bloodGroup: r.bloodGroup,
+              units: r.unitsNeeded || 1,
+              reason: {
+                en: r.medicalReason || r.bloodComponent || "Emergency Hospital Transfusion",
+                bn: r.medicalReason || "জরুরি ট্রান্সফিউশন",
+              },
+              district: { en: r.district, bn: r.district },
+            }));
+            setAlerts(live);
+          }
+        }
+      } catch {
+        // Fallback to DEFAULT_ALERTS
+      }
+    }
+
+    fetchLiveBroadcasts();
+
+    return () => {
+      isSubscribed = false;
+    };
+  }, []);
 
   // Duplicate list to guarantee seamless 100% infinite continuous scrolling
   const marqueeItems = [...alerts, ...alerts];
@@ -148,7 +185,7 @@ export function EmergencyPulseRibbon() {
               {marqueeItems.map((alert, index) => (
                 <Link
                   key={`${alert.id}-${index}`}
-                  href={`/search?bloodGroup=${encodeURIComponent(alert.bloodGroup)}`}
+                  href={alert.id.length > 5 ? `/requests/${alert.id}` : `/search?bloodGroup=${encodeURIComponent(alert.bloodGroup)}`}
                   className="shrink-0 inline-flex items-center gap-2 group hover:bg-zinc-100 dark:hover:bg-zinc-800/70 px-2.5 py-1 rounded-md transition-all cursor-pointer"
                   title={`${alert.hospital[language]} — ${alert.reason[language]}`}
                 >
