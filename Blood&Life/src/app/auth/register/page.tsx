@@ -5,7 +5,7 @@ import { useLanguage } from "@/lib/i18n/context";
 import { BloodLagbeLogo } from "@/components/brand/BloodLagbeLogo";
 import { DIVISIONS, DISTRICTS } from "@/lib/geo/bangladeshData";
 import { BloodGroup } from "@/types";
-import { UserPlus, Mail, Lock, Phone, User, MapPin, Heart, FileText } from "lucide-react";
+import { UserPlus, Mail, Lock, Phone, User, MapPin, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -18,7 +18,6 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [phone, setPhone] = useState("");
   const [bloodGroup, setBloodGroup] = useState<BloodGroup>("O+");
-  const [role, setRole] = useState<"Donor" | "Requester">("Donor");
   const [division, setDivision] = useState("Dhaka");
   const [district, setDistrict] = useState("Dhaka");
   const [upazila, setUpazila] = useState("Dhanmondi");
@@ -45,7 +44,7 @@ export default function RegisterPage() {
           division,
           district,
           upazila,
-          role,
+          role: "Donor",
         }),
       });
 
@@ -54,7 +53,7 @@ export default function RegisterPage() {
         throw new Error(data.error || "Registration failed");
       }
 
-      localStorage.setItem("dashboard_preferred_role", role.toLowerCase());
+      localStorage.setItem("dashboard_preferred_role", "donor");
       if (data.requiresVerification) {
         router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`);
       } else {
@@ -76,12 +75,12 @@ export default function RegisterPage() {
             <BloodLagbeLogo size="lg" />
           </div>
           <h1 className="text-xl sm:text-2xl font-black text-[var(--text-primary)]">
-            {language === "bn" ? "রক্তদাতা হিসেবে নিবন্ধন করুন" : "Join the Life-Saving Network"}
+            {language === "bn" ? "জরুরি ব্লাড নেটওয়ার্কে নিবন্ধন করুন" : "Join the Life-Saving Network"}
           </h1>
           <p className="text-xs text-[var(--text-secondary)]">
             {language === "bn"
-              ? "জরুরী মুহূর্তে রক্ত দিয়ে অন্যের জীবন বাঁচাতে যুক্ত হন আমাদের ভলান্টিয়ার নেটওয়ার্কে"
-              : "Register as a voluntary hero. Your phone is masked by our Privacy Shield."}
+              ? "একই একাউন্টে রক্তদাতা ও গ্রহীতা উভয় সুবিধা উপভোগ করুন। ফোন নম্বর সুরক্ষিত থাকবে।"
+              : "One account with complete access to both donor and requester services."}
           </p>
         </div>
 
@@ -218,42 +217,13 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            {/* Primary Intent / Role Selector */}
-            <div className="pt-1">
-              <label className="block text-xs font-bold text-[var(--text-secondary)] mb-1.5">
-                {language === "bn" ? "আপনার প্রাথমিক ভূমিকা নির্বাচন করুন:" : "Select Your Primary Account Role:"}
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setRole("Donor")}
-                  className={`p-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all ${
-                    role === "Donor"
-                      ? "bg-red-500/10 border-red-500 text-red-600 dark:text-red-400 ring-2 ring-red-500/20 shadow-xs"
-                      : "bg-[var(--bg-main)] border-[var(--border-subtle)] text-[var(--text-secondary)] hover:border-red-400"
-                  }`}
-                >
-                  <Heart size={14} className={role === "Donor" ? "fill-current text-red-600" : ""} />
-                  <span>{language === "bn" ? "রক্তদাতা (Donor)" : "Blood Donor"}</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setRole("Requester")}
-                  className={`p-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all ${
-                    role === "Requester"
-                      ? "bg-red-500/10 border-red-500 text-red-600 dark:text-red-400 ring-2 ring-red-500/20 shadow-xs"
-                      : "bg-[var(--bg-main)] border-[var(--border-subtle)] text-[var(--text-secondary)] hover:border-red-400"
-                  }`}
-                >
-                  <FileText size={14} />
-                  <span>{language === "bn" ? "রক্ত গ্রহীতা (Requester)" : "Blood Requester"}</span>
-                </button>
-              </div>
-              <p className="text-[11px] text-[var(--text-muted)] mt-1.5">
+            {/* Unified Dual-Role Service Indicator */}
+            <div className="p-3 rounded-xl bg-red-500/5 border border-red-500/15 flex items-center gap-2.5 text-left">
+              <Sparkles size={16} className="text-red-500 shrink-0" />
+              <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
                 {language === "bn"
-                  ? "💡 রেজিস্ট্রেশনের পর ড্যাশবোর্ড থেকে যে কোনো সময় এক ক্লিকেই রক্তদাতা ও গ্রহীতা মোডে সুইচ করতে পারবেন।"
-                  : "💡 You can seamlessly switch between Donor and Requester modes at any time from your dashboard."}
+                  ? "💡 আপনার একাউন্টে রক্তদান (Donor) এবং রক্ত আবেদন (Requester) উভয় সেবাই সার্বক্ষণিক সক্রিয় থাকবে।"
+                  : "💡 Your account automatically includes full access to both Blood Donor and Requester services."}
               </p>
             </div>
 
