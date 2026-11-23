@@ -23,6 +23,7 @@ import {
   User as UserIcon,
   Sparkles,
   MapPin,
+  Building2,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -87,7 +88,7 @@ export function Navbar({ onOpenSos }: NavbarProps) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const isAboutActive = ["/about", "/funding", "/privacy", "/terms", "/blood-info", "/clinical-shield", "/fraud-shield", "/directory"].includes(pathname);
+  const isAboutActive = ["/about", "/funding", "/privacy", "/terms", "/blood-info", "/clinical-shield", "/fraud-shield", "/directory", "/hospitals"].includes(pathname);
 
   return (
     <nav className="sticky top-0 z-40 bg-[var(--bg-surface)]/95 backdrop-blur-md border-b border-[var(--border-subtle)] px-3 sm:px-6 py-2 transition-colors">
@@ -127,6 +128,18 @@ export function Navbar({ onOpenSos }: NavbarProps) {
             }`}
           >
             {t.nav.search}
+          </Link>
+
+          <Link
+            href="/hospitals"
+            className={`px-2 py-1 rounded-md transition-colors whitespace-nowrap flex items-center gap-1 ${
+              pathname === "/hospitals"
+                ? "bg-red-500/10 text-red-600 dark:text-red-400 font-extrabold border border-red-500/20"
+                : "hover:text-red-500 hover:bg-black/5 dark:hover:bg-white/5"
+            }`}
+          >
+            <Building2 size={12} className="text-red-500" />
+            <span>{language === "bn" ? "হাসপাতাল বোর্ড" : "Hospitals"}</span>
           </Link>
 
           <Link
@@ -184,6 +197,19 @@ export function Navbar({ onOpenSos }: NavbarProps) {
 
             {dropdownOpen && (
               <div className="absolute left-0 mt-1.5 w-52 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] shadow-xl py-1.5 z-50 animate-in fade-in slide-in-from-top-1">
+                <Link
+                  href="/hospitals"
+                  onClick={() => setDropdownOpen(false)}
+                  className={`flex items-center gap-2 px-3 py-2 text-xs transition-colors ${
+                    pathname === "/hospitals"
+                      ? "bg-red-500/10 text-red-500 font-bold"
+                      : "text-[var(--text-primary)] hover:bg-[var(--bg-main)]"
+                  }`}
+                >
+                  <Building2 size={14} className="text-red-500" />
+                  <span>{language === "bn" ? "হাসপাতাল রক্তের চাহিদা ও শিডিউল" : "Hospital Demand & Schedules"}</span>
+                </Link>
+
                 <Link
                   href="/directory"
                   onClick={() => setDropdownOpen(false)}
@@ -406,6 +432,15 @@ export function Navbar({ onOpenSos }: NavbarProps) {
             }`}
           >
             {language === "bn" ? "লাইফ ফান্ড" : "Life Fund"}
+          </Link>
+          <Link
+            href="/hospitals"
+            onClick={() => setMobileOpen(false)}
+            className={`block px-3 py-2 rounded-lg transition-colors ${
+              pathname === "/hospitals" ? "bg-red-500/10 text-red-500 font-bold" : "text-[var(--text-primary)]"
+            }`}
+          >
+            {language === "bn" ? "হাসপাতাল রক্তের চাহিদা ও শিডিউল" : "Hospital Blood Demand Board"}
           </Link>
           <Link
             href="/directory"

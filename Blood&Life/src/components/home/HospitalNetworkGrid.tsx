@@ -96,6 +96,21 @@ export function HospitalNetworkGrid() {
               ? "জরুরী সার্জারি ও আইসিইউ ট্রান্সফিউশনে সরাসরি স্বেচ্ছাসেবী রক্তদাতাদের দ্রুত পৌঁছানোর সমন্বিত ব্যবস্থা।"
               : "Coordinated volunteer response across major medical colleges and emergency surgical theaters."}
           </p>
+
+          <div className="mt-4 flex items-center justify-center">
+            <Link
+              href="/hospitals"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-all shadow-md hover:scale-105"
+            >
+              <Activity size={14} className="animate-pulse" />
+              <span>
+                {language === "bn"
+                  ? "লাইভ হাসপাতাল রক্তের চাহিদা ও অপারেশন শিডিউল দেখুন"
+                  : "View Live Hospital Demand & Surgery Schedules"}
+              </span>
+              <ArrowRight size={14} />
+            </Link>
+          </div>
         </div>
 
         {/* 6 Hospital Cards Grid */}
