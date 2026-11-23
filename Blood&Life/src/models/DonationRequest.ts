@@ -57,6 +57,14 @@ const DonationRequestSchema = new Schema<DonationRequestDocument>(
     requesterPhone: { type: String, required: true },
     assignedDonorId: { type: String },
     assignedDonorName: { type: String },
+    recipientVerification: {
+      isVerified: { type: Boolean, default: false },
+      verifiedDonorId: { type: String },
+      verifiedDonorName: { type: String },
+      verifiedAt: { type: Date },
+      rating: { type: Number, min: 1, max: 5 },
+      feedback: { type: String, trim: true },
+    },
   },
   {
     timestamps: true,

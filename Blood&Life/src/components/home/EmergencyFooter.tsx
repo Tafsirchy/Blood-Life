@@ -91,6 +91,11 @@ export function EmergencyFooter() {
             </h4>
             <ul className="space-y-1.5 text-xs">
               <li>
+                <Link href="/fraud-shield" className="hover:text-red-500 transition-colors text-amber-500 font-bold">
+                  {language === "bn" ? "প্রতারক ও দালাল ব্ল্যাকলিস্ট" : "Fraud Donor Blacklist"}
+                </Link>
+              </li>
+              <li>
                 <Link href="/clinical-shield" className="hover:text-red-500 transition-colors">
                   {language === "bn" ? "রোগ ও রক্তের উপাদান শিল্ড" : "Clinical Disease Shield"}
                 </Link>

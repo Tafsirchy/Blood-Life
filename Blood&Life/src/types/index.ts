@@ -40,6 +40,9 @@ export interface IUser {
   lastDonationDate?: Date;
   cooldownUntil?: Date;
   totalDonations: number;
+  verifiedDonations?: number;
+  trustRating?: number;
+  isFraudFlagged?: boolean;
   privacy: DonorPrivacySettings;
   isEmailVerified?: boolean;
   emailVerificationToken?: string;
@@ -88,6 +91,44 @@ export interface IDonationRequest {
   requesterPhone: string;
   assignedDonorId?: string;
   assignedDonorName?: string;
+  recipientVerification?: {
+    isVerified: boolean;
+    verifiedDonorId?: string;
+    verifiedDonorName?: string;
+    verifiedAt?: Date | string;
+    rating?: number;
+    feedback?: string;
+  };
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type ScamCategory =
+  | "advance_cash_scam" // demanded money via bKash/Nagad/Rocket
+  | "fake_donor_noshow" // promised to donate, didn't show up, phone off during surgery
+  | "blood_broker" // commercial blood broker / selling blood
+  | "false_screening" // forged medical test report
+  | "harassment" // demanding excess money or threatening
+  | "other";
+
+export type FraudStatus = "pending_review" | "investigating" | "confirmed_fraud" | "dismissed";
+
+export interface IFraudReport {
+  _id: string;
+  reportedPhone: string;
+  reportedName?: string;
+  scamCategory: ScamCategory;
+  hospitalName?: string;
+  district?: string;
+  description: string;
+  evidenceDetails?: string;
+  reporterName: string;
+  reporterPhone: string;
+  reporterUserId?: string;
+  status: FraudStatus;
+  adminNotes?: string;
+  incidentDate?: Date | string;
+  bannedAt?: Date | string;
   createdAt: Date;
   updatedAt: Date;
 }

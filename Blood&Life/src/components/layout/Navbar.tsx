@@ -85,7 +85,7 @@ export function Navbar({ onOpenSos }: NavbarProps) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const isAboutActive = ["/about", "/funding", "/privacy", "/terms", "/blood-info", "/clinical-shield"].includes(pathname);
+  const isAboutActive = ["/about", "/funding", "/privacy", "/terms", "/blood-info", "/clinical-shield", "/fraud-shield"].includes(pathname);
 
   return (
     <nav className="sticky top-0 z-40 bg-[var(--bg-surface)]/95 backdrop-blur-md border-b border-[var(--border-subtle)] px-3 sm:px-6 py-2 transition-colors">
@@ -159,6 +159,19 @@ export function Navbar({ onOpenSos }: NavbarProps) {
 
             {dropdownOpen && (
               <div className="absolute left-0 mt-1.5 w-52 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] shadow-xl py-1.5 z-50 animate-in fade-in slide-in-from-top-1">
+                <Link
+                  href="/fraud-shield"
+                  onClick={() => setDropdownOpen(false)}
+                  className={`flex items-center gap-2 px-3 py-2 text-xs transition-colors ${
+                    pathname === "/fraud-shield"
+                      ? "bg-red-500/10 text-red-500 font-bold"
+                      : "text-[var(--text-primary)] hover:bg-[var(--bg-main)]"
+                  }`}
+                >
+                  <ShieldAlert size={14} className="text-amber-500" />
+                  <span>{language === "bn" ? "প্রতারক ও দালাল ব্ল্যাকলিস্ট" : "Fraud Donor Blacklist"}</span>
+                </Link>
+
                 <Link
                   href="/clinical-shield"
                   onClick={() => setDropdownOpen(false)}
@@ -364,6 +377,15 @@ export function Navbar({ onOpenSos }: NavbarProps) {
             }`}
           >
             {language === "bn" ? "রক্তের তথ্য ও ম্যাচিং" : "Blood Info & Matching"}
+          </Link>
+          <Link
+            href="/fraud-shield"
+            onClick={() => setMobileOpen(false)}
+            className={`block px-3 py-2 rounded-lg transition-colors ${
+              pathname === "/fraud-shield" ? "bg-red-500/10 text-red-500 font-bold" : "text-[var(--text-primary)]"
+            }`}
+          >
+            {language === "bn" ? "প্রতারক ও দালাল ব্ল্যাকলিস্ট" : "Fraud Donor Blacklist"}
           </Link>
           <Link
             href="/clinical-shield"

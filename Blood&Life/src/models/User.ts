@@ -32,6 +32,9 @@ const UserSchema = new Schema<UserDocument>(
     lastDonationDate: { type: Date },
     cooldownUntil: { type: Date },
     totalDonations: { type: Number, default: 0 },
+    verifiedDonations: { type: Number, default: 0 },
+    trustRating: { type: Number, default: 5.0 },
+    isFraudFlagged: { type: Boolean, default: false },
     privacy: {
       hidePhoneNumber: { type: Boolean, default: true },
       requireApprovalBeforeReveal: { type: Boolean, default: false },

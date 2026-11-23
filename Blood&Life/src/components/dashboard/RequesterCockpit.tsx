@@ -18,6 +18,9 @@ import {
   Users,
   Check,
   X as CloseIcon,
+  Star,
+  Award,
+  MessageSquare,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -42,6 +45,14 @@ interface RequesterCase {
   isVerifiedGenuine?: boolean;
   assignedDonorName?: string;
   assignedDonorPhone?: string;
+  assignedDonorId?: string;
+  recipientVerification?: {
+    isVerified: boolean;
+    verifiedDonorName?: string;
+    verifiedAt?: string;
+    rating?: number;
+    feedback?: string;
+  };
   pledges?: PledgedDonor[];
   createdAt: string;
 }
@@ -55,6 +66,13 @@ export function RequesterCockpit({ onOpenSos }: RequesterCockpitProps) {
   const [cases, setCases] = useState<RequesterCase[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "active" | "done" | "canceled">("all");
+
+  // Recipient Donor 1-Click Verification State
+  const [verifyingCase, setVerifyingCase] = useState<RequesterCase | null>(null);
+  const [verifyRating, setVerifyRating] = useState<number>(5);
+  const [verifyFeedback, setVerifyFeedback] = useState<string>("");
+  const [submittingVerify, setSubmittingVerify] = useState<boolean>(false);
+  const [verifySuccessMsg, setVerifySuccessMsg] = useState<string>("");
 
   const fetchCases = async () => {
     try {
@@ -80,8 +98,10 @@ export function RequesterCockpit({ onOpenSos }: RequesterCockpitProps) {
             status: r.status,
             urgency: r.urgency || "urgent",
             isVerifiedGenuine: r.isVerifiedGenuine,
+            assignedDonorId: r.assignedDonorId,
             assignedDonorName: r.assignedDonorName,
             assignedDonorPhone: r.assignedDonorPhone,
+            recipientVerification: r.recipientVerification,
             pledges: r.pledges || [],
             createdAt: r.createdAt ? new Date(r.createdAt).toLocaleDateString("en-GB", {
               day: "numeric",
@@ -101,6 +121,42 @@ export function RequesterCockpit({ onOpenSos }: RequesterCockpitProps) {
   useEffect(() => {
     fetchCases();
   }, []);
+
+  const handleRecipientVerify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!verifyingCase) return;
+
+    try {
+      setSubmittingVerify(true);
+      const res = await fetch(`/api/requests/${verifyingCase.id}/recipient-verify`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          donorId: verifyingCase.assignedDonorId || (verifyingCase.pledges?.[0]?.donorId),
+          donorName: verifyingCase.assignedDonorName || (verifyingCase.pledges?.[0]?.donorName),
+          rating: verifyRating,
+          feedback: verifyFeedback,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setVerifySuccessMsg(data.message);
+        await fetchCases();
+        setTimeout(() => {
+          setVerifyingCase(null);
+          setVerifySuccessMsg("");
+        }, 2000);
+      } else {
+        alert(data.error || "Failed to verify donation.");
+      }
+    } catch (err) {
+      console.error("Verification error:", err);
+      alert("Network error. Please try again.");
+    } finally {
+      setSubmittingVerify(false);
+    }
+  };
 
   const handleUpdateStatus = async (id: string, newStatus: "done" | "canceled") => {
     const isCancel = newStatus === "canceled";
@@ -393,6 +449,36 @@ export function RequesterCockpit({ onOpenSos }: RequesterCockpitProps) {
                       <ArrowRight size={12} />
                     </Link>
 
+                    {/* Completed Transfusion Peer Verification Section */}
+                    {isDone && (
+                      <div className="flex items-center gap-2">
+                        {item.recipientVerification?.isVerified ? (
+                          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-xs font-bold">
+                            <Award size={14} className="text-emerald-500" />
+                            <span>
+                              {language === "bn"
+                                ? `গ্রহীতা কর্তৃক রক্তদান ভেরিফাইড (${item.recipientVerification.rating || 5}★)`
+                                : `Recipient Verified Voluntary Donor (${item.recipientVerification.rating || 5}★)`}
+                            </span>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setVerifyingCase(item);
+                              setVerifyRating(5);
+                              setVerifyFeedback("");
+                              setVerifySuccessMsg("");
+                            }}
+                            className="px-3 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/30 text-xs font-bold inline-flex items-center gap-1.5 transition-all shadow-xs"
+                          >
+                            <Star size={13} className="text-amber-500 fill-amber-500" />
+                            <span>{language === "bn" ? "রক্তদাতার অবদান ভেরিফাই করুন" : "Verify Donor Recognition"}</span>
+                          </button>
+                        )}
+                      </div>
+                    )}
+
                     {isActive && (
                       <div className="flex items-center gap-2">
                         <button
@@ -418,6 +504,138 @@ export function RequesterCockpit({ onOpenSos }: RequesterCockpitProps) {
             })
           )}
         </div>
+
+        {/* 1-Click Recipient Donor Verification Modal */}
+        {verifyingCase && (
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+            <div className="bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+              <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-3">
+                <div className="flex items-center gap-2 text-amber-500">
+                  <Star size={20} className="fill-amber-500" />
+                  <h3 className="text-base font-black text-[var(--text-primary)]">
+                    {language === "bn" ? "স্বেচ্ছাসেবী রক্তদাতা ভেরিফিকেশন" : "Voluntary Donor Verification"}
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setVerifyingCase(null)}
+                  className="p-1 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-main)]"
+                >
+                  <CloseIcon size={18} />
+                </button>
+              </div>
+
+              {verifySuccessMsg ? (
+                <div className="p-6 text-center space-y-3">
+                  <CheckCircle2 size={40} className="text-emerald-500 mx-auto" />
+                  <h4 className="text-sm font-bold text-[var(--text-primary)]">
+                    {verifySuccessMsg}
+                  </h4>
+                </div>
+              ) : (
+                <form onSubmit={handleRecipientVerify} className="space-y-4 text-xs">
+                  <div className="p-3 rounded-2xl bg-[var(--bg-main)] border border-[var(--border-subtle)] space-y-1">
+                    <span className="font-bold text-[var(--text-secondary)]">
+                      {language === "bn" ? "রক্তগ্রহীতা রোগী:" : "Recipient Patient:"} {verifyingCase.patientName}
+                    </span>
+                    <p className="text-[11px] text-[var(--text-muted)]">
+                      {verifyingCase.hospital} • {verifyingCase.district}
+                    </p>
+                  </div>
+
+                  {/* 5-Star Rating */}
+                  <div>
+                    <label className="block font-bold text-[var(--text-primary)] mb-2">
+                      {language === "bn" ? "রক্তদাতার স্বেচ্ছাসেবার রেটিং দিন:" : "Rate Voluntary Donor Experience:"}
+                    </label>
+                    <div className="flex items-center gap-2">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          type="button"
+                          onClick={() => setVerifyRating(star)}
+                          className="p-1 hover:scale-115 transition-transform"
+                        >
+                          <Star
+                            size={24}
+                            className={
+                              star <= verifyRating
+                                ? "text-amber-500 fill-amber-500"
+                                : "text-zinc-300 dark:text-zinc-700"
+                            }
+                          />
+                        </button>
+                      ))}
+                      <span className="ml-2 font-black text-sm text-[var(--text-primary)]">
+                        {verifyRating} / 5
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Gratitude / Feedback message */}
+                  <div>
+                    <label className="block font-bold text-[var(--text-primary)] mb-1">
+                      {language === "bn" ? "রক্তদাতার প্রতি ধন্যবাদ বা মন্তব্য (ঐচ্ছিক):" : "Gratitude or Notes (Optional):"}
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={verifyFeedback}
+                      onChange={(e) => setVerifyFeedback(e.target.value)}
+                      placeholder={
+                        language === "bn"
+                          ? "যেমন: উনি সঠিক সময়ে এসে বিনা মূল্যে রক্ত দিয়ে আমার রোগীর জীবন বাঁচিয়েছেন..."
+                          : "e.g. Arrived on time and voluntarily donated without taking any money..."
+                      }
+                      className="w-full px-3 py-2 rounded-xl bg-[var(--bg-main)] border border-[var(--border-subtle)] focus:outline-none focus:border-red-500 text-xs text-[var(--text-primary)]"
+                    />
+                  </div>
+
+                  {/* Safety Warning */}
+                  <div className="p-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-[11px] text-red-600 dark:text-red-400 flex items-start gap-2">
+                    <ShieldAlert size={14} className="shrink-0 mt-0.5" />
+                    <span>
+                      {language === "bn"
+                        ? "রক্তদাতা কি কোনো টাকা বা অগ্রিম বিকাশ দাবি করেছিলেন? অসদাচরণের শিকার হলে আমাদের প্রতারক প্রতিরোধ সেলে রিপোর্ট করুন।"
+                        : "Did the donor ask for payment or extortion? Report them immediately on our Fraud Shield."}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2">
+                    <Link
+                      href="/fraud-shield"
+                      onClick={() => setVerifyingCase(null)}
+                      className="text-[11px] font-bold text-red-600 dark:text-red-400 hover:underline"
+                    >
+                      {language === "bn" ? "প্রতারণা রিপোর্ট করুন" : "Report Fraud"}
+                    </Link>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setVerifyingCase(null)}
+                        className="px-3 py-1.5 rounded-xl border border-[var(--border-subtle)] text-[var(--text-secondary)] font-bold hover:bg-[var(--bg-main)]"
+                      >
+                        {language === "bn" ? "বাতিল" : "Cancel"}
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={submittingVerify}
+                        className="px-4 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold inline-flex items-center gap-1.5 shadow-xs disabled:opacity-50"
+                      >
+                        <Check size={13} />
+                        <span>
+                          {submittingVerify
+                            ? language === "bn" ? "ভেরিফাই হচ্ছে..." : "Verifying..."
+                            : language === "bn" ? "ভেরিফিকেশন সম্পন্ন করুন" : "Confirm Verification"}
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+                </form>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
