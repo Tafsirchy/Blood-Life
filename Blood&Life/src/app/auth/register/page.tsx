@@ -360,7 +360,7 @@ export default function RegisterPage() {
 
             {/* 4-Tier Cascaded Location Hierarchy Section */}
             <div className="pt-2 border-t border-[var(--border-subtle)] space-y-3">
-              <div className="flex items-center justify-between">
+              <div>
                 <label className="text-xs font-bold text-[var(--text-primary)] flex items-center gap-1.5">
                   <MapPin size={14} className="text-red-500" />
                   <span>
@@ -369,9 +369,6 @@ export default function RegisterPage() {
                       : "Location Selection (Required Dropdowns)"}
                   </span>
                 </label>
-                <span className="text-[10px] font-bold text-red-600 dark:text-red-400 bg-red-500/10 px-2 py-0.5 rounded-full">
-                  GeoJSON 4-Tier
-                </span>
               </div>
 
               {/* Tier 1 & Tier 2: Division & District */}
