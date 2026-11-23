@@ -25,19 +25,21 @@ interface UrgentCase {
   purpose: string;
 }
 
-function getSampleCases(): UrgentCase[] {
+function getSampleCases(useStorage: boolean = false): UrgentCase[] {
   return [
     {
       id: "case-101",
       patientName: "Tasneem Rahman",
       bloodGroup: "O-",
       units: 2,
-      pledgedUnits: getPersistentPledgedUnits("case-101", 0),
+      pledgedUnits: useStorage ? getPersistentPledgedUnits("case-101", 0) : 0,
       hospital: "Dhaka Medical College Hospital (DMCH ICU-3)",
       district: "Dhaka",
       urgency: "CRITICAL",
       hoursLeft: 1.75, // 1h 45m -> Tier 2 Code Red
-      expiresAt: getPersistentEmergencyDeadline("case-101", 105),
+      expiresAt: useStorage
+        ? getPersistentEmergencyDeadline("case-101", 105)
+        : new Date(Date.now() + 105 * 60 * 1000).toISOString(),
       verified: true,
       purpose: "Emergency Cesarean Surgery",
     },
@@ -46,12 +48,14 @@ function getSampleCases(): UrgentCase[] {
       patientName: "Abdul Gafur",
       bloodGroup: "B+",
       units: 3,
-      pledgedUnits: getPersistentPledgedUnits("case-102", 1),
+      pledgedUnits: useStorage ? getPersistentPledgedUnits("case-102", 1) : 1,
       hospital: "Chittagong Medical College Hospital",
       district: "Chittagong",
       urgency: "CRITICAL",
       hoursLeft: 0.45, // 27 mins -> Tier 1 ICU Golden Window
-      expiresAt: getPersistentEmergencyDeadline("case-102", 27),
+      expiresAt: useStorage
+        ? getPersistentEmergencyDeadline("case-102", 27)
+        : new Date(Date.now() + 27 * 60 * 1000).toISOString(),
       verified: true,
       purpose: "Trauma Road Accident Recovery",
     },
@@ -60,12 +64,14 @@ function getSampleCases(): UrgentCase[] {
       patientName: "Meghla Akter",
       bloodGroup: "AB-",
       units: 1,
-      pledgedUnits: getPersistentPledgedUnits("case-103", 0),
+      pledgedUnits: useStorage ? getPersistentPledgedUnits("case-103", 0) : 0,
       hospital: "Sylhet MAG Osmani Medical College",
       district: "Sylhet",
       urgency: "URGENT",
       hoursLeft: 4.5, // 4h 30m -> Tier 3 Elevated
-      expiresAt: getPersistentEmergencyDeadline("case-103", 270),
+      expiresAt: useStorage
+        ? getPersistentEmergencyDeadline("case-103", 270)
+        : new Date(Date.now() + 270 * 60 * 1000).toISOString(),
       verified: true,
       purpose: "Thalassemia Transfusion",
     },
@@ -74,12 +80,14 @@ function getSampleCases(): UrgentCase[] {
       patientName: "Farhan Hossain",
       bloodGroup: "A+",
       units: 2,
-      pledgedUnits: getPersistentPledgedUnits("case-104", 1),
+      pledgedUnits: useStorage ? getPersistentPledgedUnits("case-104", 1) : 1,
       hospital: "Rajshahi Medical College Hospital",
       district: "Rajshahi",
       urgency: "URGENT",
       hoursLeft: 7.5, // 7h 30m -> Tier 4 Standard
-      expiresAt: getPersistentEmergencyDeadline("case-104", 450),
+      expiresAt: useStorage
+        ? getPersistentEmergencyDeadline("case-104", 450)
+        : new Date(Date.now() + 450 * 60 * 1000).toISOString(),
       verified: true,
       purpose: "Open Heart Bypass Surgery",
     },
@@ -94,14 +102,16 @@ function UrgentTransfusionCard({
   language: string;
 }) {
   const countdown = useEmergencyCountdown(req.expiresAt, req.urgency.toLowerCase() as "critical" | "urgent", req.id);
+  const isExpired = countdown.isMounted && countdown.isExpired;
 
   return (
     <div
+      suppressHydrationWarning
       className={`bg-white dark:bg-zinc-900 rounded-3xl border p-5 sm:p-6 shadow-xs hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 flex flex-col justify-between group relative overflow-hidden ${
         countdown.isCodeRed
           ? "border-red-500/80 dark:border-red-500/60 ring-2 ring-red-500/15 shadow-red-500/5"
           : "border-zinc-200/90 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700"
-      } ${countdown.isExpired ? "opacity-60 grayscale" : ""}`}
+      } ${isExpired ? "opacity-60 grayscale" : ""}`}
     >
       {/* Top Accent for Code Red */}
       {countdown.isCodeRed && (
@@ -127,7 +137,7 @@ function UrgentTransfusionCard({
           >
             <Clock size={11} className={countdown.isCodeRed ? "animate-pulse" : ""} />
             <span className="tabular-nums" suppressHydrationWarning>
-              {countdown.isExpired ? (language === "bn" ? "সময় শেষ" : "Expired") : countdown.formattedCountdown}
+              {isExpired ? (language === "bn" ? "সময় শেষ" : "Expired") : countdown.formattedCountdown}
             </span>
           </span>
         </div>
@@ -172,9 +182,10 @@ function UrgentTransfusionCard({
 
       {/* Action Button */}
       <Link
+        suppressHydrationWarning
         href={`/requests/${req.id}`}
         className={`w-full mt-4 py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-xs group-hover:shadow ${
-          countdown.isExpired
+          isExpired
             ? "bg-zinc-200 text-zinc-500 cursor-not-allowed pointer-events-none"
             : countdown.isCodeRed
             ? "bg-red-600 hover:bg-red-700 text-white shadow-red-600/25"
@@ -182,8 +193,8 @@ function UrgentTransfusionCard({
         }`}
       >
         <HeartHandshake size={15} className={countdown.isCodeRed ? "text-white" : "text-rose-400 dark:text-rose-600 group-hover:text-white transition-colors"} />
-        <span>
-          {countdown.isExpired
+        <span suppressHydrationWarning>
+          {isExpired
             ? (language === "bn" ? "সময়সীমা শেষ" : "Window Elapsed")
             : (language === "bn" ? "রক্তদানে সাড়া দিন" : "Pledge to Help")}
         </span>
@@ -195,10 +206,12 @@ function UrgentTransfusionCard({
 
 export function UrgentTransfusionQueue() {
   const { language } = useLanguage();
-  const [cases, setCases] = useState<UrgentCase[]>(getSampleCases);
+  const [cases, setCases] = useState<UrgentCase[]>(() => getSampleCases(false));
 
   useEffect(() => {
     let isSubscribed = true;
+    // Safely hydrate stored localStorage values once mounted on client
+    setCases(getSampleCases(true));
 
     const fetchLiveCases = async () => {
       try {

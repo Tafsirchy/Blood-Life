@@ -83,7 +83,9 @@ export function useEmergencyCountdown(
   }, []);
 
   const totalSeconds = Math.max(0, Math.floor((targetTimestamp - now) / 1000));
-  const isExpired = totalSeconds <= 0;
+  // Hydration Guard: Before client mounting, isExpired must match the server render state
+  // to prevent hydration mismatch errors when stored client deadlines have elapsed.
+  const isExpired = mounted ? totalSeconds <= 0 : false;
 
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
