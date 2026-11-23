@@ -28,23 +28,26 @@ BLOOD&LIFE (ব্লাড অ্যান্ড লাইফ) • ন্যা
 `;
 
 /**
- * 1. Email Verification Template
+ * 1. Email Verification Template (Supports 6-Digit OTP Code & Dual 1-Click Link)
  */
 export function buildVerificationEmailTemplate({
   name,
+  code,
   verificationUrl,
 }: {
   name: string;
+  code?: string;
   verificationUrl: string;
 }): { html: string; text: string } {
   const safeName = sanitizeHtml(name);
+  const displayCode = code ? sanitizeHtml(code) : "";
 
   const html = `<!DOCTYPE html>
 <html lang="bn">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ইমেইল ভেরিফিকেশন — BLOOD&LIFE</title>
+  <title>ইমেইল ভেরিফিকেশন কোড — BLOOD&LIFE</title>
 </head>
 <body style="margin: 0; padding: 20px 0; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
   <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0">
@@ -53,9 +56,9 @@ export function buildVerificationEmailTemplate({
         <table role="presentation" width="100%" style="max-width: 580px; margin: 0 auto; background: #ffffff; border-radius: 14px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);" border="0" cellspacing="0" cellpadding="0">
           <!-- Header Banner -->
           <tr>
-            <td style="background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%); padding: 24px; text-align: center; color: #ffffff;">
+            <td style="background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%); padding: 26px 24px; text-align: center; color: #ffffff;">
               <h1 style="margin: 0; font-size: 22px; font-weight: 800; letter-spacing: 0.5px;">BLOOD&LIFE (ব্লাড অ্যান্ড লাইফ)</h1>
-              <p style="margin: 6px 0 0 0; font-size: 13px; opacity: 0.95;">অ্যাকাউন্ট নিশ্চিতকরণ • Email Verification</p>
+              <p style="margin: 6px 0 0 0; font-size: 13px; opacity: 0.95;">অ্যাকাউন্ট ভেরিফিকেশন কোড • Verification Code</p>
             </td>
           </tr>
           <!-- Body Content -->
@@ -63,19 +66,38 @@ export function buildVerificationEmailTemplate({
             <td style="padding: 28px 24px; color: #0f172a;">
               <p style="font-size: 15px; margin-top: 0; line-height: 1.5;">প্রিয় <strong>${safeName}</strong>,</p>
               <p style="font-size: 14px; line-height: 1.6; color: #334155;">
-                BLOOD&LIFE ইমার্জেন্সি ব্লাড নেটওয়ার্কে নিবন্ধিত হওয়ার জন্য ধন্যবাদ। আপনার অ্যাকাউন্টটি সক্রিয় করতে এবং জীবনরক্ষাকারী ডিসপ্যাচ নেটওয়ার্কে যোগ দিতে নিচের বাটনে ক্লিক করুন:
+                BLOOD&LIFE ইমার্জেন্সি ব্লাড নেটওয়ার্কে নিবন্ধিত হওয়ার জন্য ধন্যবাদ। আপনার অ্যাকাউন্টটি সক্রিয় করতে নিচের ৬-সংখ্যার ভেরিফিকেশন কোডটি ব্যবহার করুন:
               </p>
-              <div style="text-align: center; margin: 30px 0;">
+
+              ${
+                displayCode
+                  ? `<!-- OTP Card -->
+              <div style="background: #fff1f2; border: 2px dashed #f43f5e; border-radius: 12px; padding: 20px 16px; text-align: center; margin: 24px 0;">
+                <span style="font-size: 12px; font-weight: 700; color: #be123c; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 8px;">
+                  আপনার ভেরিফিকেশন কোড (Verification Code)
+                </span>
+                <span style="font-family: 'Courier New', Courier, monospace; font-size: 38px; font-weight: 900; letter-spacing: 10px; color: #be123c; display: inline-block; padding-left: 10px;">
+                  ${displayCode}
+                </span>
+                <p style="margin: 10px 0 0 0; font-size: 12px; color: #9f1239; font-weight: 600;">
+                  ⏱️ এই কোডটির মেয়াদ <strong>১৫ মিনিট</strong> (Valid for 15 minutes)
+                </p>
+              </div>`
+                  : ""
+              }
+
+              <div style="text-align: center; margin: 24px 0 16px 0;">
                 <a href="${verificationUrl}" style="background: #dc2626; color: #ffffff; padding: 13px 32px; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 14px; display: inline-block; box-shadow: 0 2px 4px rgba(220, 38, 38, 0.25);">
-                  ইমেইল ভেরিফাই করুন (Verify Email)
+                  এক ক্লিকে ভেরিফাই করুন (1-Click Verify)
                 </a>
               </div>
+
               <div style="background: #f8fafc; border-left: 4px solid #dc2626; padding: 12px 16px; border-radius: 6px; margin: 20px 0; font-size: 13px; color: #475569;">
-                <p style="margin: 0 0 4px 0;"><strong>⚠️ মেয়াদ:</strong> এই ভেরিফিকেশন লিঙ্কটি আগামী <strong>২৪ ঘণ্টার</strong> জন্য কার্যকর থাকবে।</p>
+                <p style="margin: 0 0 4px 0;"><strong>💡 পরামর্শ:</strong> আপনি ব্রাউজারে কোডটি টাইপ করতে পারেন অথবা সরাসরি উপরের বাটনে ক্লিক করতে পারেন।</p>
                 <p style="margin: 0; font-size: 12px; color: #64748b;">বাটনটি কাজ না করলে এই লিঙ্কটি ব্রাউজারে কপি-পেস্ট করুন:<br><a href="${verificationUrl}" style="color: #dc2626; word-break: break-all;">${verificationUrl}</a></p>
               </div>
               <p style="font-size: 13px; color: #64748b; line-height: 1.5; margin-bottom: 0;">
-                আপনি যদি এই অ্যাকাউন্টটি না খুলে থাকেন, তবে দয়া করে এই ইমেইলটি উপেক্ষা করুন।
+                আপনি যদি এই অ্যাকাউন্টটি না খুলে থাকেন, তবে দয়া করে এই ইমেইলটি উপেক্ষা করুন। রক্তের জন্য কখনো আর্থিক লেনদেন করবেন না।
               </p>
               ${EMAIL_FOOTER_HTML}
             </td>
@@ -89,13 +111,13 @@ export function buildVerificationEmailTemplate({
 
   const text = `
 BLOOD&LIFE (ব্লাড অ্যান্ড লাইফ)
-অ্যাকাউন্ট নিশ্চিতকরণ • Email Verification
+অ্যাকাউন্ট ভেরিফিকেশন কোড • Verification Code
 
 প্রিয় ${name},
 
 BLOOD&LIFE ইমার্জেন্সি ব্লাড নেটওয়ার্কে নিবন্ধিত হওয়ার জন্য ধন্যবাদ।
-আপনার অ্যাকাউন্টটি সক্রিয় করতে নিচের লিঙ্কে ক্লিক করুন (আগামী ২৪ ঘণ্টা কার্যকর):
-
+${displayCode ? `\nআপনার ৬-সংখ্যার ভেরিফিকেশন কোড: ${displayCode}\n(মেয়াদ: ১৫ মিনিট)\n` : ""}
+আপনার অ্যাকাউন্ট সক্রিয় করতে কোডটি ইনপুট করুন অথবা নিচের লিঙ্কে যান:
 ${verificationUrl}
 
 আপনি যদি এই অ্যাকাউন্টটি না খুলে থাকেন, তবে দয়া করে এই ইমেইলটি উপেক্ষা করুন।

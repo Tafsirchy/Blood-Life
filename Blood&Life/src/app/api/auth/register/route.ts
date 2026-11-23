@@ -2,12 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
 import { User } from "@/models/User";
 import bcrypt from "bcryptjs";
-import crypto from "crypto";
 import { signSessionJWT } from "@/lib/auth/jwt";
 import { SESSION_COOKIE_NAME } from "@/lib/auth/session";
 import { checkRateLimit } from "@/lib/security/rateLimiter";
 import { sendTransactionalEmail } from "@/lib/notifications/email";
 import { buildVerificationEmailTemplate } from "@/lib/notifications/emailTemplates";
+import { generateVerificationCode, hashVerificationCode, getOtpExpiryDate } from "@/lib/security/otp";
 import { z } from "zod";
 
 const registerSchema = z.object({
@@ -52,10 +52,10 @@ export async function POST(req: NextRequest) {
 
     const hashedPassword = await bcrypt.hash(validated.password, 12);
 
-    // Cryptographic 32-byte Verification Token
-    const rawVerificationToken = crypto.randomBytes(32).toString("hex");
-    const hashedVerificationToken = crypto.createHash("sha256").update(rawVerificationToken).digest("hex");
-    const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+    // Cryptographic 6-digit Numeric Verification Code (15-min expiry)
+    const verificationCode = generateVerificationCode();
+    const hashedVerificationToken = hashVerificationCode(verificationCode);
+    const verificationExpires = getOtpExpiryDate(15);
 
     let userDoc;
     if (existingUser) {
@@ -99,17 +99,18 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Dispatch Verification Email
+    // Dispatch Verification Email with 6-digit Code & Direct Link
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-    const verificationUrl = `${appUrl}/auth/verify-email?token=${rawVerificationToken}&email=${encodeURIComponent(userDoc.email)}`;
+    const verificationUrl = `${appUrl}/auth/verify-email?code=${verificationCode}&email=${encodeURIComponent(userDoc.email)}`;
     const emailContent = buildVerificationEmailTemplate({
       name: userDoc.name,
+      code: verificationCode,
       verificationUrl,
     });
 
     await sendTransactionalEmail({
       to: userDoc.email,
-      subject: "✉️ আপনার ইমেইল ভেরিফাই করুন (Verify Your Email) — BLOOD&LIFE",
+      subject: `✉️ আপনার ভেরিফিকেশন কোড: ${verificationCode} (Verification Code) — BLOOD&LIFE`,
       html: emailContent.html,
       text: emailContent.text,
     });

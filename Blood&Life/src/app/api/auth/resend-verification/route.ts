@@ -3,8 +3,8 @@ import { connectDB } from "@/lib/db";
 import { User } from "@/models/User";
 import { sendTransactionalEmail } from "@/lib/notifications/email";
 import { buildVerificationEmailTemplate } from "@/lib/notifications/emailTemplates";
+import { generateVerificationCode, hashVerificationCode, getOtpExpiryDate } from "@/lib/security/otp";
 import { checkRateLimit } from "@/lib/security/rateLimiter";
-import crypto from "crypto";
 import { z } from "zod";
 
 const resendSchema = z.object({
@@ -15,9 +15,9 @@ export async function POST(req: NextRequest) {
   try {
     const ip = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown-ip";
 
-    // Strict rate limiting: 3 attempts per hour per IP
-    const rateLimit = await checkRateLimit(`resend-verif-ip:${ip}`, 3, 3600);
-    if (!rateLimit.success) {
+    // Strict rate limiting: 5 attempts per hour per IP
+    const ipRateLimit = await checkRateLimit(`resend-verif-ip:${ip}`, 5, 3600);
+    if (!ipRateLimit.success) {
       return NextResponse.json(
         { error: "Too many requests. Please wait an hour before requesting another verification email." },
         { status: 429 }
@@ -27,31 +27,41 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { email } = resendSchema.parse(body);
 
+    // Per-email 60-second cooldown protection against spamming
+    const emailCooldown = await checkRateLimit(`resend-verif-email:${email.toLowerCase()}`, 1, 60);
+    if (!emailCooldown.success) {
+      return NextResponse.json(
+        { error: "Please wait 60 seconds before requesting another verification code." },
+        { status: 429 }
+      );
+    }
+
     await connectDB();
 
     const user = await User.findOne({ email: email.toLowerCase() });
 
     // Timing-Safe / Enumeration-Resistant response:
-    // If user exists and is not yet verified, issue new token & dispatch email
+    // If user exists and is not yet verified, issue new 6-digit code & dispatch email
     if (user && !user.isEmailVerified && user.status !== "Blocked") {
-      const rawToken = crypto.randomBytes(32).toString("hex");
-      const hashedToken = crypto.createHash("sha256").update(rawToken).digest("hex");
-      const tokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+      const code = generateVerificationCode();
+      const hashedToken = hashVerificationCode(code);
+      const tokenExpires = getOtpExpiryDate(15); // 15 minutes
 
       user.emailVerificationToken = hashedToken;
       user.emailVerificationExpires = tokenExpires;
       await user.save();
 
       const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-      const verificationUrl = `${appUrl}/auth/verify-email?token=${rawToken}&email=${encodeURIComponent(user.email)}`;
+      const verificationUrl = `${appUrl}/auth/verify-email?code=${code}&email=${encodeURIComponent(user.email)}`;
       const emailContent = buildVerificationEmailTemplate({
         name: user.name,
+        code,
         verificationUrl,
       });
 
       await sendTransactionalEmail({
         to: user.email,
-        subject: "✉️ নতুন ভেরিফিকেশন লিঙ্ক (New Verification Link) — BLOOD&LIFE",
+        subject: `✉️ নতুন ভেরিফিকেশন কোড: ${code} (New Verification Code) — BLOOD&LIFE`,
         html: emailContent.html,
         text: emailContent.text,
       });
@@ -59,7 +69,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: "If an unverified account with this email exists, a new verification link has been dispatched.",
+      message: "If an unverified account with this email exists, a new 6-digit verification code has been dispatched.",
     });
   } catch (error) {
     if (error instanceof z.ZodError) {

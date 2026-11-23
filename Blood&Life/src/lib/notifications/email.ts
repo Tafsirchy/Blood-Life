@@ -18,8 +18,12 @@ export async function sendTransactionalEmail({ to, subject, html, text, replyTo 
   const recipients = Array.isArray(to) ? to : [to];
   const plainText = text || html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 
+  // Always log dispatch subject in non-production for local testing & observability
+  if (process.env.NODE_ENV !== "production") {
+    console.info(`[Email Dispatch] To: ${recipients.join(", ")} | Subject: ${subject}`);
+  }
+
   if (!apiKey) {
-    console.info(`[Email Dispatch Mock] To: ${recipients.join(", ")} | Subject: ${subject}`);
     return { success: true, mocked: true };
   }
 

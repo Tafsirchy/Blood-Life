@@ -55,7 +55,11 @@ export default function RegisterPage() {
       }
 
       localStorage.setItem("dashboard_preferred_role", role.toLowerCase());
-      router.push("/dashboard");
+      if (data.requiresVerification) {
+        router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`);
+      } else {
+        router.push("/dashboard");
+      }
       router.refresh();
     } catch (err: any) {
       setError(err.message);
