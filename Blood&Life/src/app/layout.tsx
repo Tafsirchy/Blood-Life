@@ -49,12 +49,12 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: "/favicon.ico?v=3" },
-      { url: "/icon.png?v=3", sizes: "512x512", type: "image/png" },
-      { url: "/icon-512.png?v=3", sizes: "512x512", type: "image/png" },
+      { url: "/favicon.ico?v=5" },
+      { url: "/icon.png?v=5", sizes: "512x512", type: "image/png" },
+      { url: "/icon-512.png?v=5", sizes: "512x512", type: "image/png" },
     ],
     apple: [
-      { url: "/apple-icon.png?v=3", sizes: "180x180", type: "image/png" },
+      { url: "/apple-icon.png?v=5", sizes: "180x180", type: "image/png" },
     ],
   },
   manifest: "/manifest.json",
