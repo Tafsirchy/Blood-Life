@@ -13,6 +13,9 @@ const TransfusionLogSchema = new Schema<TransfusionLogDocument>(
     completedAt: { type: Date, default: Date.now },
     certificateId: { type: String, required: true, unique: true },
     verifiedByVolunteerId: { type: String },
+    recipientVerified: { type: Boolean, default: false },
+    rating: { type: Number, min: 1, max: 5 },
+    recipientFeedback: { type: String, trim: true },
   },
   {
     timestamps: true,

@@ -69,6 +69,9 @@ export function RequesterCockpit({ onOpenSos }: RequesterCockpitProps) {
 
   // Recipient Donor 1-Click Verification State
   const [verifyingCase, setVerifyingCase] = useState<RequesterCase | null>(null);
+  const [selectedDonorId, setSelectedDonorId] = useState<string>("");
+  const [selectedDonorName, setSelectedDonorName] = useState<string>("");
+  const [selectedDonorPhone, setSelectedDonorPhone] = useState<string>("");
   const [verifyRating, setVerifyRating] = useState<number>(5);
   const [verifyFeedback, setVerifyFeedback] = useState<string>("");
   const [submittingVerify, setSubmittingVerify] = useState<boolean>(false);
@@ -132,8 +135,9 @@ export function RequesterCockpit({ onOpenSos }: RequesterCockpitProps) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          donorId: verifyingCase.assignedDonorId || (verifyingCase.pledges?.[0]?.donorId),
-          donorName: verifyingCase.assignedDonorName || (verifyingCase.pledges?.[0]?.donorName),
+          donorId: selectedDonorId || verifyingCase.assignedDonorId || (verifyingCase.pledges?.[0]?.donorId),
+          donorName: selectedDonorName || verifyingCase.assignedDonorName || (verifyingCase.pledges?.[0]?.donorName),
+          donorPhone: selectedDonorPhone || verifyingCase.assignedDonorPhone || (verifyingCase.pledges?.[0]?.donorPhone),
           rating: verifyRating,
           feedback: verifyFeedback,
         }),
@@ -466,6 +470,10 @@ export function RequesterCockpit({ onOpenSos }: RequesterCockpitProps) {
                             type="button"
                             onClick={() => {
                               setVerifyingCase(item);
+                              const defaultPledge = item.pledges?.[0];
+                              setSelectedDonorId(defaultPledge?.donorId || item.assignedDonorId || "");
+                              setSelectedDonorName(defaultPledge?.donorName || item.assignedDonorName || (language === "bn" ? "স্বেচ্ছাসেবী রক্তদাতা" : "Voluntary Donor"));
+                              setSelectedDonorPhone(defaultPledge?.donorPhone || item.assignedDonorPhone || "");
                               setVerifyRating(5);
                               setVerifyFeedback("");
                               setVerifySuccessMsg("");
@@ -534,13 +542,56 @@ export function RequesterCockpit({ onOpenSos }: RequesterCockpitProps) {
                 </div>
               ) : (
                 <form onSubmit={handleRecipientVerify} className="space-y-4 text-xs">
-                  <div className="p-3 rounded-2xl bg-[var(--bg-main)] border border-[var(--border-subtle)] space-y-1">
-                    <span className="font-bold text-[var(--text-secondary)]">
-                      {language === "bn" ? "রক্তগ্রহীতা রোগী:" : "Recipient Patient:"} {verifyingCase.patientName}
-                    </span>
-                    <p className="text-[11px] text-[var(--text-muted)]">
-                      {verifyingCase.hospital} • {verifyingCase.district}
-                    </p>
+                  <div className="p-3.5 rounded-2xl bg-[var(--bg-main)] border border-[var(--border-subtle)] space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-[var(--text-secondary)]">
+                        {language === "bn" ? "রক্তগ্রহীতা রোগী:" : "Recipient Patient:"} {verifyingCase.patientName}
+                      </span>
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-red-500/10 text-red-600 font-bold border border-red-500/20">
+                        {verifyingCase.bloodGroup}
+                      </span>
+                    </div>
+
+                    {verifyingCase.pledges && verifyingCase.pledges.length > 1 ? (
+                      <div>
+                        <label className="block text-[11px] font-bold text-[var(--text-primary)] mb-1">
+                          {language === "bn" ? "কোন রক্তদাতা রক্ত দিয়েছেন নির্বাচন করুন:" : "Select which donor donated:"}
+                        </label>
+                        <select
+                          value={selectedDonorId}
+                          onChange={(e) => {
+                            const found = verifyingCase.pledges?.find((p) => p.donorId === e.target.value);
+                            if (found) {
+                              setSelectedDonorId(found.donorId);
+                              setSelectedDonorName(found.donorName);
+                              setSelectedDonorPhone(found.donorPhone || "");
+                            }
+                          }}
+                          className="w-full px-2.5 py-1.5 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] font-bold text-xs text-[var(--text-primary)] focus:outline-none focus:border-red-500"
+                        >
+                          {verifyingCase.pledges.map((p, idx) => (
+                            <option key={idx} value={p.donorId}>
+                              {p.donorName} {p.donorPhone ? `(${p.donorPhone})` : ""}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    ) : (
+                      <div className="pt-1.5 text-xs border-t border-[var(--border-subtle)] flex items-center justify-between">
+                        <span className="text-[var(--text-muted)] font-medium">
+                          {language === "bn" ? "স্বেচ্ছাসেবী রক্তদাতা:" : "Voluntary Donor:"}
+                        </span>
+                        <span className="font-black text-[var(--text-primary)] flex items-center gap-1.5">
+                          <UserCheck size={13} className="text-emerald-500" />
+                          <span>{selectedDonorName}</span>
+                          {selectedDonorPhone && (
+                            <span className="font-mono text-[11px] text-[var(--text-muted)]">
+                              ({selectedDonorPhone})
+                            </span>
+                          )}
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   {/* 5-Star Rating */}

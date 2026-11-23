@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
 import { FraudReport } from "@/models/FraudReport";
+import { User } from "@/models/User";
 import { getValidatedSession } from "@/lib/auth/session";
 import { sanitizeText } from "@/lib/security/sanitize";
 
@@ -32,20 +33,26 @@ export async function GET(req: NextRequest) {
         }, { status: 400 });
       }
 
-      // Find matching reports
-      const reports = await FraudReport.find({
-        reportedPhone: { $regex: cleanPhone.slice(-10), $options: "i" },
-      }).sort({ createdAt: -1 });
+      // Find matching reports and system-blocked users
+      const [reports, blockedUser] = await Promise.all([
+        FraudReport.find({
+          reportedPhone: { $regex: cleanPhone.slice(-10), $options: "i" },
+        }).sort({ createdAt: -1 }),
+        User.findOne({
+          phone: { $regex: cleanPhone.slice(-10), $options: "i" },
+          $or: [{ status: "Blocked" }, { isFraudFlagged: true }],
+        }),
+      ]);
 
-      const isConfirmed = reports.some((r) => r.status === "confirmed_fraud");
+      const isConfirmed = reports.some((r) => r.status === "confirmed_fraud") || !!blockedUser;
       const isUnderInvestigation = reports.some((r) => r.status === "investigating" || r.status === "pending_review");
 
       return NextResponse.json({
         checked: true,
-        isFlagged: reports.length > 0,
+        isFlagged: reports.length > 0 || !!blockedUser,
         isBlacklisted: isConfirmed,
         isUnderInvestigation: isUnderInvestigation && !isConfirmed,
-        reportCount: reports.length,
+        reportCount: reports.length + (blockedUser ? 1 : 0),
         verdict: isConfirmed
           ? "CRITICAL_BLACKLIST"
           : isUnderInvestigation
@@ -53,10 +60,10 @@ export async function GET(req: NextRequest) {
           : "CLEAN_RECORD",
         details: isConfirmed
           ? {
-              category: reports[0].scamCategory,
-              hospital: reports[0].hospitalName,
-              district: reports[0].district,
-              date: reports[0].incidentDate,
+              category: reports[0]?.scamCategory || "broker_syndicate",
+              hospital: reports[0]?.hospitalName || "সিস্টেম ব্ল্যাকলিস্টেড ইউজার",
+              district: reports[0]?.district || blockedUser?.district || "বাংলাদেশ",
+              date: reports[0]?.incidentDate || new Date(),
             }
           : null,
       });

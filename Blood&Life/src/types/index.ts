@@ -143,11 +143,14 @@ export interface ITransfusionLog {
   completedAt: Date;
   certificateId: string;
   verifiedByVolunteerId?: string;
+  recipientVerified?: boolean;
+  rating?: number;
+  recipientFeedback?: string;
 }
 
 export interface IAuditLog {
   _id: string;
-  action: "CONTACT_REVEAL" | "ROLE_CHANGE" | "REQUEST_VERIFIED" | "STATUS_UPDATE";
+  action: "CONTACT_REVEAL" | "ROLE_CHANGE" | "REQUEST_VERIFIED" | "STATUS_UPDATE" | "DONATION_VERIFIED" | "FRAUD_REPORTED";
   performedBy: string;
   targetId: string;
   targetType: "DONOR" | "REQUEST" | "USER";

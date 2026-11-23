@@ -8,7 +8,14 @@ const AuditLogSchema = new Schema<AuditLogDocument>(
     action: {
       type: String,
       required: true,
-      enum: ["CONTACT_REVEAL", "ROLE_CHANGE", "REQUEST_VERIFIED", "STATUS_UPDATE"],
+      enum: [
+        "CONTACT_REVEAL",
+        "ROLE_CHANGE",
+        "REQUEST_VERIFIED",
+        "STATUS_UPDATE",
+        "DONATION_VERIFIED",
+        "FRAUD_REPORTED",
+      ],
     },
     performedBy: { type: String, required: true, index: true },
     targetId: { type: String, required: true, index: true },

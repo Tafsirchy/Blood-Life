@@ -31,6 +31,9 @@ interface TransfusionRecord {
   bloodGroup: string;
   certificateId: string;
   status: "COMPLETED";
+  recipientVerified?: boolean;
+  rating?: number;
+  recipientFeedback?: string;
 }
 
 interface PledgedRequest {
@@ -58,6 +61,9 @@ const SAMPLE_DONATIONS: TransfusionRecord[] = [
     bloodGroup: "O-",
     certificateId: "BL-CERT-DMCH-881",
     status: "COMPLETED",
+    recipientVerified: true,
+    rating: 5,
+    recipientFeedback: "জরুরি অস্ত্রোপচারের সময় দ্রুত রক্ত দিয়ে জীবন বাঁচিয়েছেন। অশেষ কৃতজ্ঞতা!",
   },
   {
     id: "tx-720",
@@ -132,6 +138,9 @@ export function DonorCockpit() {
           bloodGroup: l.bloodGroup || meData.user?.bloodGroup || "O+",
           certificateId: l.certificateId,
           status: "COMPLETED",
+          recipientVerified: l.recipientVerified || false,
+          rating: l.rating || 5,
+          recipientFeedback: l.recipientFeedback || "",
         }));
 
         // If user already had donations or sample donations
@@ -415,7 +424,21 @@ export function DonorCockpit() {
                         <span className="font-mono text-[10px] text-[var(--text-muted)]">
                           #{item.certificateId}
                         </span>
+                        {item.recipientVerified && (
+                          <>
+                            <span>•</span>
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30 flex items-center gap-1">
+                              <span>★</span>
+                              <span>{language === "bn" ? `গ্রহীতা ভেরিফাইড (${item.rating || 5}★)` : `Recipient Verified (${item.rating || 5}★)`}</span>
+                            </span>
+                          </>
+                        )}
                       </p>
+                      {item.recipientFeedback && (
+                        <p className="text-[11px] text-[var(--text-secondary)] italic mt-1.5 bg-[var(--bg-surface)] px-2.5 py-1 rounded-lg border border-[var(--border-subtle)] inline-block">
+                          "{item.recipientFeedback}"
+                        </p>
+                      )}
                     </div>
                   </div>
 
@@ -624,6 +647,23 @@ export function DonorCockpit() {
                 <span className="text-xs font-bold text-[var(--text-secondary)] block">
                   Blood Group: {selectedCert.bloodGroup} • {selectedCert.units} Unit
                 </span>
+                {selectedCert.recipientVerified && (
+                  <div className="pt-2">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-700 dark:text-amber-400 text-xs font-bold">
+                      <span>★</span>
+                      <span>
+                        {language === "bn"
+                          ? `রক্তগ্রহীতা কর্তৃক ভেরিফাইড রিকগনিশন (${selectedCert.rating || 5}★)`
+                          : `Recipient Peer-Verified Recognition (${selectedCert.rating || 5}★)`}
+                      </span>
+                    </span>
+                    {selectedCert.recipientFeedback && (
+                      <p className="text-xs text-[var(--text-secondary)] italic mt-1 max-w-sm mx-auto">
+                        "{selectedCert.recipientFeedback}"
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4 text-left text-xs pt-2">
