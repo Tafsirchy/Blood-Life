@@ -168,10 +168,6 @@ export function EmergencyPulseRibbon() {
                 {language === "bn" ? "জরুরি" : "LIVE"}
               </span>
             </div>
-
-            <span className="hidden md:inline-flex items-center text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded-full border border-zinc-200 dark:border-zinc-700">
-              {language === "bn" ? `${alerts.length}টি লাইভ কেস` : `${alerts.length} Live`}
-            </span>
           </div>
 
           {/* Center Infinite Marquee Container */}
