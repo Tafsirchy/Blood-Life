@@ -33,6 +33,8 @@ export interface IUser {
   division: string;
   district: string;
   upazila: string;
+  union?: string;
+  address?: string;
   avatarUrl?: string;
   role: UserRole;
   status: "Active" | "Blocked";

@@ -17,6 +17,8 @@ const UserSchema = new Schema<UserDocument>(
     division: { type: String, required: true },
     district: { type: String, required: true },
     upazila: { type: String, required: true },
+    union: { type: String, trim: true },
+    address: { type: String, trim: true },
     avatarUrl: { type: String },
     role: {
       type: String,

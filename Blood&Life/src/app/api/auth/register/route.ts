@@ -23,6 +23,8 @@ const registerSchema = z.object({
   division: z.string().min(1, "Division is required"),
   district: z.string().min(1, "District is required"),
   upazila: z.string().min(1, "Upazila is required"),
+  union: z.string().optional(),
+  address: z.string().optional(),
   role: z.enum(["Donor", "Requester"]).optional(),
 });
 
@@ -67,6 +69,8 @@ export async function POST(req: NextRequest) {
       existingUser.division = validated.division;
       existingUser.district = validated.district;
       existingUser.upazila = validated.upazila;
+      existingUser.union = validated.union || "";
+      existingUser.address = validated.address || "";
       existingUser.isEmailVerified = false;
       existingUser.emailVerificationToken = hashedVerificationToken;
       existingUser.emailVerificationExpires = verificationExpires;
@@ -82,6 +86,8 @@ export async function POST(req: NextRequest) {
         division: validated.division,
         district: validated.district,
         upazila: validated.upazila,
+        union: validated.union || "",
+        address: validated.address || "",
         role: validated.role || "Donor",
         status: "Active",
         isAvailable: true,

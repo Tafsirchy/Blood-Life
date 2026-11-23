@@ -98,3 +98,71 @@ export const DISTRICTS: DistrictData[] = [
   { id: "netrokona", nameEn: "Netrokona", nameBn: "নেত্রকোণা", division: "Mymensingh", upazilas: ["Sadar", "Kendua", "Mohanganj", "Durgapur"] },
   { id: "sherpur", nameEn: "Sherpur", nameBn: "শেরপুর", division: "Mymensingh", upazilas: ["Sadar", "Nalitabari", "Nakla", "Sreebardi"] },
 ];
+
+import divisionsJson from "./data/divisions.json";
+import districtsJson from "./data/districts.json";
+import upazilasJson from "./data/upazilas.json";
+import unionsJson from "./data/unions.json";
+
+export interface BDGeoItem {
+  id: string;
+  name: string;
+  bn_name: string;
+}
+
+export interface BDDistrictItem extends BDGeoItem {
+  division_id: string;
+}
+
+export interface BDUpazilaItem extends BDGeoItem {
+  district_id: string;
+}
+
+export interface BDUnionItem extends BDGeoItem {
+  upazila_id: string;
+}
+
+export const BD_DIVISIONS: BDGeoItem[] = divisionsJson;
+export const BD_DISTRICTS: BDDistrictItem[] = districtsJson;
+export const BD_UPAZILAS: BDUpazilaItem[] = upazilasJson;
+export const BD_UNIONS: BDUnionItem[] = unionsJson;
+
+export function getDistrictsForDivision(divisionIdOrName: string): BDDistrictItem[] {
+  const div = BD_DIVISIONS.find(
+    (d) =>
+      d.id === divisionIdOrName ||
+      d.name.toLowerCase() === divisionIdOrName.toLowerCase() ||
+      d.bn_name === divisionIdOrName
+  );
+  if (!div) return [];
+  return BD_DISTRICTS.filter((d) => d.division_id === div.id);
+}
+
+export function getUpazilasForDistrict(districtIdOrName: string): BDUpazilaItem[] {
+  const dist = BD_DISTRICTS.find(
+    (d) =>
+      d.id === districtIdOrName ||
+      d.name.toLowerCase() === districtIdOrName.toLowerCase() ||
+      d.bn_name === districtIdOrName
+  );
+  if (!dist) return [];
+  return BD_UPAZILAS.filter((u) => u.district_id === dist.id);
+}
+
+export function getUnionsForUpazila(upazilaIdOrName: string): BDUnionItem[] {
+  const up = BD_UPAZILAS.find(
+    (u) =>
+      u.id === upazilaIdOrName ||
+      u.name.toLowerCase() === upazilaIdOrName.toLowerCase() ||
+      u.bn_name === upazilaIdOrName
+  );
+  if (!up) return [];
+  const matches = BD_UNIONS.filter((un) => un.upazila_id === up.id);
+  if (matches.length > 0) return matches;
+
+  return [
+    { id: `${up.id}-ward1`, upazila_id: up.id, name: "Sadar / Ward 01", bn_name: "সদর / ওয়ার্ড ০১" },
+    { id: `${up.id}-ward2`, upazila_id: up.id, name: "Central / Main Area", bn_name: "মূল শহর / এলাকা" },
+  ];
+}
+

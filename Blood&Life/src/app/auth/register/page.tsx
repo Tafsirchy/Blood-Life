@@ -1,11 +1,30 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useLanguage } from "@/lib/i18n/context";
 import { BloodLagbeLogo } from "@/components/brand/BloodLagbeLogo";
-import { DIVISIONS, DISTRICTS } from "@/lib/geo/bangladeshData";
+import {
+  BD_DIVISIONS,
+  getDistrictsForDivision,
+  getUpazilasForDistrict,
+  getUnionsForUpazila,
+} from "@/lib/geo/bangladeshData";
 import { BloodGroup } from "@/types";
-import { UserPlus, Mail, Lock, Phone, User, MapPin, Sparkles } from "lucide-react";
+import {
+  UserPlus,
+  Mail,
+  Lock,
+  Phone,
+  User,
+  MapPin,
+  Building2,
+  Navigation,
+  Home,
+  Eye,
+  EyeOff,
+  CheckCircle2,
+  Sparkles,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -13,37 +32,134 @@ export default function RegisterPage() {
   const { language } = useLanguage();
   const router = useRouter();
 
+  // Basic Account Details
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [phone, setPhone] = useState("");
   const [bloodGroup, setBloodGroup] = useState<BloodGroup>("O+");
-  const [division, setDivision] = useState("Dhaka");
-  const [district, setDistrict] = useState("Dhaka");
-  const [upazila, setUpazila] = useState("Dhanmondi");
+
+  // Security Credentials
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // 4-Tier Cascaded Location Hierarchy (Division -> District -> Upazila/Thana -> Union/Area)
+  // Default to Dhaka Division (id: "3"), Dhaka District (id: "1")
+  const [selectedDivId, setSelectedDivId] = useState<string>("3");
+  const [selectedDistId, setSelectedDistId] = useState<string>("1");
+
+  const initialUpazilas = useMemo(() => getUpazilasForDistrict("1"), []);
+  const defaultUpazilaId = initialUpazilas.find((u) => u.name === "Dhanmondi")?.id || initialUpazilas[0]?.id || "";
+  const [selectedUpazilaId, setSelectedUpazilaId] = useState<string>(defaultUpazilaId);
+
+  const initialUnions = useMemo(() => getUnionsForUpazila(defaultUpazilaId), [defaultUpazilaId]);
+  const [selectedUnionId, setSelectedUnionId] = useState<string>(initialUnions[0]?.id || "");
+
+  // Detailed Free-Text Address (House, Road, Landmark, Village)
+  const [address, setAddress] = useState<string>("");
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const bloodGroups: BloodGroup[] = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
+
+  // Memoized dynamic dependent options
+  const availableDistricts = useMemo(() => {
+    return getDistrictsForDivision(selectedDivId);
+  }, [selectedDivId]);
+
+  const availableUpazilas = useMemo(() => {
+    return getUpazilasForDistrict(selectedDistId);
+  }, [selectedDistId]);
+
+  const availableUnions = useMemo(() => {
+    return getUnionsForUpazila(selectedUpazilaId);
+  }, [selectedUpazilaId]);
+
+  // Cascading Change Handlers
+  const handleDivisionChange = (divId: string) => {
+    setSelectedDivId(divId);
+    const districts = getDistrictsForDivision(divId);
+    const firstDistId = districts[0]?.id || "";
+    setSelectedDistId(firstDistId);
+
+    const upazilas = getUpazilasForDistrict(firstDistId);
+    const firstUpId = upazilas[0]?.id || "";
+    setSelectedUpazilaId(firstUpId);
+
+    const unions = getUnionsForUpazila(firstUpId);
+    setSelectedUnionId(unions[0]?.id || "");
+  };
+
+  const handleDistrictChange = (distId: string) => {
+    setSelectedDistId(distId);
+    const upazilas = getUpazilasForDistrict(distId);
+    const firstUpId = upazilas[0]?.id || "";
+    setSelectedUpazilaId(firstUpId);
+
+    const unions = getUnionsForUpazila(firstUpId);
+    setSelectedUnionId(unions[0]?.id || "");
+  };
+
+  const handleUpazilaChange = (upId: string) => {
+    setSelectedUpazilaId(upId);
+    const unions = getUnionsForUpazila(upId);
+    setSelectedUnionId(unions[0]?.id || "");
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
+    // Password Match Check
+    if (password !== confirmPassword) {
+      setError(
+        language === "bn"
+          ? "পাসওয়ার্ড এবং কনফার্ম পাসওয়ার্ড একই হতে হবে।"
+          : "Password and Confirm Password do not match."
+      );
+      setLoading(false);
+      return;
+    }
+
+    if (password.length < 8) {
+      setError(
+        language === "bn"
+          ? "পাসওয়ার্ড কমপক্ষে ৮ অক্ষরের হতে হবে।"
+          : "Password must be at least 8 characters long."
+      );
+      setLoading(false);
+      return;
+    }
+
+    // Resolve Location Names
+    const divObj = BD_DIVISIONS.find((d) => d.id === selectedDivId);
+    const distObj = availableDistricts.find((d) => d.id === selectedDistId);
+    const upObj = availableUpazilas.find((u) => u.id === selectedUpazilaId);
+    const unionObj = availableUnions.find((un) => un.id === selectedUnionId);
+
+    const divisionName = divObj?.name || "Dhaka";
+    const districtName = distObj?.name || "Dhaka";
+    const upazilaName = upObj?.name || "Dhanmondi";
+    const unionName = unionObj ? unionObj.name : "";
+
     try {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name,
-          email,
+          name: name.trim(),
+          email: email.trim(),
           password,
-          phone,
+          phone: phone.trim(),
           bloodGroup,
-          division,
-          district,
-          upazila,
+          division: divisionName,
+          district: districtName,
+          upazila: upazilaName,
+          union: unionName,
+          address: address.trim(),
           role: "Donor",
         }),
       });
@@ -67,9 +183,14 @@ export default function RegisterPage() {
     }
   };
 
+  const isPasswordMatch = confirmPassword.length > 0 && password === confirmPassword;
+  const isPasswordMismatch = confirmPassword.length > 0 && password !== confirmPassword;
+
   return (
     <div className="min-h-screen bg-[var(--bg-main)] text-[var(--text-primary)] flex flex-col items-center justify-center p-4 py-10">
       <div className="w-full max-w-lg space-y-6">
+        
+        {/* Brand Header */}
         <div className="text-center space-y-2">
           <div className="flex justify-center">
             <BloodLagbeLogo size="lg" />
@@ -79,23 +200,25 @@ export default function RegisterPage() {
           </h1>
           <p className="text-xs text-[var(--text-secondary)]">
             {language === "bn"
-              ? "একই একাউন্টে রক্তদাতা ও গ্রহীতা উভয় সুবিধা উপভোগ করুন। ফোন নম্বর সুরক্ষিত থাকবে।"
-              : "One account with complete access to both donor and requester services."}
+              ? "একই একাউন্টে রক্তদাতা ও গ্রহীতা উভয় সুবিধা উপভোগ করুন। ফোন নম্বর প্রাইভেসী শিল্ড দ্বারা সুরক্ষিত।"
+              : "One account with complete access to both donor and requester services. Phone masked by Privacy Shield."}
           </p>
         </div>
 
-        <div className="card-clinical p-6 border-2 border-[var(--border-subtle)] space-y-4">
+        {/* Form Card */}
+        <div className="card-clinical p-6 border-2 border-[var(--border-subtle)] space-y-4 shadow-xl">
           {error && (
-            <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-bold">
+            <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-bold animate-in fade-in">
               {error}
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Full Name & Blood Group */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-bold text-[var(--text-secondary)] mb-1">
-                  {language === "bn" ? "পুরো নাম" : "Full Name"}
+                  {language === "bn" ? "পুরো নাম" : "Full Name"} <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <User size={15} className="absolute left-3 top-3 text-[var(--text-muted)]" />
@@ -105,19 +228,19 @@ export default function RegisterPage() {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Tafsirul Islam"
-                    className="w-full pl-9 pr-3 py-2 rounded-lg bg-[var(--bg-main)] border border-[var(--border-subtle)] text-xs font-medium outline-none focus:border-red-500"
+                    className="w-full pl-9 pr-3 py-2.5 rounded-lg bg-[var(--bg-main)] border border-[var(--border-subtle)] text-xs font-medium outline-none focus:border-red-500"
                   />
                 </div>
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-[var(--text-secondary)] mb-1">
-                  {language === "bn" ? "রক্তের গ্রুপ" : "Blood Group"}
+                  {language === "bn" ? "রক্তের গ্রুপ" : "Blood Group"} <span className="text-red-500">*</span>
                 </label>
                 <select
                   value={bloodGroup}
                   onChange={(e) => setBloodGroup(e.target.value as BloodGroup)}
-                  className="w-full px-3 py-2 rounded-lg bg-[var(--bg-main)] border border-[var(--border-subtle)] text-xs font-bold outline-none"
+                  className="w-full px-3 py-2.5 rounded-lg bg-[var(--bg-main)] border border-[var(--border-subtle)] text-xs font-bold outline-none cursor-pointer focus:border-red-500"
                 >
                   {bloodGroups.map((bg) => (
                     <option key={bg} value={bg}>
@@ -128,10 +251,11 @@ export default function RegisterPage() {
               </div>
             </div>
 
+            {/* Email & Phone */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-bold text-[var(--text-secondary)] mb-1">
-                  {language === "bn" ? "ইমেইল এড্রেস" : "Email Address"}
+                  {language === "bn" ? "ইমেইল এড্রেস" : "Email Address"} <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <Mail size={15} className="absolute left-3 top-3 text-[var(--text-muted)]" />
@@ -141,14 +265,14 @@ export default function RegisterPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="name@example.com"
-                    className="w-full pl-9 pr-3 py-2 rounded-lg bg-[var(--bg-main)] border border-[var(--border-subtle)] text-xs font-medium outline-none focus:border-red-500"
+                    className="w-full pl-9 pr-3 py-2.5 rounded-lg bg-[var(--bg-main)] border border-[var(--border-subtle)] text-xs font-medium outline-none focus:border-red-500"
                   />
                 </div>
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-[var(--text-secondary)] mb-1">
-                  {language === "bn" ? "ফোন নম্বর (সুরক্ষিত)" : "Phone Number"}
+                  {language === "bn" ? "ফোন নম্বর (সুরক্ষিত)" : "Phone Number"} <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <Phone size={15} className="absolute left-3 top-3 text-[var(--text-muted)]" />
@@ -157,63 +281,197 @@ export default function RegisterPage() {
                     required
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    placeholder="+880 1711-..."
-                    className="w-full pl-9 pr-3 py-2 rounded-lg bg-[var(--bg-main)] border border-[var(--border-subtle)] text-xs font-medium outline-none focus:border-red-500"
+                    placeholder="+880 1711-XXXXXX"
+                    className="w-full pl-9 pr-3 py-2.5 rounded-lg bg-[var(--bg-main)] border border-[var(--border-subtle)] text-xs font-medium outline-none focus:border-red-500"
                   />
                 </div>
               </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-bold text-[var(--text-secondary)] mb-1">
-                {language === "bn" ? "পাসওয়ার্ড" : "Password"}
-              </label>
-              <div className="relative">
-                <Lock size={15} className="absolute left-3 top-3 text-[var(--text-muted)]" />
-                <input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Minimum 6 characters"
-                  className="w-full pl-9 pr-3 py-2 rounded-lg bg-[var(--bg-main)] border border-[var(--border-subtle)] text-xs font-medium outline-none focus:border-red-500"
-                />
+            {/* Password & Confirm Password */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-bold text-[var(--text-secondary)] mb-1">
+                  {language === "bn" ? "পাসওয়ার্ড" : "Password"} <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <Lock size={15} className="absolute left-3 top-3 text-[var(--text-muted)]" />
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder={language === "bn" ? "কমপক্ষে ৮ অক্ষর ও ১ সংখ্যা" : "Min 8 chars with 1 number"}
+                    className="w-full pl-9 pr-9 py-2.5 rounded-lg bg-[var(--bg-main)] border border-[var(--border-subtle)] text-xs font-medium outline-none focus:border-red-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-3 text-[var(--text-muted)] hover:text-red-500"
+                  >
+                    {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-[var(--text-secondary)] mb-1">
+                  {language === "bn" ? "পাসওয়ার্ড নিশ্চিত করুন" : "Confirm Password"} <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <Lock size={15} className="absolute left-3 top-3 text-[var(--text-muted)]" />
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    required
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder={language === "bn" ? "একই পাসওয়ার্ড পুনরায় লিখুন" : "Re-enter password"}
+                    className={`w-full pl-9 pr-9 py-2.5 rounded-lg bg-[var(--bg-main)] border text-xs font-medium outline-none transition-all ${
+                      isPasswordMismatch
+                        ? "border-red-500 ring-1 ring-red-500/20"
+                        : isPasswordMatch
+                        ? "border-emerald-500 ring-1 ring-emerald-500/20"
+                        : "border-[var(--border-subtle)] focus:border-red-500"
+                    }`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-3 text-[var(--text-muted)] hover:text-red-500"
+                  >
+                    {showConfirmPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                  </button>
+                </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-bold text-[var(--text-secondary)] mb-1">
-                  {language === "bn" ? "বিভাগ" : "Division"}
+            {/* Live Password Match Feedback */}
+            {isPasswordMismatch && (
+              <p className="text-[11px] text-red-500 font-bold flex items-center gap-1">
+                <span>⚠️ {language === "bn" ? "পাসওয়ার্ড দুটি মিলছে না।" : "Passwords do not match."}</span>
+              </p>
+            )}
+            {isPasswordMatch && (
+              <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
+                <CheckCircle2 size={13} />
+                <span>{language === "bn" ? "পাসওয়ার্ড মিলেছে।" : "Passwords match perfectly."}</span>
+              </p>
+            )}
+
+            {/* 4-Tier Cascaded Location Hierarchy Section */}
+            <div className="pt-2 border-t border-[var(--border-subtle)] space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-[var(--text-primary)] flex items-center gap-1.5">
+                  <MapPin size={14} className="text-red-500" />
+                  <span>
+                    {language === "bn"
+                      ? "অবস্থান নির্বাচন (ড্রপডাউন থেকে নির্বাচন আবশ্যক)"
+                      : "Location Selection (Required Dropdowns)"}
+                  </span>
                 </label>
-                <select
-                  value={division}
-                  onChange={(e) => setDivision(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-[var(--bg-main)] border border-[var(--border-subtle)] text-xs font-bold outline-none"
-                >
-                  {DIVISIONS.map((d) => (
-                    <option key={d.id} value={d.nameEn}>
-                      {language === "bn" ? d.nameBn : d.nameEn}
-                    </option>
-                  ))}
-                </select>
+                <span className="text-[10px] font-bold text-red-600 dark:text-red-400 bg-red-500/10 px-2 py-0.5 rounded-full">
+                  GeoJSON 4-Tier
+                </span>
               </div>
 
+              {/* Tier 1 & Tier 2: Division & District */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-[var(--text-secondary)] mb-1 flex items-center gap-1">
+                    <Building2 size={12} className="text-[var(--text-muted)]" />
+                    <span>{language === "bn" ? "১. বিভাগ (Division)" : "1. Division"} <span className="text-red-500">*</span></span>
+                  </label>
+                  <select
+                    value={selectedDivId}
+                    onChange={(e) => handleDivisionChange(e.target.value)}
+                    required
+                    className="w-full px-3 py-2 rounded-lg bg-[var(--bg-main)] border border-[var(--border-subtle)] text-xs font-bold outline-none cursor-pointer focus:border-red-500"
+                  >
+                    {BD_DIVISIONS.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {language === "bn" ? `${d.bn_name} (${d.name})` : `${d.name} (${d.bn_name})`}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-[var(--text-secondary)] mb-1 flex items-center gap-1">
+                    <MapPin size={12} className="text-[var(--text-muted)]" />
+                    <span>{language === "bn" ? "২. জেলা (District)" : "2. District"} <span className="text-red-500">*</span></span>
+                  </label>
+                  <select
+                    value={selectedDistId}
+                    onChange={(e) => handleDistrictChange(e.target.value)}
+                    required
+                    className="w-full px-3 py-2 rounded-lg bg-[var(--bg-main)] border border-[var(--border-subtle)] text-xs font-bold outline-none cursor-pointer focus:border-red-500"
+                  >
+                    {availableDistricts.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {language === "bn" ? `${d.bn_name} (${d.name})` : `${d.name} (${d.bn_name})`}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Tier 3 & Tier 4: Upazila/Thana & Union/Ward/Area */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-[var(--text-secondary)] mb-1 flex items-center gap-1">
+                    <Navigation size={12} className="text-[var(--text-muted)]" />
+                    <span>{language === "bn" ? "৩. উপজেলা / থানা (Upazila/Thana)" : "3. Upazila / Thana"} <span className="text-red-500">*</span></span>
+                  </label>
+                  <select
+                    value={selectedUpazilaId}
+                    onChange={(e) => handleUpazilaChange(e.target.value)}
+                    required
+                    className="w-full px-3 py-2 rounded-lg bg-[var(--bg-main)] border border-[var(--border-subtle)] text-xs font-bold outline-none cursor-pointer focus:border-red-500"
+                  >
+                    {availableUpazilas.map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {language === "bn" ? `${u.bn_name} (${u.name})` : `${u.name} (${u.bn_name})`}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-[var(--text-secondary)] mb-1 flex items-center gap-1">
+                    <Home size={12} className="text-[var(--text-muted)]" />
+                    <span>{language === "bn" ? "৪. ইউনিয়ন / এলাকা (Union/Area)" : "4. Union / Area"} <span className="text-red-500">*</span></span>
+                  </label>
+                  <select
+                    value={selectedUnionId}
+                    onChange={(e) => setSelectedUnionId(e.target.value)}
+                    required
+                    className="w-full px-3 py-2 rounded-lg bg-[var(--bg-main)] border border-[var(--border-subtle)] text-xs font-bold outline-none cursor-pointer focus:border-red-500"
+                  >
+                    {availableUnions.map((un) => (
+                      <option key={un.id} value={un.id}>
+                        {language === "bn" ? `${un.bn_name} (${un.name})` : `${un.name} (${un.bn_name})`}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Free-Text Detailed Address (House, Road, Landmark, Village) */}
               <div>
-                <label className="block text-xs font-bold text-[var(--text-secondary)] mb-1">
-                  {language === "bn" ? "জেলা" : "District"}
+                <label className="block text-[11px] font-bold text-[var(--text-secondary)] mb-1 flex items-center gap-1">
+                  <span>{language === "bn" ? "বিস্তারিত ঠিকানা (বাড়ি, রোড, গ্রাম বা ল্যান্ডমার্ক)" : "Detailed Address (House, Road, Landmark)"}</span>
                 </label>
-                <select
-                  value={district}
-                  onChange={(e) => setDistrict(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-[var(--bg-main)] border border-[var(--border-subtle)] text-xs font-bold outline-none"
-                >
-                  {DISTRICTS.map((d) => (
-                    <option key={d.id} value={d.nameEn}>
-                      {language === "bn" ? d.nameBn : d.nameEn}
-                    </option>
-                  ))}
-                </select>
+                <input
+                  type="text"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  placeholder={
+                    language === "bn"
+                      ? "যেমন: বাড়ি নং ১২, রোড নং ৪, সেক্টর ৩, ফ্ল্যাট ৫বি..."
+                      : "e.g. House 12, Road 4, Sector 3, Flat 5B..."
+                  }
+                  className="w-full px-3 py-2 rounded-lg bg-[var(--bg-main)] border border-[var(--border-subtle)] text-xs font-medium outline-none focus:border-red-500"
+                />
               </div>
             </div>
 
@@ -227,12 +485,13 @@ export default function RegisterPage() {
               </p>
             </div>
 
+            {/* Submit Button */}
             <button
               type="submit"
-              disabled={loading}
-              className="w-full btn-emergency !py-2.5 text-xs font-bold flex items-center justify-center gap-2 mt-2"
+              disabled={loading || isPasswordMismatch}
+              className="w-full btn-emergency !py-3 text-xs font-bold flex items-center justify-center gap-2 mt-2 disabled:opacity-50 transition-all shadow-md cursor-pointer"
             >
-              <UserPlus size={14} />
+              <UserPlus size={15} />
               <span>
                 {loading
                   ? language === "bn"
@@ -245,6 +504,7 @@ export default function RegisterPage() {
             </button>
           </form>
 
+          {/* Login Link */}
           <div className="pt-2 text-center border-t border-[var(--border-subtle)]">
             <span className="text-xs text-[var(--text-muted)]">
               {language === "bn" ? "ইতিমধ্যে অ্যাকাউন্ট আছে? " : "Already registered? "}
