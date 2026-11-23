@@ -18,8 +18,10 @@ import {
   PhoneCall,
   User,
   ShieldCheck,
+  Star,
 } from "lucide-react";
 import Link from "next/link";
+import { getDonorTier, getNextTierProgress } from "@/lib/badges";
 
 interface TransfusionRecord {
   id: string;
@@ -185,6 +187,8 @@ export function DonorCockpit() {
 
   const totalDonations = userProfile?.totalDonations || donations.length || 0;
   const livesSaved = totalDonations * 3;
+  const currentTier = getDonorTier(totalDonations);
+  const tierProgress = getNextTierProgress(totalDonations);
 
   // SVG Dial Circumference
   const radius = 60;
@@ -328,6 +332,46 @@ export function DonorCockpit() {
               </span>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Milestone Tier & Digital Membership Banner */}
+      <div className="card-clinical p-5 sm:p-6 border-2 border-amber-500/30 bg-linear-to-r from-amber-500/5 via-[var(--bg-surface)] to-red-500/5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-500 border border-amber-500/30 flex items-center justify-center shrink-0 shadow-md">
+            <Sparkles size={24} />
+          </div>
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs font-black uppercase tracking-wider text-[var(--text-muted)]">
+                {language === "bn" ? "বর্তমান সম্মাননা টায়ার:" : "CURRENT MILESTONE TIER:"}
+              </span>
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                {currentTier?.nameBn || (language === "bn" ? "১ম রক্তদান সম্পন্ন করুন" : "Donate 1 Time to Unlock")}
+              </span>
+            </div>
+            <p className="text-xs text-[var(--text-secondary)] mt-1 leading-relaxed">
+              {tierProgress.nextTier ? (
+                language === "bn"
+                  ? `পরবর্তী সম্মাননা টায়ার (${tierProgress.nextTier.nameBn}) আনলক করতে আর মাত্র ${tierProgress.donationsRemaining}টি রক্তদান প্রয়োজন।`
+                  : `Only ${tierProgress.donationsRemaining} more donation(s) to reach ${tierProgress.nextTier.nameEn}!`
+              ) : (
+                language === "bn"
+                  ? "অভিনন্দন! আপনি দেশের সর্বোচ্চ 'শতায়ু রক্তযোদ্ধা (ডায়মন্ড লিজেন্ড ২৫+)' টায়ার অর্জন করেছেন!"
+                  : "Congratulations! You have reached the highest Diamond Legend Presidential Tier (25+)!"
+              )}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 self-start md:self-auto shrink-0">
+          <Link
+            href="/membership"
+            className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold inline-flex items-center gap-1.5 shadow-sm hover:scale-102 transition-all"
+          >
+            <Award size={14} />
+            <span>{language === "bn" ? "মেম্বারশিপ কার্ড ও স্টিকার" : "Membership Card & Stickers"}</span>
+          </Link>
         </div>
       </div>
 

@@ -21,6 +21,7 @@ import {
   LayoutDashboard,
   LogOut,
   User as UserIcon,
+  Sparkles,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -136,6 +137,18 @@ export function Navbar({ onOpenSos }: NavbarProps) {
             }`}
           >
             {language === "bn" ? "লাইফ ফান্ড" : "Life Fund"}
+          </Link>
+
+          <Link
+            href="/membership"
+            className={`px-2 py-1 rounded-md transition-colors whitespace-nowrap flex items-center gap-1 ${
+              pathname === "/membership"
+                ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 font-extrabold border border-amber-500/30"
+                : "hover:text-amber-500 hover:bg-black/5 dark:hover:bg-white/5"
+            }`}
+          >
+            <Sparkles size={12} className="text-amber-500" />
+            <span>{language === "bn" ? "মেম্বারশিপ" : "Membership"}</span>
           </Link>
 
           {/* About Us Interactive Dropdown */}
@@ -368,6 +381,15 @@ export function Navbar({ onOpenSos }: NavbarProps) {
             }`}
           >
             {language === "bn" ? "লাইফ ফান্ড" : "Life Fund"}
+          </Link>
+          <Link
+            href="/membership"
+            onClick={() => setMobileOpen(false)}
+            className={`block px-3 py-2 rounded-lg transition-colors ${
+              pathname === "/membership" ? "bg-amber-500/10 text-amber-500 font-bold" : "text-[var(--text-primary)]"
+            }`}
+          >
+            {language === "bn" ? "মেম্বারশিপ ও সম্মাননা" : "Membership & Honors"}
           </Link>
           <Link
             href="/blood-info"

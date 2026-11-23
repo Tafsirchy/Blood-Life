@@ -81,6 +81,11 @@ export function EmergencyFooter() {
                   {language === "bn" ? "কমিউনিটি লাইফ ফান্ড" : "Community Life Fund"}
                 </Link>
               </li>
+              <li>
+                <Link href="/membership" className="hover:text-amber-500 transition-colors text-amber-500 font-bold">
+                  {language === "bn" ? "ডিজিটাল মেম্বারশিপ ও স্টিকার" : "Digital Membership & Stickers"}
+                </Link>
+              </li>
             </ul>
           </div>
 
