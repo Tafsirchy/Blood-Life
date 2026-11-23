@@ -132,14 +132,13 @@ export function Navbar({ onOpenSos }: NavbarProps) {
 
           <Link
             href="/hospitals"
-            className={`px-2 py-1 rounded-md transition-colors whitespace-nowrap flex items-center gap-1 ${
+            className={`px-2 py-1 rounded-md transition-colors whitespace-nowrap ${
               pathname === "/hospitals"
                 ? "bg-red-500/10 text-red-600 dark:text-red-400 font-extrabold border border-red-500/20"
                 : "hover:text-red-500 hover:bg-black/5 dark:hover:bg-white/5"
             }`}
           >
-            <Building2 size={12} className="text-red-500" />
-            <span>{language === "bn" ? "হাসপাতাল বোর্ড" : "Hospitals"}</span>
+            {language === "bn" ? "হাসপাতাল বোর্ড" : "Hospitals"}
           </Link>
 
           <Link
@@ -155,25 +154,24 @@ export function Navbar({ onOpenSos }: NavbarProps) {
 
           <Link
             href="/directory"
-            className={`px-2 py-1 rounded-md transition-colors whitespace-nowrap flex items-center gap-1 ${
+            className={`px-2 py-1 rounded-md transition-colors whitespace-nowrap ${
               pathname === "/directory"
                 ? "bg-red-500/10 text-red-600 dark:text-red-400 font-extrabold border border-red-500/20"
                 : "hover:text-red-500 hover:bg-black/5 dark:hover:bg-white/5"
             }`}
           >
-            <MapPin size={12} className="text-blue-500" />
-            <span>{language === "bn" ? "রক্তদাতা ডিরেক্টরি" : "Directory"}</span>
+            {language === "bn" ? "রক্তদাতা ডিরেক্টরি" : "Directory"}
           </Link>
+
           <Link
             href="/membership"
-            className={`px-2 py-1 rounded-md transition-colors whitespace-nowrap flex items-center gap-1 ${
+            className={`px-2 py-1 rounded-md transition-colors whitespace-nowrap ${
               pathname === "/membership"
                 ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 font-extrabold border border-amber-500/30"
                 : "hover:text-amber-500 hover:bg-black/5 dark:hover:bg-white/5"
             }`}
           >
-            <Sparkles size={12} className="text-amber-500" />
-            <span>{language === "bn" ? "মেম্বারশিপ" : "Membership"}</span>
+            {language === "bn" ? "মেম্বারশিপ" : "Membership"}
           </Link>
 
           {/* About Us Interactive Dropdown */}
