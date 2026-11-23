@@ -11,6 +11,7 @@ import { EligibilityCalculator } from "@/components/home/EligibilityCalculator";
 import { BloodKnowledgeHub } from "@/components/home/BloodKnowledgeHub";
 import { RareBloodVault } from "@/components/home/RareBloodVault";
 import { PlatformTelemetry } from "@/components/home/PlatformTelemetry";
+import { ClinicalDiseaseShield } from "@/components/home/ClinicalDiseaseShield";
 import { RecoveryStories } from "@/components/home/RecoveryStories";
 import { HospitalNetworkGrid } from "@/components/home/HospitalNetworkGrid";
 import { CommunityLifeFund } from "@/components/home/CommunityLifeFund";
@@ -55,7 +56,10 @@ export default function HomePage() {
         {/* Section 08: Live Platform Telemetry & Transparency Counters */}
         <PlatformTelemetry />
 
-        {/* Section 09: Verified Recipient Recovery Stories */}
+        {/* Section 09: Clinical Blood Disease & Component Shield */}
+        <ClinicalDiseaseShield />
+
+        {/* Section 10: Verified Recipient Recovery Stories */}
         <RecoveryStories />
 
         {/* Section 10: Institutional Hospital & Blood Bank Network Grid */}
