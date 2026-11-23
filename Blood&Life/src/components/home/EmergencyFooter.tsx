@@ -72,6 +72,11 @@ export function EmergencyFooter() {
                 </Link>
               </li>
               <li>
+                <Link href="/directory" className="hover:text-blue-500 transition-colors text-blue-500 font-bold">
+                  {language === "bn" ? "৪-স্তরের রক্তদাতা ডিরেক্টরি" : "Geo-Donor Directory"}
+                </Link>
+              </li>
+              <li>
                 <Link href="/auth/register" className="hover:text-red-500 transition-colors">
                   {language === "bn" ? "রক্তদাতা হিসেবে নিবন্ধন" : "Become a Donor"}
                 </Link>

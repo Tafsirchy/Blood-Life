@@ -22,6 +22,7 @@ import {
   LogOut,
   User as UserIcon,
   Sparkles,
+  MapPin,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -86,7 +87,7 @@ export function Navbar({ onOpenSos }: NavbarProps) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const isAboutActive = ["/about", "/funding", "/privacy", "/terms", "/blood-info", "/clinical-shield", "/fraud-shield"].includes(pathname);
+  const isAboutActive = ["/about", "/funding", "/privacy", "/terms", "/blood-info", "/clinical-shield", "/fraud-shield", "/directory"].includes(pathname);
 
   return (
     <nav className="sticky top-0 z-40 bg-[var(--bg-surface)]/95 backdrop-blur-md border-b border-[var(--border-subtle)] px-3 sm:px-6 py-2 transition-colors">
@@ -140,6 +141,17 @@ export function Navbar({ onOpenSos }: NavbarProps) {
           </Link>
 
           <Link
+            href="/directory"
+            className={`px-2 py-1 rounded-md transition-colors whitespace-nowrap flex items-center gap-1 ${
+              pathname === "/directory"
+                ? "bg-red-500/10 text-red-600 dark:text-red-400 font-extrabold border border-red-500/20"
+                : "hover:text-red-500 hover:bg-black/5 dark:hover:bg-white/5"
+            }`}
+          >
+            <MapPin size={12} className="text-blue-500" />
+            <span>{language === "bn" ? "রক্তদাতা ডিরেক্টরি" : "Directory"}</span>
+          </Link>
+          <Link
             href="/membership"
             className={`px-2 py-1 rounded-md transition-colors whitespace-nowrap flex items-center gap-1 ${
               pathname === "/membership"
@@ -172,6 +184,19 @@ export function Navbar({ onOpenSos }: NavbarProps) {
 
             {dropdownOpen && (
               <div className="absolute left-0 mt-1.5 w-52 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] shadow-xl py-1.5 z-50 animate-in fade-in slide-in-from-top-1">
+                <Link
+                  href="/directory"
+                  onClick={() => setDropdownOpen(false)}
+                  className={`flex items-center gap-2 px-3 py-2 text-xs transition-colors ${
+                    pathname === "/directory"
+                      ? "bg-red-500/10 text-red-500 font-bold"
+                      : "text-[var(--text-primary)] hover:bg-[var(--bg-main)]"
+                  }`}
+                >
+                  <MapPin size={14} className="text-blue-500" />
+                  <span>{language === "bn" ? "৪-স্তরের রক্তদাতা ডিরেক্টরি" : "Geo-Donor Directory"}</span>
+                </Link>
+
                 <Link
                   href="/fraud-shield"
                   onClick={() => setDropdownOpen(false)}
@@ -381,6 +406,15 @@ export function Navbar({ onOpenSos }: NavbarProps) {
             }`}
           >
             {language === "bn" ? "লাইফ ফান্ড" : "Life Fund"}
+          </Link>
+          <Link
+            href="/directory"
+            onClick={() => setMobileOpen(false)}
+            className={`block px-3 py-2 rounded-lg transition-colors ${
+              pathname === "/directory" ? "bg-red-500/10 text-red-500 font-bold" : "text-[var(--text-primary)]"
+            }`}
+          >
+            {language === "bn" ? "৪-স্তরের রক্তদাতা ডিরেক্টরি" : "Geo-Donor Directory"}
           </Link>
           <Link
             href="/membership"

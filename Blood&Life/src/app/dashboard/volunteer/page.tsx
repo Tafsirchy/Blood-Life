@@ -11,6 +11,13 @@ import {
   XCircle,
   Clock,
   FileText,
+  Users,
+  Check,
+  X,
+  Phone,
+  Building2,
+  MapPin,
+  Sparkles,
 } from "lucide-react";
 
 interface PendingCase {
@@ -61,14 +68,38 @@ const SAMPLE_PENDING_CASES: PendingCase[] = [
 
 export default function VolunteerTriageStation() {
   const { language } = useLanguage();
+  const [activeTab, setActiveTab] = useState<"prescriptions" | "community_donors">("prescriptions");
   const [cases, setCases] = useState<PendingCase[]>([]);
+  const [communityDonors, setCommunityDonors] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingCommunity, setLoadingCommunity] = useState(false);
   const [selectedCaseId, setSelectedCaseId] = useState<string>("");
   const [zoomLevel, setZoomLevel] = useState<number>(1);
   const [actionLoading, setActionLoading] = useState(false);
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  const fetchCommunityDonors = async () => {
+    try {
+      setLoadingCommunity(true);
+      const res = await fetch("/api/donors/community?status=pending_review");
+      const data = await res.json();
+      if (data.donors) {
+        setCommunityDonors(data.donors);
+      }
+    } catch (e) {
+      console.error("Error loading community donors:", e);
+    } finally {
+      setLoadingCommunity(false);
+    }
+  };
+
+  React.useEffect(() => {
+    if (activeTab === "community_donors") {
+      fetchCommunityDonors();
+    }
+  }, [activeTab]);
 
   React.useEffect(() => {
     fetch("/api/requests/search?status=pending&limit=50")
@@ -149,6 +180,33 @@ export default function VolunteerTriageStation() {
     }
   };
 
+  const handleReviewCommunityDonor = async (id: string, action: "APPROVE" | "REJECT") => {
+    setActionLoading(true);
+    try {
+      const res = await fetch(`/api/donors/community/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setSuccessMessage(
+          language === "bn"
+            ? `রক্তদাতা সফলভাবে ${action === "APPROVE" ? "অনুমোদিত ও সক্রিয়" : "বাতিল"} করা হয়েছে!`
+            : `Donor successfully ${action === "APPROVE" ? "approved & listed" : "rejected"}!`
+        );
+        setCommunityDonors((prev) => prev.filter((d) => d._id !== id));
+        setTimeout(() => setSuccessMessage(null), 4000);
+      } else {
+        alert(data.error || "Failed to review donor");
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -175,14 +233,158 @@ export default function VolunteerTriageStation() {
         </div>
       </div>
 
-        {/* Success Alert Banner */}
-        {successMessage && (
-          <div className="mb-6 p-4 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-bold flex items-center gap-2">
-            <CheckCircle2 size={16} />
-            <span>{successMessage}</span>
-          </div>
-        )}
+      {/* Sub-tab navigation */}
+      <div className="flex border-b border-[var(--border-subtle)] gap-2">
+        <button
+          onClick={() => setActiveTab("prescriptions")}
+          className={`pb-3 px-4 text-xs font-bold transition-all relative ${
+            activeTab === "prescriptions"
+              ? "text-red-500 border-b-2 border-red-500"
+              : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+          }`}
+        >
+          <span className="flex items-center gap-2">
+            <FileText size={15} />
+            {language === "bn" ? "ডাক্তার প্রেসক্রিপশন ট্রায়াজ" : "Prescription Triage"}
+            <span className="px-1.5 py-0.5 rounded-full bg-red-500/10 text-red-500 text-[10px] font-black">
+              {cases.length}
+            </span>
+          </span>
+        </button>
 
+        <button
+          onClick={() => setActiveTab("community_donors")}
+          className={`pb-3 px-4 text-xs font-bold transition-all relative ${
+            activeTab === "community_donors"
+              ? "text-blue-500 border-b-2 border-blue-500"
+              : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+          }`}
+        >
+          <span className="flex items-center gap-2">
+            <Users size={15} />
+            {language === "bn" ? "কমিউিনিটি রক্তদাতা অনুমোদন" : "Community Donor Approvals"}
+            <span className="px-1.5 py-0.5 rounded-full bg-blue-500/10 text-blue-500 text-[10px] font-black">
+              {communityDonors.length}
+            </span>
+          </span>
+        </button>
+      </div>
+
+      {/* Success Alert Banner */}
+      {successMessage && (
+        <div className="p-4 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-bold flex items-center gap-2">
+          <CheckCircle2 size={16} />
+          <span>{successMessage}</span>
+        </div>
+      )}
+
+      {/* Active Tab Content */}
+      {activeTab === "community_donors" ? (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xs font-black uppercase tracking-wider text-[var(--text-muted)]">
+              {language === "bn" ? "অনুমোদনের অপেক্ষায় থাকা স্বেচ্ছাসেবী রক্তদাতা" : "Pending Community Donor Submissions"}
+            </h2>
+            <button
+              onClick={fetchCommunityDonors}
+              className="text-xs text-blue-500 hover:underline flex items-center gap-1 font-bold"
+            >
+              <RotateCcw size={12} />
+              <span>{language === "bn" ? "রিফ্রেশ" : "Refresh"}</span>
+            </button>
+          </div>
+
+          {loadingCommunity ? (
+            <div className="card-clinical p-8 text-center text-xs text-[var(--text-muted)] animate-pulse">
+              {language === "bn" ? "তথ্য লোড হচ্ছে..." : "Loading pending submissions..."}
+            </div>
+          ) : communityDonors.length === 0 ? (
+            <div className="card-clinical p-12 text-center max-w-lg mx-auto space-y-3">
+              <CheckCircle2 size={40} className="text-emerald-500 mx-auto" />
+              <h3 className="text-base font-bold text-[var(--text-primary)]">
+                {language === "bn" ? "কোনো অমীমাংসিত আবেদন নেই!" : "Queue Clear!"}
+              </h3>
+              <p className="text-xs text-[var(--text-secondary)]">
+                {language === "bn"
+                  ? "কমিউনিটি কর্তৃক প্রস্তাবিত সকল রক্তদাতা পর্যালোচিত হয়েছে।"
+                  : "All community-recommended donors have been reviewed and verified."}
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {communityDonors.map((donor) => (
+                <div key={donor._id} className="card-clinical p-5 space-y-4 border border-[var(--border-subtle)] hover:border-blue-500/40 transition-all">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="badge-blood text-sm font-black px-2.5 py-0.5">
+                          {donor.bloodGroup}
+                        </span>
+                        <h3 className="text-sm font-black text-[var(--text-primary)]">
+                          {donor.donorName}
+                        </h3>
+                      </div>
+                      <p className="text-xs text-[var(--text-secondary)] mt-1 flex items-center gap-1.5">
+                        <MapPin size={13} className="text-blue-500 shrink-0" />
+                        <span>{[donor.thana, donor.upazila, donor.district, donor.division].filter(Boolean).join(", ")}</span>
+                      </p>
+                    </div>
+
+                    <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-500 border border-amber-500/20 text-[10px] font-bold uppercase">
+                      {language === "bn" ? "যাচাই অপেক্ষমান" : "Pending Review"}
+                    </span>
+                  </div>
+
+                  <div className="p-3 rounded-lg bg-[var(--bg-main)] border border-[var(--border-subtle)] text-xs space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[var(--text-muted)] font-medium">{language === "bn" ? "রক্তদাতার ফোন:" : "Donor Phone:"}</span>
+                      <a href={`tel:${donor.donorPhone}`} className="font-mono font-bold text-blue-500 hover:underline flex items-center gap-1">
+                        <Phone size={11} />
+                        {donor.donorPhone}
+                      </a>
+                    </div>
+                    {donor.age && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-[var(--text-muted)] font-medium">{language === "bn" ? "বয়স ও লিঙ্গ:" : "Age & Gender:"}</span>
+                        <span className="font-bold text-[var(--text-primary)]">
+                          {donor.age} {language === "bn" ? "বছর" : "yrs"} {donor.gender ? `• ${donor.gender}` : ""}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between pt-1 border-t border-[var(--border-subtle)] text-[11px]">
+                      <span className="text-[var(--text-muted)]">{language === "bn" ? "প্রস্তাবক:" : "Submitted by:"}</span>
+                      <span className="font-medium text-[var(--text-secondary)]">
+                        {donor.submitterName} ({donor.submitterRelationship || "Volunteer"}) • {donor.submitterPhone}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-1">
+                    <button
+                      onClick={() => handleReviewCommunityDonor(donor._id, "APPROVE")}
+                      disabled={actionLoading}
+                      className="flex-1 py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50"
+                    >
+                      <Check size={14} />
+                      <span>{language === "bn" ? "অনুমোদন করুন (Approve)" : "Approve & Activate"}</span>
+                    </button>
+                    <button
+                      onClick={() => handleReviewCommunityDonor(donor._id, "REJECT")}
+                      disabled={actionLoading}
+                      className="py-2 px-3 rounded-xl border border-red-500/40 text-red-500 hover:bg-red-500/10 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50"
+                    >
+                      <X size={14} />
+                      <span>{language === "bn" ? "বাতিল" : "Reject"}</span>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
+        /* Prescriptions Tab */
+        <>
         {cases.length === 0 ? (
           <div className="card-clinical p-12 text-center max-w-lg mx-auto space-y-3">
             <CheckCircle2 size={40} className="text-emerald-500 mx-auto" />
@@ -362,6 +564,8 @@ export default function VolunteerTriageStation() {
             )}
           </div>
         )}
+        </>
+      )}
 
       {/* Reject Modal */}
       {rejectModalOpen && (
