@@ -4,6 +4,9 @@ import React, { useState, useEffect } from "react";
 import { useLanguage } from "@/lib/i18n/context";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { LanguageToggle } from "@/components/theme/LanguageToggle";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
 
 interface UrgentAlert {
   id: string;
@@ -212,14 +215,12 @@ export function EmergencyPulseRibbon() {
             </div>
           </div>
 
-          {/* Right Action Anchor - Clean, professional, low-stress button */}
-          <Link
-            href="/search?tab=requests"
-            className="shrink-0 text-xs font-bold bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:hover:bg-white dark:text-zinc-900 px-3 py-1 rounded-full shadow-xs flex items-center gap-1.5 transition-all z-20 active:scale-95"
-          >
-            <span>{language === "bn" ? "সব দেখুন" : "View All"}</span>
-            <ArrowRight size={13} className="text-zinc-300 dark:text-zinc-600 group-hover:translate-x-0.5 transition-transform" />
-          </Link>
+          {/* Right Action Controls: Bell, Language, Theme */}
+          <div className="flex items-center gap-1.5 shrink-0 z-20">
+            <NotificationBell />
+            <LanguageToggle />
+            <ThemeToggle />
+          </div>
         </div>
       </aside>
     </>

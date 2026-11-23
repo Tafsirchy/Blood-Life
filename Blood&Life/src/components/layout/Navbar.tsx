@@ -3,9 +3,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useLanguage } from "@/lib/i18n/context";
 import { BloodLagbeLogo } from "@/components/brand/BloodLagbeLogo";
-import { LanguageToggle } from "@/components/theme/LanguageToggle";
-import { ThemeToggle } from "@/components/theme/ThemeToggle";
-import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { EmergencyPulseRibbon } from "@/components/home/EmergencyPulseRibbon";
 import {
   Droplet,
   Search,
@@ -91,7 +89,9 @@ export function Navbar({ onOpenSos }: NavbarProps) {
   const isAboutActive = ["/about", "/funding", "/privacy", "/terms", "/blood-info", "/clinical-shield", "/fraud-shield", "/directory", "/hospitals"].includes(pathname);
 
   return (
-    <nav className="sticky top-0 z-40 bg-[var(--bg-surface)]/95 backdrop-blur-md border-b border-[var(--border-subtle)] px-3 sm:px-6 py-2 transition-colors">
+    <header className="sticky top-0 z-40">
+      <EmergencyPulseRibbon />
+      <nav className="bg-[var(--bg-surface)]/95 backdrop-blur-md border-b border-[var(--border-subtle)] px-3 sm:px-6 py-2 transition-colors">
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
         <BloodLagbeLogo size="md" />
 
@@ -331,10 +331,6 @@ export function Navbar({ onOpenSos }: NavbarProps) {
 
         {/* Action Controls */}
         <div className="flex items-center gap-2">
-          <NotificationBell />
-          <LanguageToggle />
-          <ThemeToggle />
-
           <button
             onClick={handleSosClick}
             type="button"
@@ -577,5 +573,6 @@ export function Navbar({ onOpenSos }: NavbarProps) {
         </div>
       )}
     </nav>
+  </header>
   );
 }

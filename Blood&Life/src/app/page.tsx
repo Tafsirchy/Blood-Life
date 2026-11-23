@@ -2,7 +2,6 @@
 
 import React, { useState } from "react";
 import { Navbar } from "@/components/layout/Navbar";
-import { EmergencyPulseRibbon } from "@/components/home/EmergencyPulseRibbon";
 import { HeroSection } from "@/components/home/HeroSection";
 import { DistrictAvailabilityHeatmap } from "@/components/home/DistrictAvailabilityHeatmap";
 import { UrgentTransfusionQueue } from "@/components/home/UrgentTransfusionQueue";
@@ -25,10 +24,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[var(--bg-main)] text-[var(--text-primary)]">
-      {/* Section 01: Live Emergency Pulse Ribbon */}
-      <EmergencyPulseRibbon />
-
-      {/* Task 4.14: Unified Responsive Navbar with Emergency Trigger */}
+      {/* Unified Responsive Navbar with Live Marquee Broadcast & Emergency Trigger */}
       <Navbar onOpenSos={() => setIsSosOpen(true)} />
 
       <main className="flex-1">
