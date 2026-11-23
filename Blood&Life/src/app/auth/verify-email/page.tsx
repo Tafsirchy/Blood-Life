@@ -13,6 +13,7 @@ import {
   ShieldCheck,
   Edit2,
   KeyRound,
+  Home,
 } from "lucide-react";
 
 function VerifyEmailContent() {
@@ -420,12 +421,19 @@ function VerifyEmailContent() {
         )}
 
         {/* Footer Navigation */}
-        <div className="border-t border-[var(--border-subtle)] pt-4">
+        <div className="border-t border-[var(--border-subtle)] pt-4 flex items-center justify-between">
           <Link
             href="/auth/login"
             className="text-xs text-[var(--text-muted)] hover:text-red-500 transition-colors inline-block"
           >
-            {language === "bn" ? "← লগইন পেজে ফিরে যান" : "← Back to Sign In"}
+            {language === "bn" ? "← লগইন পেজ" : "← Sign In"}
+          </Link>
+          <Link
+            href="/"
+            className="text-xs text-[var(--text-muted)] hover:text-red-500 transition-colors inline-flex items-center gap-1"
+          >
+            <Home size={12} />
+            <span>{language === "bn" ? "হোম পেজ" : "Home"}</span>
           </Link>
         </div>
 

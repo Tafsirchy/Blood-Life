@@ -3,7 +3,7 @@
 import React, { useState, Suspense } from "react";
 import { useLanguage } from "@/lib/i18n/context";
 import { BloodLagbeLogo } from "@/components/brand/BloodLagbeLogo";
-import { LogIn, ArrowRight, ShieldCheck, Mail, Lock } from "lucide-react";
+import { LogIn, ArrowRight, ShieldCheck, Mail, Lock, ArrowLeft, Home } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -57,8 +57,19 @@ function LoginForm() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--bg-main)] text-[var(--text-primary)] flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-md space-y-6">
+    <div className="min-h-screen bg-[var(--bg-main)] text-[var(--text-primary)] flex flex-col items-center justify-center p-4 py-8">
+      <div className="w-full max-w-md space-y-4">
+        {/* Top Back to Home Button */}
+        <div className="flex items-center justify-between">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--text-muted)] hover:text-red-500 transition-colors py-1.5 px-3 rounded-xl bg-[var(--surface-card)] border border-[var(--border-subtle)] hover:border-red-500/30 shadow-xs"
+          >
+            <ArrowLeft size={13} />
+            <span>{language === "bn" ? "হোম পেজে ফিরে যান" : "Back to Home"}</span>
+          </Link>
+        </div>
+
         <div className="text-center space-y-2">
           <div className="flex justify-center">
             <BloodLagbeLogo size="lg" />
@@ -149,16 +160,27 @@ function LoginForm() {
             </button>
           </form>
 
-          <div className="pt-2 text-center border-t border-[var(--border-subtle)]">
-            <span className="text-xs text-[var(--text-muted)]">
-              {language === "bn" ? "অ্যাকাউন্ট নেই? " : "Don't have an account? "}
-            </span>
-            <Link
-              href="/auth/register"
-              className="text-xs font-bold text-red-500 hover:text-red-400"
-            >
-              {language === "bn" ? "রক্তদাতা হিসেবে নিবন্ধন করুন" : "Register as Donor"}
-            </Link>
+          <div className="pt-2 text-center border-t border-[var(--border-subtle)] space-y-2">
+            <div>
+              <span className="text-xs text-[var(--text-muted)]">
+                {language === "bn" ? "অ্যাকাউন্ট নেই? " : "Don't have an account? "}
+              </span>
+              <Link
+                href="/auth/register"
+                className="text-xs font-bold text-red-500 hover:text-red-400"
+              >
+                {language === "bn" ? "নতুন একাউন্ট খুলুন" : "Create Account"}
+              </Link>
+            </div>
+            <div>
+              <Link
+                href="/"
+                className="inline-flex items-center justify-center gap-1.5 text-xs text-[var(--text-muted)] hover:text-red-500 transition-colors pt-1"
+              >
+                <Home size={13} />
+                <span>{language === "bn" ? "হোম পেজে ফিরে যান" : "Back to Home"}</span>
+              </Link>
+            </div>
           </div>
         </div>
       </div>

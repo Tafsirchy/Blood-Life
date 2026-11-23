@@ -20,6 +20,7 @@ import {
   Building2,
   Navigation,
   Home,
+  ArrowLeft,
   Eye,
   EyeOff,
   CheckCircle2,
@@ -187,9 +188,19 @@ export default function RegisterPage() {
   const isPasswordMismatch = confirmPassword.length > 0 && password !== confirmPassword;
 
   return (
-    <div className="min-h-screen bg-[var(--bg-main)] text-[var(--text-primary)] flex flex-col items-center justify-center p-4 py-10">
-      <div className="w-full max-w-lg space-y-6">
-        
+    <div className="min-h-screen bg-[var(--bg-main)] text-[var(--text-primary)] flex flex-col items-center justify-center p-4 py-8">
+      <div className="w-full max-w-lg space-y-4">
+        {/* Top Back to Home Button */}
+        <div className="flex items-center justify-between">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--text-muted)] hover:text-red-500 transition-colors py-1.5 px-3 rounded-xl bg-[var(--surface-card)] border border-[var(--border-subtle)] hover:border-red-500/30 shadow-xs"
+          >
+            <ArrowLeft size={13} />
+            <span>{language === "bn" ? "হোম পেজে ফিরে যান" : "Back to Home"}</span>
+          </Link>
+        </div>
+
         {/* Brand Header */}
         <div className="text-center space-y-2">
           <div className="flex justify-center">
@@ -501,17 +512,28 @@ export default function RegisterPage() {
             </button>
           </form>
 
-          {/* Login Link */}
-          <div className="pt-2 text-center border-t border-[var(--border-subtle)]">
-            <span className="text-xs text-[var(--text-muted)]">
-              {language === "bn" ? "ইতিমধ্যে অ্যাকাউন্ট আছে? " : "Already registered? "}
-            </span>
-            <Link
-              href="/auth/login"
-              className="text-xs font-bold text-red-500 hover:text-red-400"
-            >
-              {language === "bn" ? "লগইন করুন" : "Sign In"}
-            </Link>
+          {/* Login & Home Link */}
+          <div className="pt-2 text-center border-t border-[var(--border-subtle)] space-y-2">
+            <div>
+              <span className="text-xs text-[var(--text-muted)]">
+                {language === "bn" ? "ইতিমধ্যে অ্যাকাউন্ট আছে? " : "Already registered? "}
+              </span>
+              <Link
+                href="/auth/login"
+                className="text-xs font-bold text-red-500 hover:text-red-400"
+              >
+                {language === "bn" ? "লগইন করুন" : "Sign In"}
+              </Link>
+            </div>
+            <div>
+              <Link
+                href="/"
+                className="inline-flex items-center justify-center gap-1.5 text-xs text-[var(--text-muted)] hover:text-red-500 transition-colors pt-1"
+              >
+                <Home size={13} />
+                <span>{language === "bn" ? "হোম পেজে ফিরে যান" : "Back to Home"}</span>
+              </Link>
+            </div>
           </div>
         </div>
       </div>
