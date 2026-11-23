@@ -161,26 +161,26 @@ export function BloodKnowledgeHub() {
   return (
     <section id="blood-info" className="py-12 sm:py-16 border-b border-[var(--border-subtle)] bg-[var(--bg-main)]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto mb-8 sm:mb-12">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-xs font-bold uppercase tracking-wider mb-3">
-            <Sparkles size={13} />
-            <span>{language === "bn" ? "রক্তের বৈজ্ঞানিক তথ্য ও গাইডলাইন" : "CLINICAL BLOOD KNOWLEDGE HUB"}</span>
-          </div>
+        {/* Section Header (rendered on home; hidden on dedicated /blood-info page to avoid duplicate hero) */}
+        {pathname !== "/blood-info" && (
+          <div className="text-center max-w-3xl mx-auto mb-8 sm:mb-12">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-xs font-bold uppercase tracking-wider mb-3">
+              <Sparkles size={13} />
+              <span>{language === "bn" ? "রক্তের বৈজ্ঞানিক তথ্য ও গাইডলাইন" : "CLINICAL BLOOD KNOWLEDGE HUB"}</span>
+            </div>
 
-          <h2 className="text-2xl sm:text-4xl font-black text-[var(--text-primary)] tracking-tight">
-            {language === "bn"
-              ? "রক্তের গ্রুপ, সামঞ্জস্য ও জীবনরক্ষাকারী চিকিৎসা তথ্য"
-              : "Blood Groups, Compatibility & Lifesaving Science"}
-          </h2>
+            <h2 className="text-2xl sm:text-4xl font-black text-[var(--text-primary)] tracking-tight">
+              {language === "bn"
+                ? "রক্তের গ্রুপ, সামঞ্জস্য ও জীবনরক্ষাকারী চিকিৎসা তথ্য"
+                : "Blood Groups, Compatibility & Lifesaving Science"}
+            </h2>
 
-          <p className="text-xs sm:text-sm text-[var(--text-secondary)] mt-2.5 leading-relaxed">
-            {language === "bn"
-              ? "কার রক্ত কে নিতে পারবে, ১ ব্যাগ রক্তে কীভাবে ৩ জনের জীবন বাঁচে এবং রক্তদানের আগে-পরের সঠিক চিকিৎসা নির্দেশিকা জানুন।"
-              : "Explore donor-recipient matching, component breakdown (1 donation = 3 lives), and evidence-based safety rules."}
-          </p>
+            <p className="text-xs sm:text-sm text-[var(--text-secondary)] mt-2.5 leading-relaxed">
+              {language === "bn"
+                ? "কার রক্ত কে নিতে পারবে, ১ ব্যাগ রক্তে কীভাবে ৩ জনের জীবন বাঁচে এবং রক্তদানের আগে-পরের সঠিক চিকিৎসা নির্দেশিকা জানুন।"
+                : "Explore donor-recipient matching, component breakdown (1 donation = 3 lives), and evidence-based safety rules."}
+            </p>
 
-          {pathname !== "/blood-info" && (
             <div className="pt-3 flex justify-center">
               <Link
                 href="/blood-info"
@@ -190,8 +190,8 @@ export function BloodKnowledgeHub() {
                 <ArrowRight size={12} />
               </Link>
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* 3 Main Interactive View Switchers */}
         <div className="flex justify-center mb-8 sm:mb-10">

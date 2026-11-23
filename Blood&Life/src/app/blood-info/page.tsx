@@ -7,6 +7,7 @@ import { BloodKnowledgeHub } from "@/components/home/BloodKnowledgeHub";
 import { useLanguage } from "@/lib/i18n/context";
 import {
   Heart,
+  Droplet,
   CheckCircle2,
   Clock,
   ArrowRight,
@@ -97,6 +98,53 @@ export default function BloodInfoPage() {
       <Navbar />
 
       <main className="flex-1">
+        {/* Page Hero Banner - Centered */}
+        <section className="py-12 sm:py-16 border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] text-center">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 flex flex-col items-center">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-xs font-bold uppercase tracking-wider mb-3">
+              <Droplet size={13} />
+              <span>{language === "bn" ? "রক্ত ও রক্তদান এনসাইক্লোপিডিয়া" : "CLINICAL BLOOD KNOWLEDGE BASE"}</span>
+            </div>
+
+            <h1 className="text-3xl sm:text-5xl font-black text-[var(--text-primary)] tracking-tight leading-tight">
+              {language === "bn"
+                ? "রক্তের সামঞ্জস্য, উপাদান ও রক্তদানের সম্পূর্ণ গাইডলাইন"
+                : "Blood Groups, Compatibility & Lifesaving Donation Guide"}
+            </h1>
+
+            <p className="text-sm sm:text-base text-[var(--text-secondary)] mt-3 max-w-2xl leading-relaxed">
+              {language === "bn"
+                ? "কোন গ্রুপের রক্ত কে নিতে পারবে, ১ ব্যাগ রক্তে কীভাবে ৩ জনের জীবন বাঁচে এবং রক্তদান নিয়ে বৈজ্ঞানিক সত্য ও সাধারণ নিয়মাবলী জানুন।"
+                : "Understand donor-recipient matching, component therapy, donation intervals, and evidence-based clinical facts."}
+            </p>
+
+            {/* Quick Jump Pills - Centered */}
+            <div className="pt-6 flex flex-wrap items-center justify-center gap-2.5 text-xs sm:text-sm">
+              <a
+                href="#compatibility-matrix"
+                className="px-4 py-2 rounded-xl bg-[var(--bg-main)] border border-[var(--border-subtle)] hover:border-red-500/40 text-[var(--text-primary)] font-bold transition-all shadow-xs inline-flex items-center gap-1.5 hover:scale-102"
+              >
+                <Droplet size={14} className="text-red-500" />
+                <span>{language === "bn" ? "গ্রুপ সামঞ্জস্য" : "Compatibility"}</span>
+              </a>
+              <a
+                href="#donation-process"
+                className="px-4 py-2 rounded-xl bg-[var(--bg-main)] border border-[var(--border-subtle)] hover:border-red-500/40 text-[var(--text-primary)] font-bold transition-all shadow-xs inline-flex items-center gap-1.5 hover:scale-102"
+              >
+                <Clock size={14} className="text-blue-500" />
+                <span>{language === "bn" ? "রক্তদান প্রক্রিয়া" : "Process"}</span>
+              </a>
+              <a
+                href="#myths-and-facts"
+                className="px-4 py-2 rounded-xl bg-[var(--bg-main)] border border-[var(--border-subtle)] hover:border-red-500/40 text-[var(--text-primary)] font-bold transition-all shadow-xs inline-flex items-center gap-1.5 hover:scale-102"
+              >
+                <HelpCircle size={14} className="text-emerald-500" />
+                <span>{language === "bn" ? "ভুল ধারণা বনাম সত্য" : "Myths & Facts"}</span>
+              </a>
+            </div>
+          </div>
+        </section>
+
         {/* Interactive Knowledge Hub (Compatibility, 4 Components, Preparation & Benefits) */}
         <div id="compatibility-matrix">
           <BloodKnowledgeHub />
