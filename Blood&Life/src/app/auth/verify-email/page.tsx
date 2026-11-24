@@ -248,8 +248,8 @@ function VerifyEmailContent() {
   };
 
   return (
-    <div className="min-h-[75vh] flex items-center justify-center py-4 px-3 sm:px-4">
-      <div className="max-w-sm sm:max-w-md w-full card-clinical p-4 sm:p-6 border border-[var(--border-subtle)] shadow-xl text-center space-y-3.5 rounded-2xl">
+    <div className="min-h-screen w-full bg-[var(--bg-main)] text-[var(--text-primary)] flex flex-col items-center justify-center p-4 sm:p-6">
+      <div className="max-w-sm sm:max-w-md w-full card-clinical p-4 sm:p-6 border border-[var(--border-subtle)] shadow-xl text-center space-y-3.5 rounded-2xl mx-auto my-auto">
         
         {/* Header Icon */}
         <div className="w-11 h-11 rounded-xl bg-red-600/10 border border-red-500/20 text-red-600 flex items-center justify-center mx-auto shadow-xs">
@@ -455,7 +455,7 @@ export default function VerifyEmailPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-[80vh] flex items-center justify-center">
+        <div className="min-h-screen bg-[var(--bg-main)] flex items-center justify-center">
           <div className="w-8 h-8 border-3 border-red-600 border-t-transparent rounded-full animate-spin" />
         </div>
       }
