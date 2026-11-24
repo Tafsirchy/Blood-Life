@@ -45,6 +45,17 @@ export default function MembershipPage() {
   const [selectedSticker, setSelectedSticker] = useState<string>("15_hero");
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const cardCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const logoImageRef = useRef<HTMLImageElement | null>(null);
+
+  // Pre-load official logo for canvas sticker
+  useEffect(() => {
+    const logo = new Image();
+    logo.crossOrigin = "anonymous";
+    logo.src = "/logo.png";
+    logo.onload = () => {
+      logoImageRef.current = logo;
+    };
+  }, []);
 
   // Fetch logged in user
   useEffect(() => {
@@ -110,89 +121,394 @@ export default function MembershipPage() {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const size = 400;
+    const size = 500;
     canvas.width = size;
     canvas.height = size;
     ctx.clearRect(0, 0, size, size);
 
-    // 1. Draw circular user photo or placeholder
-    const drawContent = (imgSrc: CanvasImageSource | null) => {
+    const cx = size / 2;
+    const cy = size / 2;
+    const frameTier = DONOR_TIERS.find((t) => t.id === selectedFrame) || DONOR_TIERS[4];
+    const stickerObj = STICKERS.find((s) => s.id === selectedSticker) || STICKERS[0];
+    const stickerText = language === "bn" ? stickerObj.textBn : stickerObj.textEn;
+
+    // Helper: Draw image with cover aspect ratio
+    const drawCover = (
+      img: CanvasImageSource,
+      x: number,
+      y: number,
+      w: number,
+      h: number
+    ) => {
+      const iw = (img as HTMLImageElement).naturalWidth || (img as any).width || w;
+      const ih = (img as HTMLImageElement).naturalHeight || (img as any).height || h;
+      const targetAspect = w / h;
+      const imgAspect = iw / ih;
+
+      let sx = 0, sy = 0, sw = iw, sh = ih;
+      if (imgAspect > targetAspect) {
+        sw = ih * targetAspect;
+        sx = (iw - sw) / 2;
+      } else {
+        sh = iw / targetAspect;
+        sy = (ih - sh) / 2;
+      }
+      ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
+    };
+
+    // Helper: Draw Blood Droplet Vector
+    const drawDroplet = (
+      x: number,
+      y: number,
+      r: number,
+      fillColor: string,
+      highlight = true
+    ) => {
       ctx.save();
       ctx.beginPath();
-      ctx.arc(size / 2, size / 2, 170, 0, Math.PI * 2);
+      ctx.moveTo(x, y - r * 1.4);
+      ctx.bezierCurveTo(x + r * 1.15, y - r * 0.15, x + r * 1.15, y + r * 0.85, x, y + r);
+      ctx.bezierCurveTo(x - r * 1.15, y + r * 0.85, x - r * 1.15, y - r * 0.15, x, y - r * 1.4);
+      ctx.closePath();
+      ctx.fillStyle = fillColor;
+      ctx.fill();
+
+      if (highlight) {
+        ctx.beginPath();
+        ctx.arc(x - r * 0.35, y + r * 0.15, r * 0.3, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(255, 255, 255, 0.45)";
+        ctx.fill();
+      }
+      ctx.restore();
+    };
+
+    const drawContent = (imgSrc: CanvasImageSource | null) => {
+      // 1. Dark Premium Background Card (Rounded 36px)
+      ctx.save();
+      ctx.fillStyle = "#090D16";
+      ctx.beginPath();
+      ctx.roundRect(0, 0, size, size, 36);
+      ctx.fill();
+
+      // Ambient radial lighting from tier frame
+      const ambientGrad = ctx.createRadialGradient(cx, cy, 60, cx, cy, 260);
+      ambientGrad.addColorStop(0, frameTier.colorHex + "25");
+      ambientGrad.addColorStop(0.7, frameTier.colorHex + "08");
+      ambientGrad.addColorStop(1, "transparent");
+      ctx.fillStyle = ambientGrad;
+      ctx.fillRect(0, 0, size, size);
+      ctx.restore();
+
+      // 2. Circular Centerpiece (User Photo or Elegant Deep Space Blood Group)
+      const photoR = 185;
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cx, cy, photoR, 0, Math.PI * 2);
       ctx.closePath();
       ctx.clip();
 
       if (imgSrc) {
-        ctx.drawImage(imgSrc, 30, 30, 340, 340);
-      } else {
-        // Gradient fallback avatar
-        const grad = ctx.createLinearGradient(0, 0, size, size);
-        grad.addColorStop(0, "#1E293B");
-        grad.addColorStop(1, "#0F172A");
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, size, size);
+        drawCover(imgSrc, cx - photoR, cy - photoR, photoR * 2, photoR * 2);
 
-        ctx.fillStyle = "#E2E8F0";
-        ctx.font = "bold 90px sans-serif";
+        // Soft Dark Vignette at outer edge
+        const vigGrad = ctx.createRadialGradient(cx, cy, photoR - 50, cx, cy, photoR);
+        vigGrad.addColorStop(0, "transparent");
+        vigGrad.addColorStop(1, "rgba(0, 0, 0, 0.55)");
+        ctx.fillStyle = vigGrad;
+        ctx.fillRect(cx - photoR, cy - photoR, photoR * 2, photoR * 2);
+      } else {
+        // Creative Fallback Gradient
+        const darkGrad = ctx.createRadialGradient(cx, cy - 30, 20, cx, cy, photoR);
+        darkGrad.addColorStop(0, "#1E293B");
+        darkGrad.addColorStop(0.65, "#0F172A");
+        darkGrad.addColorStop(1, "#070B14");
+        ctx.fillStyle = darkGrad;
+        ctx.fillRect(cx - photoR, cy - photoR, photoR * 2, photoR * 2);
+
+        // Watermark Droplet
+        drawDroplet(cx, cy - 10, 85, "rgba(225, 29, 72, 0.08)", false);
+
+        // Blood Group Headline
+        ctx.save();
+        ctx.fillStyle = "#FFFFFF";
+        ctx.font = "900 108px system-ui, -apple-system, sans-serif";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.fillText(displayUser.bloodGroup || "O+", size / 2, size / 2);
+        ctx.shadowColor = "rgba(225, 29, 72, 0.7)";
+        ctx.shadowBlur = 24;
+        ctx.fillText(displayUser.bloodGroup || "O+", cx, cy - 12);
+        ctx.restore();
+
+        // Subtitle Micro-badge: Verified Donor
+        ctx.save();
+        const subPillW = 190;
+        const subPillH = 28;
+        ctx.fillStyle = "rgba(16, 185, 129, 0.15)";
+        ctx.strokeStyle = "rgba(16, 185, 129, 0.5)";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.roundRect(cx - subPillW / 2, cy + 68, subPillW, subPillH, 14);
+        ctx.fill();
+        ctx.stroke();
+
+        // Pulsing green dot
+        ctx.fillStyle = "#10B981";
+        ctx.beginPath();
+        ctx.arc(cx - subPillW / 2 + 16, cy + 82, 4.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Verified text
+        ctx.fillStyle = "#A7F3D0";
+        ctx.font = "bold 11px system-ui, sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(
+          language === "bn" ? "ভেরিফাইড রক্তদাতা" : "VERIFIED VOLUNTEER",
+          cx + 6,
+          cy + 82
+        );
+        ctx.restore();
       }
       ctx.restore();
 
-      // 2. Draw outer decorative frame ring
-      const frameTier = DONOR_TIERS.find((t) => t.id === selectedFrame) || DONOR_TIERS[4];
+      // 3. Floating Blood Group Shield Badge (if user has uploaded a photo)
+      if (imgSrc) {
+        ctx.save();
+        const bX = cx + 125;
+        const bY = cy - 105;
+        const bR = 32;
+
+        // Shadow
+        ctx.shadowColor = "rgba(0,0,0,0.5)";
+        ctx.shadowBlur = 12;
+
+        // Badge Gradient
+        const bGrad = ctx.createLinearGradient(bX - bR, bY - bR, bX + bR, bY + bR);
+        bGrad.addColorStop(0, "#EF4444");
+        bGrad.addColorStop(1, "#9F1239");
+        ctx.fillStyle = bGrad;
+        ctx.beginPath();
+        ctx.arc(bX, bY, bR, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Specular White Border
+        ctx.lineWidth = 2.5;
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
+        ctx.stroke();
+
+        // Mini Droplet
+        drawDroplet(bX, bY - 14, 5, "#FFFFFF", false);
+
+        // Blood Group Text
+        ctx.fillStyle = "#FFFFFF";
+        ctx.font = "900 18px system-ui, sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(displayUser.bloodGroup || "O+", bX, bY + 6);
+        ctx.restore();
+      }
+
+      // 4. Milestone Outer Frame Ring with Multi-Layer Glow
+      const ringR = 192;
       ctx.save();
+
+      // Outer Neon Glow
       ctx.beginPath();
-      ctx.arc(size / 2, size / 2, 175, 0, Math.PI * 2);
+      ctx.arc(cx, cy, ringR, 0, Math.PI * 2);
       ctx.lineWidth = 14;
       ctx.strokeStyle = frameTier.colorHex;
+      ctx.shadowColor = frameTier.colorHex;
+      ctx.shadowBlur = 28;
       ctx.stroke();
 
-      // Inner thin white accent ring
-      ctx.beginPath();
-      ctx.arc(size / 2, size / 2, 168, 0, Math.PI * 2);
-      ctx.lineWidth = 3;
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
+      // Metallic Gradient Stroke
+      const ringGrad = ctx.createLinearGradient(cx - ringR, cy - ringR, cx + ringR, cy + ringR);
+      ringGrad.addColorStop(0, frameTier.colorHex);
+      ringGrad.addColorStop(0.25, "#FFFFFF");
+      ringGrad.addColorStop(0.5, frameTier.colorHex);
+      ringGrad.addColorStop(0.75, "#FFFFFF");
+      ringGrad.addColorStop(1, frameTier.colorHex);
+      ctx.lineWidth = 12;
+      ctx.strokeStyle = ringGrad;
       ctx.stroke();
+
+      // Inner Delicate Specular Ring
+      ctx.beginPath();
+      ctx.arc(cx, cy, ringR - 8, 0, Math.PI * 2);
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.5)";
+      ctx.stroke();
+
+      // Outer Tech Compass Ring (Dashed)
+      ctx.beginPath();
+      ctx.arc(cx, cy, ringR + 10, 0, Math.PI * 2);
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([4, 6]);
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.35)";
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // 4 Cardinal Glowing Diamond Studs
+      const studR = ringR + 10;
+      const cardinalAngles = [0, Math.PI / 2, Math.PI, (3 * Math.PI) / 2];
+      cardinalAngles.forEach((angle) => {
+        const sx = cx + Math.cos(angle) * studR;
+        const sy = cy + Math.sin(angle) * studR;
+        ctx.save();
+        ctx.translate(sx, sy);
+        ctx.rotate(angle);
+        ctx.beginPath();
+        ctx.moveTo(0, -4);
+        ctx.lineTo(4, 0);
+        ctx.lineTo(0, 4);
+        ctx.lineTo(-4, 0);
+        ctx.closePath();
+        ctx.fillStyle = "#FFFFFF";
+        ctx.shadowColor = frameTier.colorHex;
+        ctx.shadowBlur = 8;
+        ctx.fill();
+        ctx.restore();
+      });
       ctx.restore();
 
-      // 3. Draw Bottom Curved Ribbon / Sticker Banner
-      const stickerObj = STICKERS.find((s) => s.id === selectedSticker) || STICKERS[0];
-      const stickerText = language === "bn" ? stickerObj.textBn : stickerObj.textEn;
-
+      // 5. OFFICIAL BLOOD&LIFE LOGO CREST PILL (AT TOP)
       ctx.save();
-      // Banner Background
-      ctx.fillStyle = stickerObj.color;
+      const pillW = 200;
+      const pillH = 42;
+      const pillX = cx - pillW / 2;
+      const pillY = 16;
+      const pillR = 21;
+
+      // Glow & Shadow
+      ctx.shadowColor = "rgba(225, 29, 72, 0.45)";
+      ctx.shadowBlur = 18;
+      ctx.shadowOffsetY = 3;
+
+      // Glass Pill Background
+      ctx.fillStyle = "rgba(10, 14, 26, 0.94)";
       ctx.beginPath();
-      ctx.roundRect(50, 315, 300, 52, 26);
+      ctx.roundRect(pillX, pillY, pillW, pillH, pillR);
       ctx.fill();
 
-      // Banner Border
+      // Specular Dual Border
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.35)";
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      // Render Official Logo Image if loaded
+      if (logoImageRef.current && logoImageRef.current.complete) {
+        // logo.png aspect ratio is 3:1 (2172x724)
+        const lw = 150;
+        const lh = 30;
+        ctx.drawImage(logoImageRef.current, cx - lw / 2, pillY + (pillH - lh) / 2, lw, lh);
+      } else {
+        // High-definition Vector Logo Fallback
+        drawDroplet(pillX + 24, pillY + pillH / 2, 9, "#E11D48", true);
+
+        ctx.fillStyle = "#FFFFFF";
+        ctx.font = "900 13px system-ui, sans-serif";
+        ctx.textAlign = "left";
+        ctx.textBaseline = "middle";
+        ctx.fillText("BLOOD", pillX + 42, pillY + pillH / 2);
+
+        ctx.fillStyle = "#EF4444";
+        ctx.fillText("&", pillX + 96, pillY + pillH / 2);
+
+        ctx.fillStyle = "#FFFFFF";
+        ctx.fillText("LIFE", pillX + 110, pillY + pillH / 2);
+      }
+      ctx.restore();
+
+      // 6. 3D AWARD RIBBON / TROPHY BANNER (AT BOTTOM)
+      ctx.save();
+      const ribbonY = 405;
+      const ribbonW = 390;
+      const ribbonH = 60;
+      const ribbonX = cx - ribbonW / 2;
+      const ribbonR = 30;
+
+      // 3D Left Ribbon Tail
+      ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+      ctx.beginPath();
+      ctx.moveTo(ribbonX + 15, ribbonY + 12);
+      ctx.lineTo(ribbonX - 22, ribbonY + 22);
+      ctx.lineTo(ribbonX - 10, ribbonY + 38);
+      ctx.lineTo(ribbonX - 25, ribbonY + 54);
+      ctx.lineTo(ribbonX + 15, ribbonY + 48);
+      ctx.closePath();
+      ctx.fill();
+
+      // 3D Right Ribbon Tail
+      ctx.beginPath();
+      ctx.moveTo(ribbonX + ribbonW - 15, ribbonY + 12);
+      ctx.lineTo(ribbonX + ribbonW + 22, ribbonY + 22);
+      ctx.lineTo(ribbonX + ribbonW + 10, ribbonY + 38);
+      ctx.lineTo(ribbonX + ribbonW + 25, ribbonY + 54);
+      ctx.lineTo(ribbonX + ribbonW - 15, ribbonY + 48);
+      ctx.closePath();
+      ctx.fill();
+
+      // Ribbon Glow & Shadow
+      ctx.shadowColor = "rgba(0, 0, 0, 0.65)";
+      ctx.shadowBlur = 20;
+      ctx.shadowOffsetY = 6;
+
+      // Ribbon Gradient Fill
+      const rGrad = ctx.createLinearGradient(ribbonX, ribbonY, ribbonX, ribbonY + ribbonH);
+      rGrad.addColorStop(0, stickerObj.color);
+      rGrad.addColorStop(1, "#881337");
+      ctx.fillStyle = rGrad;
+      ctx.beginPath();
+      ctx.roundRect(ribbonX, ribbonY, ribbonW, ribbonH, ribbonR);
+      ctx.fill();
+
+      // Top Glass Sheen Highlight
+      const sheenGrad = ctx.createLinearGradient(ribbonX, ribbonY, ribbonX, ribbonY + ribbonH * 0.45);
+      sheenGrad.addColorStop(0, "rgba(255, 255, 255, 0.35)");
+      sheenGrad.addColorStop(1, "rgba(255, 255, 255, 0.0)");
+      ctx.fillStyle = sheenGrad;
+      ctx.beginPath();
+      ctx.roundRect(ribbonX + 2, ribbonY + 2, ribbonW - 4, ribbonH * 0.45, [ribbonR - 2, ribbonR - 2, 0, 0]);
+      ctx.fill();
+
+      // Outer Crisp White Border
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetY = 0;
       ctx.lineWidth = 3;
       ctx.strokeStyle = "#FFFFFF";
+      ctx.beginPath();
+      ctx.roundRect(ribbonX, ribbonY, ribbonW, ribbonH, ribbonR);
       ctx.stroke();
 
-      // Banner Text
-      ctx.fillStyle = "#FFFFFF";
-      ctx.font = "bold 17px sans-serif";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(`★ ${stickerText} ★`, size / 2, 341);
-      ctx.restore();
-
-      // 4. Draw Blood&Life logo watermark at top
-      ctx.save();
-      ctx.fillStyle = "#DC2626";
+      // Inner Gold/White Accent Line
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
       ctx.beginPath();
-      ctx.roundRect(140, 20, 120, 26, 13);
-      ctx.fill();
-      ctx.fillStyle = "#FFFFFF";
-      ctx.font = "bold 11px sans-serif";
+      ctx.roundRect(ribbonX + 4, ribbonY + 4, ribbonW - 8, ribbonH - 8, ribbonR - 4);
+      ctx.stroke();
+
+      // Stars on Left and Right
+      ctx.fillStyle = "#FDE047";
+      ctx.font = "bold 16px sans-serif";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.fillText("BLOOD&LIFE", size / 2, 33);
+      ctx.shadowColor = "rgba(0, 0, 0, 0.6)";
+      ctx.shadowBlur = 4;
+      ctx.shadowOffsetY = 1;
+      ctx.fillText("★", ribbonX + 28, ribbonY + ribbonH / 2);
+      ctx.fillText("★", ribbonX + ribbonW - 28, ribbonY + ribbonH / 2);
+
+      // Ribbon Center Text
+      ctx.fillStyle = "#FFFFFF";
+      ctx.font = "900 17px system-ui, -apple-system, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.shadowColor = "rgba(0, 0, 0, 0.75)";
+      ctx.shadowBlur = 6;
+      ctx.shadowOffsetY = 2;
+      ctx.fillText(stickerText, cx, ribbonY + ribbonH / 2);
+
       ctx.restore();
     };
 
@@ -397,10 +713,10 @@ export default function MembershipPage() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
               {/* Left Column: Live Canvas Preview */}
               <div className="lg:col-span-5 flex flex-col items-center justify-center space-y-4">
-                <div className="relative p-2 rounded-3xl bg-linear-to-b from-amber-500/10 via-[var(--bg-main)] to-[var(--bg-main)] border-2 border-[var(--border-subtle)] shadow-xl">
+                <div className="relative p-3 rounded-3xl bg-linear-to-b from-red-500/20 via-[var(--bg-main)] to-[var(--bg-main)] border-2 border-[var(--border-subtle)] shadow-2xl">
                   <canvas
                     ref={canvasRef}
-                    className="w-64 h-64 sm:w-80 sm:h-80 rounded-2xl bg-zinc-900 shadow-inner"
+                    className="w-72 h-72 sm:w-88 sm:h-88 rounded-2xl bg-[#090D16] shadow-2xl block"
                   />
                 </div>
 
