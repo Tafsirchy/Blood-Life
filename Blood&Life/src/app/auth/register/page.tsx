@@ -7,7 +7,6 @@ import {
   BD_DIVISIONS,
   getDistrictsForDivision,
   getUpazilasForDistrict,
-  getUnionsForUpazila,
 } from "@/lib/geo/bangladeshData";
 import { BloodGroup } from "@/types";
 import {
@@ -55,10 +54,7 @@ export default function RegisterPage() {
   const defaultUpazilaId = initialUpazilas.find((u) => u.name === "Dhanmondi")?.id || initialUpazilas[0]?.id || "";
   const [selectedUpazilaId, setSelectedUpazilaId] = useState<string>(defaultUpazilaId);
 
-  const initialUnions = useMemo(() => getUnionsForUpazila(defaultUpazilaId), [defaultUpazilaId]);
-  const [selectedUnionId, setSelectedUnionId] = useState<string>(initialUnions[0]?.id || "");
-
-  // Detailed Free-Text Address (House, Road, Landmark, Village)
+  // Detailed Free-Text Address (House, Road, Village, Area, Landmark)
   const [address, setAddress] = useState<string>("");
 
   // Step Wizard State (1: Personal & Security, 2: Location & Address)
@@ -78,10 +74,6 @@ export default function RegisterPage() {
     return getUpazilasForDistrict(selectedDistId);
   }, [selectedDistId]);
 
-  const availableUnions = useMemo(() => {
-    return getUnionsForUpazila(selectedUpazilaId);
-  }, [selectedUpazilaId]);
-
   // Cascading Change Handlers
   const handleDivisionChange = (divId: string) => {
     setSelectedDivId(divId);
@@ -92,9 +84,6 @@ export default function RegisterPage() {
     const upazilas = getUpazilasForDistrict(firstDistId);
     const firstUpId = upazilas[0]?.id || "";
     setSelectedUpazilaId(firstUpId);
-
-    const unions = getUnionsForUpazila(firstUpId);
-    setSelectedUnionId(unions[0]?.id || "");
   };
 
   const handleDistrictChange = (distId: string) => {
@@ -102,15 +91,10 @@ export default function RegisterPage() {
     const upazilas = getUpazilasForDistrict(distId);
     const firstUpId = upazilas[0]?.id || "";
     setSelectedUpazilaId(firstUpId);
-
-    const unions = getUnionsForUpazila(firstUpId);
-    setSelectedUnionId(unions[0]?.id || "");
   };
 
   const handleUpazilaChange = (upId: string) => {
     setSelectedUpazilaId(upId);
-    const unions = getUnionsForUpazila(upId);
-    setSelectedUnionId(unions[0]?.id || "");
   };
 
   // Step 1 Validation
@@ -172,12 +156,10 @@ export default function RegisterPage() {
     const divObj = BD_DIVISIONS.find((d) => d.id === selectedDivId);
     const distObj = availableDistricts.find((d) => d.id === selectedDistId);
     const upObj = availableUpazilas.find((u) => u.id === selectedUpazilaId);
-    const unionObj = availableUnions.find((un) => un.id === selectedUnionId);
 
     const divisionName = divObj?.name || "Dhaka";
     const districtName = distObj?.name || "Dhaka";
     const upazilaName = upObj?.name || "Dhanmondi";
-    const unionName = unionObj ? unionObj.name : "";
 
     try {
       const res = await fetch("/api/auth/register", {
@@ -192,7 +174,7 @@ export default function RegisterPage() {
           division: divisionName,
           district: districtName,
           upazila: upazilaName,
-          union: unionName,
+          union: "",
           address: address.trim(),
           role: "Donor",
         }),
@@ -519,51 +501,31 @@ export default function RegisterPage() {
                   </div>
                 </div>
 
-                {/* Tier 3 & Tier 4: Upazila/Thana & Union/Ward/Area */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[11px] font-bold text-[var(--text-secondary)] mb-1 flex items-center gap-1">
-                      <Navigation size={12} className="text-[var(--text-muted)]" />
-                      <span>{language === "bn" ? "৩. উপজেলা / থানা (Upazila/Thana)" : "3. Upazila / Thana"} <span className="text-red-500">*</span></span>
-                    </label>
-                    <select
-                      value={selectedUpazilaId}
-                      onChange={(e) => handleUpazilaChange(e.target.value)}
-                      required
-                      className="w-full px-3 py-2 rounded-lg bg-[var(--bg-main)] border border-[var(--border-subtle)] text-xs font-bold outline-none cursor-pointer focus:border-red-500"
-                    >
-                      {availableUpazilas.map((u) => (
-                        <option key={u.id} value={u.id}>
-                          {language === "bn" ? `${u.bn_name} (${u.name})` : `${u.name} (${u.bn_name})`}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-bold text-[var(--text-secondary)] mb-1 flex items-center gap-1">
-                      <Home size={12} className="text-[var(--text-muted)]" />
-                      <span>{language === "bn" ? "৪. ইউনিয়ন / এলাকা (Union/Area)" : "4. Union / Area"} <span className="text-red-500">*</span></span>
-                    </label>
-                    <select
-                      value={selectedUnionId}
-                      onChange={(e) => setSelectedUnionId(e.target.value)}
-                      required
-                      className="w-full px-3 py-2 rounded-lg bg-[var(--bg-main)] border border-[var(--border-subtle)] text-xs font-bold outline-none cursor-pointer focus:border-red-500"
-                    >
-                      {availableUnions.map((un) => (
-                        <option key={un.id} value={un.id}>
-                          {language === "bn" ? `${un.bn_name} (${un.name})` : `${un.name} (${un.bn_name})`}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                {/* Free-Text Detailed Address (House, Road, Landmark, Village) */}
+                {/* 3. Upazila / Thana */}
                 <div>
                   <label className="block text-[11px] font-bold text-[var(--text-secondary)] mb-1 flex items-center gap-1">
-                    <span>{language === "bn" ? "বিস্তারিত ঠিকানা (বাড়ি, রোড, গ্রাম বা ল্যান্ডমার্ক)" : "Detailed Address (House, Road, Landmark)"}</span>
+                    <Navigation size={12} className="text-[var(--text-muted)]" />
+                    <span>{language === "bn" ? "৩. উপজেলা / থানা (Upazila/Thana)" : "3. Upazila / Thana"} <span className="text-red-500">*</span></span>
+                  </label>
+                  <select
+                    value={selectedUpazilaId}
+                    onChange={(e) => handleUpazilaChange(e.target.value)}
+                    required
+                    className="w-full px-3 py-2 rounded-lg bg-[var(--bg-main)] border border-[var(--border-subtle)] text-xs font-bold outline-none cursor-pointer focus:border-red-500"
+                  >
+                    {availableUpazilas.map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {language === "bn" ? `${u.bn_name} (${u.name})` : `${u.name} (${u.bn_name})`}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Free-Text Detailed Address (House, Road, Village, Area, Landmark) */}
+                <div>
+                  <label className="block text-[11px] font-bold text-[var(--text-secondary)] mb-1 flex items-center gap-1">
+                    <Home size={12} className="text-[var(--text-muted)]" />
+                    <span>{language === "bn" ? "বিস্তারিত ঠিকানা (বাড়ি, রোড, গ্রাম, এলাকা বা ল্যান্ডমার্ক)" : "Detailed Address (House, Road, Village, Area)"}</span>
                   </label>
                   <input
                     type="text"
