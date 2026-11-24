@@ -46,6 +46,12 @@ function LoginForm() {
         throw new Error(data.error || "Login failed");
       }
 
+      if (data.user) {
+        try {
+          localStorage.setItem("bloodlife_cached_user", JSON.stringify(data.user));
+          window.dispatchEvent(new Event("bloodlife-auth-changed"));
+        } catch {}
+      }
       const destination = from.startsWith("/") ? from : "/dashboard";
       router.push(destination);
       router.refresh();

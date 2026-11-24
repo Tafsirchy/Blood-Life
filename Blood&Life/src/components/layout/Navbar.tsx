@@ -32,6 +32,10 @@ interface NavbarProps {
   onOpenSos?: () => void;
 }
 
+// Global in-memory cache to guarantee zero-latency synchronous initialization across all route navigations
+let globalCachedUser: { name: string; role: string; email: string } | null = null;
+let isAuthInitialResolved = false;
+
 export function Navbar({ onOpenSos }: NavbarProps) {
   const { t, language } = useLanguage();
   const pathname = usePathname();
@@ -39,7 +43,22 @@ export function Navbar({ onOpenSos }: NavbarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [currentUser, setCurrentUser] = useState<{ name: string; role: string; email: string } | null>(null);
+  const [authLoaded, setAuthLoaded] = useState<boolean>(() => isAuthInitialResolved);
+  const [currentUser, setCurrentUser] = useState<{ name: string; role: string; email: string } | null>(() => {
+    if (globalCachedUser !== null) return globalCachedUser;
+    if (typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem("bloodlife_cached_user");
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          globalCachedUser = parsed;
+          isAuthInitialResolved = true;
+          return parsed;
+        }
+      } catch {}
+    }
+    return null;
+  });
   const dropdownRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
@@ -50,28 +69,61 @@ export function Navbar({ onOpenSos }: NavbarProps) {
     setMobileOpen(false);
   }, [pathname]);
 
-  // Synchronize authenticated user state
+  // Synchronize authenticated user state once on mount and on auth-changed event
   useEffect(() => {
-    fetch("/api/auth/me")
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.authenticated && d.user) {
-          setCurrentUser({
-            name: d.user.name,
-            role: d.user.role,
-            email: d.user.email,
-          });
-        } else {
-          setCurrentUser(null);
-        }
-      })
-      .catch(() => setCurrentUser(null));
-  }, [pathname]);
+    const syncUser = () => {
+      fetch("/api/auth/me")
+        .then((r) => r.json())
+        .then((d) => {
+          if (d.authenticated && d.user) {
+            const u = {
+              name: d.user.name,
+              role: d.user.role,
+              email: d.user.email,
+            };
+            globalCachedUser = u;
+            isAuthInitialResolved = true;
+            setCurrentUser(u);
+            try {
+              localStorage.setItem("bloodlife_cached_user", JSON.stringify(u));
+            } catch {}
+          } else {
+            globalCachedUser = null;
+            isAuthInitialResolved = true;
+            setCurrentUser(null);
+            try {
+              localStorage.removeItem("bloodlife_cached_user");
+            } catch {}
+          }
+        })
+        .catch(() => {
+          if (globalCachedUser === null) {
+            setCurrentUser(null);
+          }
+        })
+        .finally(() => {
+          setAuthLoaded(true);
+        });
+    };
+
+    syncUser();
+
+    window.addEventListener("bloodlife-auth-changed", syncUser);
+    return () => {
+      window.removeEventListener("bloodlife-auth-changed", syncUser);
+    };
+  }, []);
 
   const handleLogout = async () => {
     try {
       await fetch("/api/auth/logout", { method: "POST" });
       setCurrentUser(null);
+      globalCachedUser = null;
+      isAuthInitialResolved = true;
+      try {
+        localStorage.removeItem("bloodlife_cached_user");
+      } catch {}
+      window.dispatchEvent(new Event("bloodlife-auth-changed"));
       window.location.href = "/";
     } catch {
       window.location.href = "/";
@@ -342,7 +394,9 @@ export function Navbar({ onOpenSos }: NavbarProps) {
           </button>
 
           {/* User Profile Dropdown or Sign In Buttons */}
-          {currentUser ? (
+          {!authLoaded && !currentUser ? (
+            <div className="hidden sm:block w-20 h-7" />
+          ) : currentUser ? (
             <div className="relative hidden sm:block" ref={userMenuRef}>
               <button
                 type="button"
@@ -617,7 +671,9 @@ export function Navbar({ onOpenSos }: NavbarProps) {
 
           {/* Mobile Auth Actions */}
           <div className="pt-2 mt-2 border-t border-[var(--border-subtle)] space-y-1">
-            {currentUser ? (
+            {!authLoaded && !currentUser ? (
+              <div className="h-9" />
+            ) : currentUser ? (
               <div className="p-3 rounded-xl bg-[var(--bg-main)] border border-[var(--border-subtle)] space-y-2.5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 min-w-0">

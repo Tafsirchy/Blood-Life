@@ -69,6 +69,12 @@ function VerifyEmailContent() {
       const data = await res.json();
       if (res.ok) {
         setStatus("success");
+        if (data.user) {
+          try {
+            localStorage.setItem("bloodlife_cached_user", JSON.stringify(data.user));
+            window.dispatchEvent(new Event("bloodlife-auth-changed"));
+          } catch {}
+        }
       } else {
         setStatus("error");
         setErrorMessage(
