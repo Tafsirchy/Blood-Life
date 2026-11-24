@@ -30,7 +30,8 @@ import {
 interface DonorItem {
   id: string;
   name: string;
-  phone: string;
+  phone?: string;
+  maskedPhone?: string;
   bloodGroup: string;
   division: string;
   district: string;
@@ -127,10 +128,12 @@ export default function GeoDirectoryPage() {
 
       if (userData.donors) {
         userData.donors.forEach((d: any) => {
+          const rawPhone = d.phone || d.maskedPhone || "";
           mergedList.push({
             id: d._id || d.id,
             name: d.name,
-            phone: d.phone,
+            phone: rawPhone,
+            maskedPhone: d.maskedPhone || (rawPhone && rawPhone.length >= 11 ? rawPhone.slice(0, 5) + "•••" + rawPhone.slice(-3) : rawPhone || ""),
             bloodGroup: d.bloodGroup,
             division: d.division || selectedDivision,
             district: d.district || districtName,
@@ -146,10 +149,12 @@ export default function GeoDirectoryPage() {
 
       if (commData.donors) {
         commData.donors.forEach((c: any) => {
+          const rawPhone = c.donorPhone || "";
           mergedList.push({
             id: c.id,
             name: c.donorName,
-            phone: c.donorPhone,
+            phone: rawPhone,
+            maskedPhone: rawPhone,
             bloodGroup: c.bloodGroup,
             division: c.division,
             district: c.district,
@@ -170,6 +175,7 @@ export default function GeoDirectoryPage() {
             id: "demo-d1",
             name: language === "bn" ? "মো: তানভীর হাসান" : "Md. Tanvir Hasan",
             phone: "01712998877",
+            maskedPhone: "01712•••877",
             bloodGroup: selectedBloodGroup === "all" ? "O+" : selectedBloodGroup,
             division: selectedDivision,
             district: districtName,
@@ -184,6 +190,7 @@ export default function GeoDirectoryPage() {
             id: "demo-d2",
             name: language === "bn" ? "ডা: সায়মা সুলতানা" : "Dr. Sayma Sultana",
             phone: "01822334455",
+            maskedPhone: "01822•••455",
             bloodGroup: selectedBloodGroup === "all" ? "A+" : selectedBloodGroup,
             division: selectedDivision,
             district: districtName,
@@ -198,6 +205,7 @@ export default function GeoDirectoryPage() {
             id: "demo-d3",
             name: language === "bn" ? "রাকিব চৌধুরী" : "Rakib Chowdhury",
             phone: "01911223344",
+            maskedPhone: "01911•••344",
             bloodGroup: selectedBloodGroup === "all" ? "B+" : selectedBloodGroup,
             division: selectedDivision,
             district: districtName,
@@ -550,10 +558,15 @@ export default function GeoDirectoryPage() {
                 {donors.map((item) => {
                   const tier = getDonorTier(item.totalDonations || 1);
                   const isRevealed = !!revealedPhones[item.id];
+                  const rawPhone = item.phone || item.maskedPhone || "";
                   const maskedPhone =
-                    item.phone.length >= 11
-                      ? item.phone.slice(0, 5) + "•••" + item.phone.slice(-3)
-                      : item.phone;
+                    item.maskedPhone ||
+                    (rawPhone.length >= 11
+                      ? rawPhone.slice(0, 5) + "•••" + rawPhone.slice(-3)
+                      : rawPhone || "017•••••••");
+                  const displayPhone = isRevealed
+                    ? (item.phone || item.maskedPhone || "N/A")
+                    : maskedPhone;
 
                   return (
                     <div
@@ -606,14 +619,14 @@ export default function GeoDirectoryPage() {
                             {language === "bn" ? "যোগাযোগের নম্বর:" : "Contact Number:"}
                           </span>
                           <span className="font-mono text-xs font-black text-[var(--text-primary)]">
-                            {isRevealed ? item.phone : maskedPhone}
+                            {displayPhone}
                           </span>
                         </div>
 
                         <div className="flex items-center gap-1.5">
-                          {isRevealed ? (
+                          {isRevealed && (item.phone || item.maskedPhone) ? (
                             <a
-                              href={`tel:${item.phone}`}
+                              href={`tel:${item.phone || item.maskedPhone}`}
                               className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs inline-flex items-center gap-1 shadow-xs"
                             >
                               <PhoneCall size={12} />
