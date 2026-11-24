@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
+import Link from "next/link";
 import { Navbar } from "@/components/layout/Navbar";
 import { EmergencyFooter } from "@/components/home/EmergencyFooter";
 import { useLanguage } from "@/lib/i18n/context";
@@ -25,6 +26,12 @@ import {
   Filter,
   UserCheck,
   AlertTriangle,
+  MessageCircle,
+  Copy,
+  Check,
+  LogIn,
+  Activity,
+  Users,
 } from "lucide-react";
 
 interface DonorItem {
@@ -54,9 +61,14 @@ export default function GeoDirectoryPage() {
   const [selectedBloodGroup, setSelectedBloodGroup] = useState<string>("all");
 
   // Donors State
-  const [donors, setDonors] = useState<DonorItem[]>([]);
+  const [rawDonors, setRawDonors] = useState<DonorItem[]>([]);
   const [loading, setLoading] = useState(false);
-  const [revealedPhones, setRevealedPhones] = useState<Record<string, boolean>>({});
+
+  // Contact Reveal & Action States
+  const [unmaskedPhones, setUnmaskedPhones] = useState<Record<string, string>>({});
+  const [revealingId, setRevealingId] = useState<string | null>(null);
+  const [loginPromptDonor, setLoginPromptDonor] = useState<DonorItem | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   // Modals
   const [showAddModal, setShowAddModal] = useState(false);
@@ -91,16 +103,25 @@ export default function GeoDirectoryPage() {
   const [emailSuccessMsg, setEmailSuccessMsg] = useState("");
   const [emailErrorMsg, setEmailErrorMsg] = useState("");
 
-  // Districts for current division
+  // Districts for current division filter
   const currentDistricts = DISTRICTS.filter(
     (d) => d.division.toLowerCase() === selectedDivision.toLowerCase()
   );
 
-  // Upazilas for current district
+  // Upazilas for current district filter
   const currentDistrictObj = DISTRICTS.find(
     (d) => d.nameEn.toLowerCase() === selectedDistrict.toLowerCase() || d.id === selectedDistrict.toLowerCase()
   );
   const currentUpazilas = currentDistrictObj ? currentDistrictObj.upazilas : [];
+
+  // Districts & Upazilas for Add Community Donor modal (reactive to addForm)
+  const modalDistricts = DISTRICTS.filter(
+    (d) => d.division.toLowerCase() === (addForm.division || "dhaka").toLowerCase()
+  );
+  const modalDistrictObj = DISTRICTS.find(
+    (d) => d.nameEn.toLowerCase() === (addForm.district || "dhaka").toLowerCase()
+  );
+  const modalUpazilas = modalDistrictObj?.upazilas || ["Sadar"];
 
   // Fetch Donors
   const fetchDonors = async () => {
@@ -118,9 +139,9 @@ export default function GeoDirectoryPage() {
 
       // 2. Fetch registered system users
       const userRes = await fetch(
-        `/api/donors/search?bloodGroup=${selectedBloodGroup}&district=${encodeURIComponent(
+        `/api/donors/search?division=${encodeURIComponent(selectedDivision)}&district=${encodeURIComponent(
           districtName
-        )}&upazila=${selectedUpazila}`
+        )}&upazila=${encodeURIComponent(selectedUpazila)}&bloodGroup=${encodeURIComponent(selectedBloodGroup)}`
       );
       const userData = await userRes.json();
 
@@ -130,7 +151,7 @@ export default function GeoDirectoryPage() {
         userData.donors.forEach((d: any) => {
           const rawPhone = d.phone || d.maskedPhone || "";
           mergedList.push({
-            id: d._id || d.id,
+            id: String(d._id || d.id),
             name: d.name,
             phone: rawPhone,
             maskedPhone: d.maskedPhone || (rawPhone && rawPhone.length >= 11 ? rawPhone.slice(0, 5) + "•••" + rawPhone.slice(-3) : rawPhone || ""),
@@ -151,10 +172,10 @@ export default function GeoDirectoryPage() {
         commData.donors.forEach((c: any) => {
           const rawPhone = c.donorPhone || "";
           mergedList.push({
-            id: c.id,
+            id: String(c.id),
             name: c.donorName,
             phone: rawPhone,
-            maskedPhone: rawPhone,
+            maskedPhone: rawPhone && rawPhone.length >= 11 ? rawPhone.slice(0, 5) + "•••" + rawPhone.slice(-3) : rawPhone,
             bloodGroup: c.bloodGroup,
             division: c.division,
             district: c.district,
@@ -168,7 +189,7 @@ export default function GeoDirectoryPage() {
         });
       }
 
-      // If database is brand new in local dev and list is empty, supply initial verified records
+      // If database has no records in local environment, supply initial verified records
       if (mergedList.length === 0) {
         mergedList.push(
           {
@@ -219,16 +240,7 @@ export default function GeoDirectoryPage() {
         );
       }
 
-      // Filter by local thana if typed
-      const filtered = thanaSearch.trim()
-        ? mergedList.filter(
-            (item) =>
-              (item.thana && item.thana.toLowerCase().includes(thanaSearch.toLowerCase())) ||
-              item.upazila.toLowerCase().includes(thanaSearch.toLowerCase())
-          )
-        : mergedList;
-
-      setDonors(filtered);
+      setRawDonors(mergedList);
     } catch (e) {
       console.error("Error fetching geo directory donors:", e);
     } finally {
@@ -239,6 +251,29 @@ export default function GeoDirectoryPage() {
   useEffect(() => {
     fetchDonors();
   }, [selectedDivision, selectedDistrict, selectedUpazila, selectedBloodGroup]);
+
+  // Reactive Level 4 (Thana / Area) Filter with 0ms lag
+  const filteredDonors = useMemo(() => {
+    if (!thanaSearch.trim()) return rawDonors;
+    const q = thanaSearch.trim().toLowerCase();
+    return rawDonors.filter(
+      (item) =>
+        (item.thana && item.thana.toLowerCase().includes(q)) ||
+        (item.upazila && item.upazila.toLowerCase().includes(q)) ||
+        (item.name && item.name.toLowerCase().includes(q))
+    );
+  }, [rawDonors, thanaSearch]);
+
+  // Executive Metric Counters Strip
+  const stats = useMemo(() => {
+    const total = filteredDonors.length;
+    const available = filteredDonors.filter((d) => d.isAvailable !== false).length;
+    const verified = filteredDonors.filter(
+      (d) => d.type === "registered" || (d.verifiedDonations && d.verifiedDonations > 0)
+    ).length;
+    const community = filteredDonors.filter((d) => d.type === "community").length;
+    return { total, available, verified, community };
+  }, [filteredDonors]);
 
   // Handle Division Change
   const handleDivisionChange = (divId: string) => {
@@ -256,12 +291,48 @@ export default function GeoDirectoryPage() {
     setSelectedUpazila("all");
   };
 
-  // Reveal Phone Toggle
-  const toggleRevealPhone = (id: string) => {
-    setRevealedPhones((prev) => ({
-      ...prev,
-      [id]: !prev[id],
-    }));
+  // Handle Contact Reveal via Privacy Shield
+  const handleRevealPhone = async (item: DonorItem) => {
+    if (unmaskedPhones[item.id]) return;
+
+    // For community donors where raw phone was already provided without masks
+    if (item.type === "community" && item.phone && !item.phone.includes("•")) {
+      setUnmaskedPhones((prev) => ({ ...prev, [item.id]: item.phone! }));
+      return;
+    }
+
+    try {
+      setRevealingId(item.id);
+      const res = await fetch(`/api/donors/${item.id}/contact`);
+      const data = await res.json();
+
+      if (data.requiresLogin) {
+        setLoginPromptDonor(item);
+        return;
+      }
+
+      if (res.ok && data.phone) {
+        setUnmaskedPhones((prev) => ({ ...prev, [item.id]: data.phone }));
+      } else if (item.phone && !item.phone.includes("•")) {
+        setUnmaskedPhones((prev) => ({ ...prev, [item.id]: item.phone! }));
+      } else {
+        setLoginPromptDonor(item);
+      }
+    } catch (err) {
+      console.error("Reveal contact error:", err);
+      if (item.phone && !item.phone.includes("•")) {
+        setUnmaskedPhones((prev) => ({ ...prev, [item.id]: item.phone! }));
+      }
+    } finally {
+      setRevealingId(null);
+    }
+  };
+
+  // Copy Phone Number to Clipboard
+  const handleCopyPhone = (id: string, phone: string) => {
+    navigator.clipboard.writeText(phone);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
   };
 
   // Handle Add Community Donor Submit
@@ -351,12 +422,12 @@ export default function GeoDirectoryPage() {
   const ALL_GROUPS = ["all", "A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 
   return (
-    <div className="min-h-screen flex flex-col bg-[var(--bg-main)] text-[var(--text-primary)]">
+    <div className="min-h-screen flex flex-col bg-[var(--bg-main)] text-[var(--text-primary)] transition-colors">
       <Navbar />
 
       <main className="flex-1 pb-16">
         {/* Top Hero Section */}
-        <section className="py-12 sm:py-16 border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] text-center relative overflow-hidden">
+        <section className="py-10 sm:py-14 border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] text-center relative overflow-hidden">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 flex flex-col items-center">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-xs font-black uppercase tracking-wider mb-3">
               <Building2 size={14} />
@@ -395,6 +466,49 @@ export default function GeoDirectoryPage() {
                 <span>{language === "bn" ? "তালিকা ইমেইলে পাঠান" : "Export List to Email"}</span>
               </button>
             </div>
+
+            {/* Quick Counter Metrics Strip */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-6 mt-6 border-t border-[var(--border-subtle)] max-w-4xl mx-auto w-full">
+              <div className="p-3.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-subtle)] flex flex-col items-center text-center">
+                <span className="text-[11px] font-bold text-[var(--text-muted)] flex items-center justify-center gap-1">
+                  <Users size={12} className="text-red-500" />
+                  {language === "bn" ? "মোট রক্তদাতা" : "Total Matched"}
+                </span>
+                <span className="text-xl sm:text-2xl font-black text-red-500 mt-0.5">
+                  {stats.total}
+                </span>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-subtle)] flex flex-col items-center text-center">
+                <span className="text-[11px] font-bold text-[var(--text-muted)] flex items-center justify-center gap-1">
+                  <Activity size={12} className="text-emerald-500" />
+                  {language === "bn" ? "অবিলম্বে প্রস্তুত" : "Available Now"}
+                </span>
+                <span className="text-xl sm:text-2xl font-black text-emerald-500 mt-0.5">
+                  {stats.available}
+                </span>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-subtle)] flex flex-col items-center text-center">
+                <span className="text-[11px] font-bold text-[var(--text-muted)] flex items-center justify-center gap-1">
+                  <ShieldCheck size={12} className="text-blue-500" />
+                  {language === "bn" ? "ভেরিফাইড রক্তদাতা" : "Verified Donors"}
+                </span>
+                <span className="text-xl sm:text-2xl font-black text-[var(--text-primary)] mt-0.5">
+                  {stats.verified}
+                </span>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-subtle)] flex flex-col items-center text-center">
+                <span className="text-[11px] font-bold text-[var(--text-muted)] flex items-center justify-center gap-1">
+                  <UserCheck size={12} className="text-amber-500" />
+                  {language === "bn" ? "কমিউনিটি তালিকাভুক্ত" : "Community Donors"}
+                </span>
+                <span className="text-xl sm:text-2xl font-black text-amber-500 mt-0.5">
+                  {stats.community}
+                </span>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -409,7 +523,7 @@ export default function GeoDirectoryPage() {
                 </h2>
               </div>
               <span className="text-xs font-bold text-[var(--text-muted)]">
-                {language === "bn" ? `খুঁজে পাওয়া গেছে: ${donors.length} জন রক্তদাতা` : `Found ${donors.length} Matched Donors`}
+                {language === "bn" ? `খুঁজে পাওয়া গেছে: ${filteredDonors.length} জন রক্তদাতা` : `Found ${filteredDonors.length} Matched Donors`}
               </span>
             </div>
 
@@ -479,7 +593,7 @@ export default function GeoDirectoryPage() {
                 </select>
               </div>
 
-              {/* Level 4: Thana / Local Area */}
+              {/* Level 4: Thana / Local Area with Instant Clear */}
               <div className="space-y-1.5">
                 <label className="block font-bold text-[var(--text-primary)] flex items-center gap-1.5">
                   <span className="w-5 h-5 rounded-full bg-red-500/10 text-red-600 flex items-center justify-center text-[10px] font-black">
@@ -494,8 +608,18 @@ export default function GeoDirectoryPage() {
                     value={thanaSearch}
                     onChange={(e) => setThanaSearch(e.target.value)}
                     placeholder={language === "bn" ? "থানা বা এলাকা লিখুন..." : "Type thana or road..."}
-                    className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-subtle)] text-[var(--text-primary)] font-bold focus:outline-none focus:border-red-500"
+                    className="w-full pl-9 pr-8 py-2.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-subtle)] text-[var(--text-primary)] font-bold focus:outline-none focus:border-red-500"
                   />
+                  {thanaSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setThanaSearch("")}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-red-500 p-1 transition-colors"
+                      title={language === "bn" ? "মুছে ফেলুন" : "Clear search"}
+                    >
+                      <CloseIcon size={13} />
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -530,10 +654,11 @@ export default function GeoDirectoryPage() {
           {/* Donors Grid Results */}
           <div className="space-y-4">
             {loading ? (
-              <div className="p-16 text-center text-xs text-[var(--text-muted)] rounded-2xl bg-[var(--bg-surface)]">
-                {language === "bn" ? "রক্তদাতা অনুসন্ধান করা হচ্ছে..." : "Searching local blood donors..."}
+              <div className="p-16 text-center text-xs text-[var(--text-muted)] rounded-2xl bg-[var(--bg-surface)] animate-pulse space-y-2">
+                <Building2 size={32} className="mx-auto text-red-500/50 animate-bounce" />
+                <p>{language === "bn" ? "রক্তদাতা অনুসন্ধান করা হচ্ছে..." : "Searching local blood donors..."}</p>
               </div>
-            ) : donors.length === 0 ? (
+            ) : filteredDonors.length === 0 ? (
               <div className="p-12 text-center rounded-3xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] space-y-3">
                 <MapPin size={36} className="text-[var(--text-muted)] mx-auto opacity-40" />
                 <h3 className="text-sm font-bold text-[var(--text-primary)]">
@@ -547,7 +672,7 @@ export default function GeoDirectoryPage() {
                 <button
                   type="button"
                   onClick={() => setShowAddModal(true)}
-                  className="px-4 py-2 rounded-xl bg-red-600 text-white text-xs font-bold inline-flex items-center gap-1.5"
+                  className="px-4 py-2 rounded-xl bg-red-600 text-white text-xs font-bold inline-flex items-center gap-1.5 shadow-sm"
                 >
                   <PlusCircle size={14} />
                   <span>{language === "bn" ? "রক্তদাতা যুক্ত করুন" : "Add Donor"}</span>
@@ -555,18 +680,16 @@ export default function GeoDirectoryPage() {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {donors.map((item) => {
+                {filteredDonors.map((item) => {
                   const tier = getDonorTier(item.totalDonations || 1);
-                  const isRevealed = !!revealedPhones[item.id];
-                  const rawPhone = item.phone || item.maskedPhone || "";
-                  const maskedPhone =
-                    item.maskedPhone ||
-                    (rawPhone.length >= 11
-                      ? rawPhone.slice(0, 5) + "•••" + rawPhone.slice(-3)
-                      : rawPhone || "017•••••••");
-                  const displayPhone = isRevealed
-                    ? (item.phone || item.maskedPhone || "N/A")
-                    : maskedPhone;
+                  const isUnmasked = Boolean(unmaskedPhones[item.id]);
+                  const activePhone = unmaskedPhones[item.id] || item.phone || item.maskedPhone || "";
+                  const displayPhone = isUnmasked
+                    ? activePhone
+                    : item.maskedPhone ||
+                      (activePhone.length >= 11
+                        ? activePhone.slice(0, 5) + "•••" + activePhone.slice(-3)
+                        : "017•••••••");
 
                   return (
                     <div
@@ -590,8 +713,28 @@ export default function GeoDirectoryPage() {
                           </span>
                         </div>
 
-                        {/* Badges row */}
+                        {/* Badges row with Real-Time Readiness & Donation Count */}
                         <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
+                          {/* Readiness Badge */}
+                          {item.isAvailable !== false ? (
+                            <span className="px-2 py-0.5 rounded-full font-bold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                              <span>{language === "bn" ? "প্রস্তুত" : "Available"}</span>
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-full font-bold bg-amber-500/10 text-amber-600 border border-amber-500/20">
+                              {language === "bn" ? "বিশ্রামকালীন" : "Cooldown"}
+                            </span>
+                          )}
+
+                          {/* Total Donations */}
+                          {item.totalDonations !== undefined && item.totalDonations > 0 && (
+                            <span className="px-2 py-0.5 rounded-full font-bold bg-red-500/10 text-red-600 border border-red-500/20 flex items-center gap-1">
+                              <Heart size={9} className="fill-red-600" />
+                              <span>{item.totalDonations} {language === "bn" ? "বার রক্তদান" : "Donations"}</span>
+                            </span>
+                          )}
+
                           {tier && (
                             <span className="px-2 py-0.5 rounded-full font-bold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 flex items-center gap-1">
                               <Sparkles size={10} />
@@ -599,47 +742,83 @@ export default function GeoDirectoryPage() {
                             </span>
                           )}
 
-                          <span className="px-2 py-0.5 rounded-full font-bold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 flex items-center gap-1">
+                          <span className="px-2 py-0.5 rounded-full font-bold bg-blue-500/10 text-blue-600 border border-blue-500/20 flex items-center gap-1">
                             <ShieldCheck size={10} />
-                            <span>{language === "bn" ? "ভেরিফাইড" : "Verified"}</span>
+                            <span>{item.type === "registered" ? (language === "bn" ? "ভেরিফাইড" : "Verified") : (language === "bn" ? "কমিউনিটি" : "Community")}</span>
                           </span>
-
-                          {item.type === "community" && (
-                            <span className="px-2 py-0.5 rounded-full font-bold bg-blue-500/10 text-blue-600 border border-blue-500/20">
-                              {language === "bn" ? "কমিউনিটি" : "Community"}
-                            </span>
-                          )}
                         </div>
                       </div>
 
-                      {/* Phone Number Action */}
+                      {/* Phone Number Action Strip */}
                       <div className="pt-3 border-t border-[var(--border-subtle)] flex items-center justify-between gap-2">
-                        <div>
+                        <div className="min-w-0">
                           <span className="text-[10px] font-bold text-[var(--text-muted)] block uppercase tracking-wider">
                             {language === "bn" ? "যোগাযোগের নম্বর:" : "Contact Number:"}
                           </span>
-                          <span className="font-mono text-xs font-black text-[var(--text-primary)]">
+                          <span className="font-mono text-xs font-black text-[var(--text-primary)] block truncate">
                             {displayPhone}
                           </span>
                         </div>
 
-                        <div className="flex items-center gap-1.5">
-                          {isRevealed && (item.phone || item.maskedPhone) ? (
-                            <a
-                              href={`tel:${item.phone || item.maskedPhone}`}
-                              className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs inline-flex items-center gap-1 shadow-xs"
-                            >
-                              <PhoneCall size={12} />
-                              <span>{language === "bn" ? "কল দিন" : "Call"}</span>
-                            </a>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {isUnmasked ? (
+                            <>
+                              {/* Direct Call Button */}
+                              <a
+                                href={`tel:${activePhone}`}
+                                className="px-2.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs inline-flex items-center gap-1 shadow-xs transition-colors"
+                                title={language === "bn" ? "সরাসরি কল দিন" : "Call Donor"}
+                              >
+                                <PhoneCall size={12} />
+                                <span>{language === "bn" ? "কল" : "Call"}</span>
+                              </a>
+
+                              {/* WhatsApp Quick Chat */}
+                              <a
+                                href={`https://wa.me/${activePhone.replace(/[^0-9]/g, "").replace(/^0/, "880")}?text=${encodeURIComponent(
+                                  language === "bn"
+                                    ? `আসসালামু আলাইকুম ${item.name}, আমি Blood&Life প্ল্যাটফর্ম থেকে ${item.district}-এ জরুরি ${item.bloodGroup} রক্তের প্রয়োজনে যোগাযোগ করছি। আপনি কি এই মুহূর্তে রক্তদানে প্রস্তুত আছেন?`
+                                    : `Hello ${item.name}, I am contacting you from Blood&Life regarding an urgent ${item.bloodGroup} blood requirement in ${item.district}. Are you available to donate?`
+                                )}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs inline-flex items-center justify-center transition-colors shadow-xs"
+                                title="WhatsApp Quick Chat"
+                              >
+                                <MessageCircle size={14} />
+                              </a>
+
+                              {/* Copy Number Button */}
+                              <button
+                                type="button"
+                                onClick={() => handleCopyPhone(item.id, activePhone)}
+                                className="p-1.5 rounded-xl border border-[var(--border-subtle)] hover:bg-[var(--bg-main)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+                                title={language === "bn" ? "নম্বর কপি করুন" : "Copy Phone Number"}
+                              >
+                                {copiedId === item.id ? (
+                                  <Check size={14} className="text-emerald-500" />
+                                ) : (
+                                  <Copy size={14} />
+                                )}
+                              </button>
+                            </>
                           ) : (
                             <button
                               type="button"
-                              onClick={() => toggleRevealPhone(item.id)}
-                              className="px-3 py-1.5 rounded-xl bg-[var(--bg-main)] hover:bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 font-bold text-xs inline-flex items-center gap-1"
+                              onClick={() => handleRevealPhone(item)}
+                              disabled={revealingId === item.id}
+                              className="px-3 py-1.5 rounded-xl bg-[var(--bg-main)] hover:bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 font-bold text-xs inline-flex items-center gap-1 transition-colors disabled:opacity-50"
                             >
                               <Phone size={12} />
-                              <span>{language === "bn" ? "নম্বর দেখুন" : "Reveal"}</span>
+                              <span>
+                                {revealingId === item.id
+                                  ? language === "bn"
+                                    ? "যাচাই হচ্ছে..."
+                                    : "Verifying..."
+                                  : language === "bn"
+                                  ? "নম্বর দেখুন"
+                                  : "Reveal"}
+                              </span>
                             </button>
                           )}
                         </div>
@@ -652,7 +831,7 @@ export default function GeoDirectoryPage() {
           </div>
         </div>
 
-        {/* Modal 1: Add Community Donor */}
+        {/* Modal 1: Add Community Donor with Dynamic Cascaded Geo Dropdowns */}
         {showAddModal && (
           <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
             <div className="bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-3xl max-w-lg w-full p-6 sm:p-8 space-y-4 shadow-2xl animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
@@ -763,34 +942,61 @@ export default function GeoDirectoryPage() {
                     </div>
                   </div>
 
-                  {/* Location Info */}
+                  {/* Location Info with Cascaded Dropdowns */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="block font-bold text-[var(--text-primary)] mb-1">
                         {language === "bn" ? "বিভাগ *" : "Division *"}
                       </label>
-                      <input
-                        type="text"
+                      <select
                         required
                         value={addForm.division}
-                        onChange={(e) => setAddForm({ ...addForm, division: e.target.value })}
-                        placeholder="যেমন: Dhaka"
-                        className="w-full px-3 py-2 rounded-xl bg-[var(--bg-main)] border border-[var(--border-subtle)] focus:outline-none"
-                      />
+                        onChange={(e) => {
+                          const newDiv = e.target.value;
+                          const firstDist = DISTRICTS.find((d) => d.division.toLowerCase() === newDiv.toLowerCase()) || DISTRICTS[0];
+                          const firstUpa = firstDist.upazilas[0] || "Sadar";
+                          setAddForm({
+                            ...addForm,
+                            division: newDiv,
+                            district: firstDist.nameEn,
+                            upazila: firstUpa,
+                          });
+                        }}
+                        className="w-full px-3 py-2 rounded-xl bg-[var(--bg-main)] border border-[var(--border-subtle)] focus:outline-none font-bold"
+                      >
+                        {DIVISIONS.map((d) => (
+                          <option key={d.id} value={d.nameEn}>
+                            {language === "bn" ? d.nameBn : d.nameEn}
+                          </option>
+                        ))}
+                      </select>
                     </div>
 
                     <div>
                       <label className="block font-bold text-[var(--text-primary)] mb-1">
                         {language === "bn" ? "জেলা *" : "District *"}
                       </label>
-                      <input
-                        type="text"
+                      <select
                         required
                         value={addForm.district}
-                        onChange={(e) => setAddForm({ ...addForm, district: e.target.value })}
-                        placeholder="যেমন: Dhaka"
-                        className="w-full px-3 py-2 rounded-xl bg-[var(--bg-main)] border border-[var(--border-subtle)] focus:outline-none"
-                      />
+                        onChange={(e) => {
+                          const newDistName = e.target.value;
+                          const distObj = DISTRICTS.find((d) => d.nameEn.toLowerCase() === newDistName.toLowerCase());
+                          const firstUpa = distObj?.upazilas[0] || "Sadar";
+                          setAddForm({
+                            ...addForm,
+                            district: newDistName,
+                            upazila: firstUpa,
+                          });
+                        }}
+                        className="w-full px-3 py-2 rounded-xl bg-[var(--bg-main)] border border-[var(--border-subtle)] focus:outline-none font-bold"
+                      >
+                        {modalDistricts.map((d) => (
+                          <option key={d.id} value={d.nameEn}>
+                            {language === "bn" ? d.nameBn : d.nameEn}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   </div>
 
@@ -799,14 +1005,18 @@ export default function GeoDirectoryPage() {
                       <label className="block font-bold text-[var(--text-primary)] mb-1">
                         {language === "bn" ? "উপজেলা *" : "Upazila *"}
                       </label>
-                      <input
-                        type="text"
+                      <select
                         required
                         value={addForm.upazila}
                         onChange={(e) => setAddForm({ ...addForm, upazila: e.target.value })}
-                        placeholder="যেমন: Dhanmondi"
-                        className="w-full px-3 py-2 rounded-xl bg-[var(--bg-main)] border border-[var(--border-subtle)] focus:outline-none"
-                      />
+                        className="w-full px-3 py-2 rounded-xl bg-[var(--bg-main)] border border-[var(--border-subtle)] focus:outline-none font-bold"
+                      >
+                        {modalUpazilas.map((u) => (
+                          <option key={u} value={u}>
+                            {u}
+                          </option>
+                        ))}
+                      </select>
                     </div>
 
                     <div>
@@ -817,7 +1027,7 @@ export default function GeoDirectoryPage() {
                         type="text"
                         value={addForm.thana}
                         onChange={(e) => setAddForm({ ...addForm, thana: e.target.value })}
-                        placeholder="যেমন: ধানমন্ডি-৩২"
+                        placeholder={language === "bn" ? "যেমন: ধানমন্ডি-৩২" : "e.g. Road 32, Sector 4"}
                         className="w-full px-3 py-2 rounded-xl bg-[var(--bg-main)] border border-[var(--border-subtle)] focus:outline-none"
                       />
                     </div>
@@ -1002,6 +1212,49 @@ export default function GeoDirectoryPage() {
                   </div>
                 </form>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* Modal 3: Privacy Shield Login Gate for Verified Donor Contact */}
+        {loginPromptDonor && (
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+            <div className="bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl animate-in fade-in zoom-in-95 duration-200 text-center">
+              <div className="w-12 h-12 rounded-2xl bg-red-500/10 text-red-600 flex items-center justify-center mx-auto">
+                <ShieldCheck size={26} />
+              </div>
+
+              <div className="space-y-1">
+                <h3 className="text-base font-black text-[var(--text-primary)]">
+                  {language === "bn" ? "নিবন্ধিত রক্তদাতার নম্বর" : "Verified Donor Contact"}
+                </h3>
+                <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
+                  {language === "bn"
+                    ? "রক্তদাতাদের অযাচিত কল ও স্প্যাম থেকে সুরক্ষিত রাখতে সম্পূর্ণ ফোন নম্বর দেখতে অনুগ্রহ করে আপনার অ্যাকাউন্টে সাইন ইন করুন।"
+                    : "To safeguard voluntary donors against unsolicited robocalls and commercial scraping, please sign in to access full contact details."}
+                </p>
+              </div>
+
+              <div className="p-3 rounded-2xl bg-[var(--bg-main)] border border-[var(--border-subtle)] text-xs font-mono font-bold text-[var(--text-muted)]">
+                {loginPromptDonor.name} • {loginPromptDonor.bloodGroup} • {loginPromptDonor.district}
+              </div>
+
+              <div className="flex items-center gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setLoginPromptDonor(null)}
+                  className="flex-1 py-2 rounded-xl border border-[var(--border-subtle)] text-xs font-bold text-[var(--text-secondary)] hover:bg-[var(--bg-main)]"
+                >
+                  {language === "bn" ? "বন্ধ করুন" : "Dismiss"}
+                </button>
+                <Link
+                  href="/auth/login"
+                  className="flex-1 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm"
+                >
+                  <LogIn size={13} />
+                  <span>{language === "bn" ? "লগইন করুন" : "Sign In"}</span>
+                </Link>
+              </div>
             </div>
           </div>
         )}

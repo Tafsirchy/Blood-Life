@@ -12,19 +12,19 @@ export async function GET(
 ) {
   try {
     const { id: donorId } = await params;
-    if (donorId.startsWith("donor-sample-")) {
+    if (donorId.startsWith("donor-sample-") || donorId.startsWith("demo-")) {
       const session = await getValidatedSession();
       if (!session) {
         return NextResponse.json({
           donorId,
-          maskedPhone: "0171••••123",
+          maskedPhone: "01712•••877",
           requiresLogin: true,
           message: "Sign in to access verified emergency contact.",
         });
       }
       return NextResponse.json({
         donorId,
-        phone: "01712-345678",
+        phone: "01712998877",
         message: "Verified Voluntary Donor Contact",
       });
     }

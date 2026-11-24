@@ -10,6 +10,7 @@ export async function GET(req: NextRequest) {
     const bloodGroup = searchParams.get("bloodGroup");
     const division = searchParams.get("division");
     const district = searchParams.get("district");
+    const upazila = searchParams.get("upazila");
     const cursor = searchParams.get("cursor") || undefined;
     const limit = Number(searchParams.get("limit")) || 12;
 
@@ -29,11 +30,15 @@ export async function GET(req: NextRequest) {
     }
 
     if (division && division !== "all") {
-      filter.division = division;
+      filter.division = { $regex: new RegExp(`^${division}$`, "i") };
     }
 
     if (district && district !== "all") {
-      filter.district = district;
+      filter.district = { $regex: new RegExp(`^${district}$`, "i") };
+    }
+
+    if (upazila && upazila !== "all") {
+      filter.upazila = { $regex: new RegExp(`^${upazila}$`, "i") };
     }
 
     const result = await paginateWithCursor(User, filter, {
@@ -130,6 +135,9 @@ export async function GET(req: NextRequest) {
       }
       if (district && district !== "all") {
         filtered = filtered.filter(d => d.district.toLowerCase() === district.toLowerCase());
+      }
+      if (upazila && upazila !== "all") {
+        filtered = filtered.filter(d => d.upazila.toLowerCase() === upazila.toLowerCase());
       }
 
       return NextResponse.json({
