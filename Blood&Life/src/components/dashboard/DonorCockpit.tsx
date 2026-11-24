@@ -667,7 +667,7 @@ export function DonorCockpit() {
       {/* Professional Printable Certificate Modal */}
       {selectedCert && (
         <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
-          <div className="max-w-3xl w-full space-y-4 relative my-auto">
+          <div className="max-w-4xl w-full space-y-4 relative my-auto">
             {/* Modal Controls (Hidden in Print) */}
             <div className="no-print flex items-center justify-between bg-[var(--bg-surface)] p-3 rounded-2xl border border-[var(--border-subtle)] shadow-lg">
               <span className="text-xs font-bold text-[var(--text-secondary)]">

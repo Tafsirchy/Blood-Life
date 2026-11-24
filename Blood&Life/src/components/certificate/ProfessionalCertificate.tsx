@@ -35,7 +35,7 @@ export function ProfessionalCertificate({
     language === "bn" ? "bn-BD" : "en-GB",
     {
       day: "numeric",
-      month: "long",
+      month: "short",
       year: "numeric",
     }
   );
@@ -43,298 +43,188 @@ export function ProfessionalCertificate({
   return (
     <div
       id="printable-cert"
-      className={`relative bg-[#FFFDF9] text-neutral-900 border-[6px] border-double border-[#991B1B] p-6 sm:p-10 shadow-2xl rounded-2xl overflow-hidden print:m-0 print:border-[4px] print:rounded-none print:shadow-none ${className}`}
+      className={`relative w-full max-w-[880px] mx-auto bg-white text-neutral-900 border-2 border-neutral-200 rounded-2xl shadow-xl overflow-hidden p-6 sm:p-9 flex flex-col justify-between print:m-0 print:border-2 print:border-neutral-300 print:rounded-none print:shadow-none ${className}`}
       style={{
-        boxShadow: "0 20px 40px -15px rgba(153, 27, 27, 0.15), 0 0 0 1px rgba(180, 83, 9, 0.25)",
+        aspectRatio: "1.414 / 1", // Standard A4 Landscape (297x210 mm) and US Letter ratio
+        minHeight: "520px",
       }}
     >
-      {/* Decorative Inner Gold Pin-Stripe Border */}
-      <div className="absolute inset-2 sm:inset-3 border border-[#B45309]/40 pointer-events-none rounded-xl" />
-      <div className="absolute inset-3.5 sm:inset-4.5 border border-[#991B1B]/20 pointer-events-none rounded-lg" />
+      {/* Top Modern Accent Gradient Stripe */}
+      <div className="absolute top-0 left-0 right-0 h-1.5 bg-linear-to-r from-red-600 via-rose-500 to-amber-500 pointer-events-none" />
 
-      {/* Classical Certificate Corner Ornaments (SVG) */}
-      {/* Top-Left Corner */}
-      <svg
-        className="absolute top-4 left-4 w-12 h-12 text-[#B45309] pointer-events-none opacity-85"
-        viewBox="0 0 100 100"
-        fill="none"
-        stroke="currentColor"
-      >
-        <path d="M 0,0 L 45,0 C 25,5 15,15 15,35 L 15,100" strokeWidth="2.5" />
-        <path d="M 0,0 L 0,45 C 5,25 15,15 35,15 L 100,15" strokeWidth="2.5" />
-        <circle cx="15" cy="15" r="4" fill="currentColor" />
-        <path d="M 28,28 C 36,20 45,20 52,28 C 60,36 60,45 52,52 C 45,60 36,60 28,52 Z" strokeWidth="1.5" />
-      </svg>
+      {/* Modern Sleek Minimalist Corner Accents */}
+      <div className="absolute top-3 left-3 w-4 h-4 border-t-2 border-l-2 border-red-500/40 pointer-events-none" />
+      <div className="absolute top-3 right-3 w-4 h-4 border-t-2 border-r-2 border-red-500/40 pointer-events-none" />
+      <div className="absolute bottom-3 left-3 w-4 h-4 border-b-2 border-l-2 border-red-500/40 pointer-events-none" />
+      <div className="absolute bottom-3 right-3 w-4 h-4 border-b-2 border-r-2 border-red-500/40 pointer-events-none" />
 
-      {/* Top-Right Corner */}
-      <svg
-        className="absolute top-4 right-4 w-12 h-12 text-[#B45309] pointer-events-none opacity-85 scale-x-[-1]"
-        viewBox="0 0 100 100"
-        fill="none"
-        stroke="currentColor"
-      >
-        <path d="M 0,0 L 45,0 C 25,5 15,15 15,35 L 15,100" strokeWidth="2.5" />
-        <path d="M 0,0 L 0,45 C 5,25 15,15 35,15 L 100,15" strokeWidth="2.5" />
-        <circle cx="15" cy="15" r="4" fill="currentColor" />
-        <path d="M 28,28 C 36,20 45,20 52,28 C 60,36 60,45 52,52 C 45,60 36,60 28,52 Z" strokeWidth="1.5" />
-      </svg>
-
-      {/* Bottom-Left Corner */}
-      <svg
-        className="absolute bottom-4 left-4 w-12 h-12 text-[#B45309] pointer-events-none opacity-85 scale-y-[-1]"
-        viewBox="0 0 100 100"
-        fill="none"
-        stroke="currentColor"
-      >
-        <path d="M 0,0 L 45,0 C 25,5 15,15 15,35 L 15,100" strokeWidth="2.5" />
-        <path d="M 0,0 L 0,45 C 5,25 15,15 35,15 L 100,15" strokeWidth="2.5" />
-        <circle cx="15" cy="15" r="4" fill="currentColor" />
-        <path d="M 28,28 C 36,20 45,20 52,28 C 60,36 60,45 52,52 C 45,60 36,60 28,52 Z" strokeWidth="1.5" />
-      </svg>
-
-      {/* Bottom-Right Corner */}
-      <svg
-        className="absolute bottom-4 right-4 w-12 h-12 text-[#B45309] pointer-events-none opacity-85 scale-[-1]"
-        viewBox="0 0 100 100"
-        fill="none"
-        stroke="currentColor"
-      >
-        <path d="M 0,0 L 45,0 C 25,5 15,15 15,35 L 15,100" strokeWidth="2.5" />
-        <path d="M 0,0 L 0,45 C 5,25 15,15 35,15 L 100,15" strokeWidth="2.5" />
-        <circle cx="15" cy="15" r="4" fill="currentColor" />
-        <path d="M 28,28 C 36,20 45,20 52,28 C 60,36 60,45 52,52 C 45,60 36,60 28,52 Z" strokeWidth="1.5" />
-      </svg>
-
-      {/* Faint Guilloche Background Watermark */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.035]">
-        <svg viewBox="0 0 400 400" className="w-[380px] h-[380px] text-neutral-900" fill="none" stroke="currentColor">
-          <circle cx="200" cy="200" r="180" strokeWidth="2" strokeDasharray="6 4" />
-          <circle cx="200" cy="200" r="150" strokeWidth="1.5" />
-          <circle cx="200" cy="200" r="120" strokeWidth="2" strokeDasharray="3 3" />
-          <circle cx="200" cy="200" r="90" strokeWidth="1" />
-          <path
-            d="M 200,60 C 230,130 270,170 270,220 C 270,265 238,295 200,295 C 162,295 130,265 130,220 C 130,170 170,130 200,60 Z"
-            strokeWidth="3"
-          />
+      {/* Faint Modern Geometric Background Watermark */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.025]">
+        <svg viewBox="0 0 200 200" className="w-[340px] h-[340px] text-neutral-900" fill="none" stroke="currentColor">
+          <circle cx="100" cy="100" r="90" strokeWidth="1" strokeDasharray="4 4" />
+          <circle cx="100" cy="100" r="75" strokeWidth="1.5" />
+          <path d="M 100,30 C 115,70 140,95 140,120 C 140,145 120,165 100,165 C 80,165 60,145 60,120 C 60,95 85,70 100,30 Z" strokeWidth="2" />
         </svg>
       </div>
 
-      {/* Certificate Content Body */}
-      <div className="relative z-10 text-center space-y-4 sm:space-y-5">
-        {/* Institutional Top Brand Header */}
-        <div className="flex flex-col items-center justify-center space-y-1.5">
+      {/* Top Header: Logo + Registry Status */}
+      <div className="relative z-10 flex items-center justify-between pb-3 border-b border-neutral-100">
+        <div className="flex items-center gap-3">
           <img
             src="/logo.png"
             alt="Blood&Life"
-            className="h-9 sm:h-11 w-auto object-contain mx-auto"
+            className="h-8 sm:h-9 w-auto object-contain"
           />
-          <div className="text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.22em] text-[#991B1B]">
-            CENTRAL BLOOD DISPATCH & TRANSFUSION REGISTRY • BANGLADESH
-          </div>
-          <div className="text-[9px] font-mono tracking-widest text-neutral-500 uppercase">
-            EST. 2026 • OFFICIAL RECOGNITION DIVISION • VERIFIED RECORD
+          <div className="border-l border-neutral-200 pl-3 hidden sm:block">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-500 block leading-tight">
+              NATIONAL BLOOD DISPATCH PLATFORM
+            </span>
+            <span className="text-[9px] font-mono text-neutral-400 block">
+              EST. 2026 • VOLUNTARY LIFE SAVER REGISTRY
+            </span>
           </div>
         </div>
 
-        {/* Decorative Golden Ribbon Badge */}
-        <div className="inline-flex items-center gap-3 px-5 py-1 rounded-full bg-[#FEF3C7] border border-[#B45309]/40 text-[#92400E] text-[10px] sm:text-[11px] font-black uppercase tracking-[0.18em]">
-          <span>★</span>
-          <span>
-            {language === "bn"
-              ? data.tierTitleBn || "স্বেচ্ছায় রক্তদান সম্মাননা ও স্বীকৃতি"
-              : data.tierTitleEn || "NATIONAL RECOGNITION FOR VOLUNTARY TRANSFUSION"}
+        <div className="text-right">
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold uppercase tracking-wider">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse" />
+            <span>{language === "bn" ? "ভেরিফাইড রেকর্ড" : "VERIFIED RECORD"}</span>
           </span>
-          <span>★</span>
+          <span className="font-mono text-[10px] font-bold text-neutral-400 block mt-0.5">
+            #{data.certificateId}
+          </span>
         </div>
+      </div>
 
-        {/* Certificate Title Header */}
-        <div className="space-y-1">
-          <h1 className="text-2xl sm:text-4xl font-serif font-black text-neutral-900 tracking-tight leading-tight">
-            {language === "bn"
-              ? "সম্মাননা ও কৃতজ্ঞতা সনদ"
-              : "CERTIFICATE OF APPRECIATION"}
-          </h1>
-          <p className="text-xs sm:text-sm font-serif italic text-neutral-600">
-            {language === "bn"
-              ? "মানবতার কল্যাণে নিঃস্বার্থ রক্তদানের জন্য প্রদত্ত"
-              : "Presented in grateful recognition of voluntary, unremunerated blood donation"}
-          </p>
-        </div>
-
-        {/* Formal Preamble */}
-        <div className="max-w-xl mx-auto text-xs text-neutral-600 font-serif leading-relaxed">
+      {/* Center Body: Modern Typographic Presentation */}
+      <div className="relative z-10 my-auto text-center space-y-3 sm:space-y-4 py-2 sm:py-3">
+        {/* Modern Eyebrow */}
+        <div className="inline-block text-[10px] sm:text-[11px] font-black uppercase tracking-[0.22em] text-red-600 bg-red-50 border border-red-200/60 px-3.5 py-0.5 rounded-full">
           {language === "bn"
-            ? "অত্যন্ত শ্রদ্ধা ও আন্তরিক কৃতজ্ঞতার সাথে এই মর্মে প্রত্যয়ন করা যাচ্ছে যে,"
-            : "This is to certify with profound gratitude and highest civic honor that,"}
+            ? data.tierTitleBn || "স্বেচ্ছায় রক্তদান সম্মাননা ও স্বীকৃতি"
+            : data.tierTitleEn || "NATIONAL CITATION OF HUMANITARIAN HONOR"}
         </div>
 
-        {/* Honoree / Recipient Name */}
-        <div className="py-2.5 sm:py-3 border-y-2 border-[#B45309]/30 max-w-2xl mx-auto my-2">
-          <h2 className="text-2xl sm:text-4xl font-serif font-black text-[#991B1B] tracking-wide uppercase">
-            {data.donorName}
-          </h2>
-          <div className="text-xs sm:text-sm font-serif text-neutral-700 mt-1 font-semibold">
-            {language === "bn" ? "রক্তের গ্রুপ: " : "Blood Group: "}
-            <span className="font-sans font-black text-[#991B1B] text-base px-2 py-0.5 rounded bg-red-50 border border-red-200 inline-block ml-1">
-              {data.bloodGroup}
-            </span>
-            <span className="mx-2 text-neutral-400">|</span>
-            <span>
-              {language === "bn"
-                ? `পরিমাণ: ${data.units || 1} ব্যাগ (৪৫০ মি.লি.)`
-                : `Volume: ${data.units || 1} Unit (450 ml)`}
-            </span>
-          </div>
-        </div>
-
-        {/* Formal Citation Text */}
-        <p className="max-w-2xl mx-auto text-xs sm:text-sm font-serif text-neutral-700 leading-relaxed italic px-4">
+        {/* Title */}
+        <h1 className="text-2xl sm:text-4xl font-black text-neutral-900 tracking-tight leading-tight uppercase">
           {language === "bn"
-            ? data.citationBn ||
-              "কোনো প্রকার আর্থিক বিনিময় ব্যতীত সম্পূর্ণ নিঃস্বার্থভাবে মুমূর্ষু রোগীর জীবন রক্ষার্থে স্বেচ্ছায় রক্তদান সম্পন্ন করে মানবিক সংহতি ও মানবতার এক অনন্য উজ্জ্বল দৃষ্টান্ত স্থাপন করেছেন। তাঁর এই অবদান জাতির নিকট চিরস্মরণীয়।"
-            : data.citationEn ||
-              "Has selflessly completed a voluntary, unremunerated blood donation to save the life of an emergency patient, demonstrating exceptional civic virtue, compassion, and the highest ideals of humanitarian service."}
+            ? "স্বেচ্ছায় রক্তদান সম্মাননা সনদ"
+            : "CERTIFICATE OF APPRECIATION"}
+        </h1>
+
+        {/* Preamble */}
+        <p className="text-xs text-neutral-500 font-medium max-w-lg mx-auto">
+          {language === "bn"
+            ? "মানবতার কল্যাণে নিঃস্বার্থভাবে রক্তদান করার অনন্য অবদানের স্বীকৃতিস্বরূপ এই সনদ প্রদান করা হলো"
+            : "Presented with highest gratitude and civic honor to voluntary blood donor"}
         </p>
 
-        {/* Archival Clinical Details Box (Strict, clean, institutional layout) */}
-        <div className="max-w-2xl mx-auto bg-amber-50/40 rounded-xl border border-[#B45309]/30 p-3 sm:p-4 text-xs font-serif text-neutral-800">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left">
-            <div>
-              <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-neutral-500 block">
-                {language === "bn" ? "হাসপাতাল ও চিকিৎসা কেন্দ্র:" : "Hospital / Medical Center:"}
-              </span>
-              <span className="font-bold text-neutral-900 block text-xs sm:text-sm">
-                {data.hospital}
-                {data.district ? `, ${data.district}` : ""}
-              </span>
-            </div>
-
-            <div className="sm:text-right">
-              <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-neutral-500 block">
-                {language === "bn" ? "রক্তদানের তারিখ ও রেজিস্ট্রি কোড:" : "Transfusion Date & Record ID:"}
-              </span>
-              <span className="font-mono font-bold text-neutral-900 block text-xs">
-                {formattedDate} • #{data.certificateId}
-              </span>
-            </div>
-          </div>
-
-          {/* Validation note */}
-          {data.recipientVerified && (
-            <div className="mt-2.5 pt-2 border-t border-[#B45309]/20 text-[11px] text-neutral-600 flex items-center justify-between">
-              <span className="font-sans font-semibold text-emerald-800">
-                ✓ {language === "bn" ? "গ্রহীতা পরিবার ও হাসপাতাল কর্তৃক ডিজিটাল ভেরিফাইড" : "Digitally Verified by Recipient Family & Hospital Desk"}
-              </span>
-              <span className="font-mono text-[10px] text-neutral-500 uppercase">
-                Status: AUTHENTICATED
-              </span>
-            </div>
-          )}
+        {/* Donor Name Display */}
+        <div className="py-1">
+          <h2 className="text-2xl sm:text-4xl font-black text-red-600 tracking-wide uppercase">
+            {data.donorName}
+          </h2>
+          <div className="w-16 h-0.5 bg-red-500/40 mx-auto mt-2 rounded-full" />
         </div>
 
-        {/* Bottom Section: Formal Signatures & Golden Seal */}
-        <div className="pt-6 sm:pt-8 grid grid-cols-3 items-end gap-2 sm:gap-4 max-w-2xl mx-auto">
-          {/* Left Signature: Medical Officer */}
-          <div className="text-center space-y-1">
-            <div className="h-10 flex items-center justify-center">
-              <svg className="w-28 h-8 text-neutral-800" viewBox="0 0 120 35">
-                <path
-                  d="M 5,25 Q 25,5 40,20 T 70,12 T 95,26 T 115,15"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                />
-              </svg>
-            </div>
-            <div className="w-32 sm:w-40 mx-auto border-t border-neutral-700" />
-            <span className="font-serif font-bold text-[11px] sm:text-xs text-neutral-900 block">
-              Dr. S. K. Haque, FCPS
+        {/* Citation text */}
+        <p className="max-w-xl mx-auto text-xs sm:text-sm text-neutral-600 leading-relaxed font-normal px-2">
+          {language === "bn"
+            ? data.citationBn ||
+              "কোনো প্রকার পারিশ্রমিক ব্যতীত সম্পূর্ণ নিঃস্বার্থভাবে মুমূর্ষু রোগীর জীবন রক্ষার্থে স্বেচ্ছায় রক্তদান সম্পন্ন করে মানবতার উজ্জ্বল দৃষ্টান্ত স্থাপন করেছেন।"
+            : data.citationEn ||
+              "For voluntarily donating life-saving blood without remuneration, demonstrating exceptional civic virtue, empathy, and humanity in preservation of human life."}
+        </p>
+
+        {/* Modern 4-Column Clean Metrics Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 max-w-2xl mx-auto bg-neutral-50 rounded-xl p-2.5 sm:p-3 border border-neutral-200 text-left text-xs">
+          <div>
+            <span className="text-[9px] uppercase tracking-wider text-neutral-400 font-bold block">
+              {language === "bn" ? "রক্তের গ্রুপ" : "BLOOD GROUP"}
             </span>
-            <span className="text-[9px] font-sans text-neutral-500 block leading-tight">
-              {language === "bn" ? "প্রধান চিকিৎসা কর্মকর্তা (রক্ত পরিসঞ্চালন)" : "Chief Medical Officer (Transfusion)"}
+            <span className="font-black text-red-600 text-sm block">
+              {data.bloodGroup}
             </span>
           </div>
 
-          {/* Center: Official Golden Embossed Seal of Authenticity */}
-          <div className="flex flex-col items-center justify-center">
-            <div className="relative flex items-center justify-center">
-              {/* Gold Ribbon Tails behind seal */}
-              <div className="absolute top-10 flex gap-1 pointer-events-none">
-                <div
-                  className="w-4 h-9 bg-linear-to-b from-[#B45309] to-[#78350F]"
-                  style={{ clipPath: "polygon(0 0, 100% 0, 100% 100%, 50% 80%, 0 100%)" }}
-                />
-                <div
-                  className="w-4 h-9 bg-linear-to-b from-[#991B1B] to-[#5A0E0E]"
-                  style={{ clipPath: "polygon(0 0, 100% 0, 100% 100%, 50% 80%, 0 100%)" }}
-                />
-              </div>
-
-              {/* Medallion Badge */}
-              <div
-                className="w-20 h-20 sm:w-22 sm:h-22 rounded-full relative z-10 p-1 flex items-center justify-center shadow-lg"
-                style={{
-                  background: "radial-gradient(circle, #FDE68A 0%, #D97706 60%, #92400E 100%)",
-                  boxShadow: "0 4px 14px rgba(180, 83, 9, 0.4), inset 0 0 4px rgba(255, 255, 255, 0.8)",
-                }}
-              >
-                {/* Inner Serrated Ring */}
-                <div className="w-full h-full rounded-full border-2 border-dashed border-[#78350F] flex flex-col items-center justify-center p-1 text-center">
-                  <div className="text-[7px] font-black uppercase tracking-widest text-[#78350F] leading-tight">
-                    BLOOD&LIFE
-                  </div>
-                  <div className="text-xs font-black text-[#5A0E0E] my-0.5">
-                    ★ SEAL ★
-                  </div>
-                  <div className="text-[6px] font-black uppercase tracking-wider text-[#78350F] leading-tight">
-                    OFFICIAL MERIT
-                  </div>
-                  <div className="text-[6px] font-mono text-[#991B1B] font-bold">
-                    2026
-                  </div>
-                </div>
-              </div>
-            </div>
-            <span className="text-[8px] font-mono uppercase tracking-widest text-neutral-500 mt-5 block">
-              AUTHENTIC SEAL
+          <div>
+            <span className="text-[9px] uppercase tracking-wider text-neutral-400 font-bold block">
+              {language === "bn" ? "রক্তের পরিমাণ" : "UNITS / VOL"}
+            </span>
+            <span className="font-bold text-neutral-800 text-xs sm:text-sm block">
+              {data.units || 1} {language === "bn" ? "ব্যাগ (৪৫০ মি.লি.)" : "Bag (450 ml)"}
             </span>
           </div>
 
-          {/* Right Signature: Operations Director & QR Hash */}
-          <div className="text-center space-y-1">
-            <div className="h-10 flex items-center justify-center">
-              <svg className="w-28 h-8 text-neutral-800" viewBox="0 0 120 35">
-                <path
-                  d="M 10,20 Q 30,28 45,10 T 75,24 T 100,10 T 115,22"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                />
-              </svg>
+          <div>
+            <span className="text-[9px] uppercase tracking-wider text-neutral-400 font-bold block">
+              {language === "bn" ? "হাসপাতাল" : "HOSPITAL"}
+            </span>
+            <span className="font-bold text-neutral-800 text-xs sm:text-sm truncate block" title={data.hospital}>
+              {data.hospital}
+            </span>
+          </div>
+
+          <div className="sm:text-right">
+            <span className="text-[9px] uppercase tracking-wider text-neutral-400 font-bold block">
+              {language === "bn" ? "রক্তদানের তারিখ" : "DATE ISSUED"}
+            </span>
+            <span className="font-mono font-bold text-neutral-800 text-xs block">
+              {formattedDate}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Modern Executive Footer: Signatures & Minimalist Seal */}
+      <div className="relative z-10 pt-3 border-t border-neutral-100 flex items-end justify-between gap-4 text-xs">
+        {/* Left: Medical Officer */}
+        <div className="text-left space-y-0.5">
+          <div className="h-7 flex items-center">
+            <span className="font-serif italic font-bold text-neutral-800 text-sm sm:text-base">
+              Dr. S. K. Haque
+            </span>
+          </div>
+          <div className="w-28 sm:w-36 border-t border-neutral-300" />
+          <span className="font-bold text-[10px] text-neutral-800 block">
+            Dr. S. K. Haque, FCPS
+          </span>
+          <span className="text-[9px] text-neutral-400 block">
+            {language === "bn" ? "প্রধান চিকিৎসা কর্মকর্তা" : "Chief Medical Officer"}
+          </span>
+        </div>
+
+        {/* Center: Sleek Minimalist Stamp Seal */}
+        <div className="flex flex-col items-center justify-center">
+          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full border-2 border-red-600/70 p-0.5 flex items-center justify-center relative shadow-xs">
+            <div className="w-full h-full rounded-full border border-dashed border-red-500/50 flex flex-col items-center justify-center text-center p-1 bg-red-50/40">
+              <span className="text-[6px] font-black uppercase tracking-widest text-red-600 leading-tight">
+                BLOOD&LIFE
+              </span>
+              <span className="text-[8px] font-black text-neutral-900 leading-none my-0.5">
+                ★ 2026 ★
+              </span>
+              <span className="text-[5.5px] font-bold uppercase tracking-wider text-neutral-500 leading-tight">
+                AUTHENTIC
+              </span>
             </div>
-            <div className="w-32 sm:w-40 mx-auto border-t border-neutral-700" />
-            <span className="font-serif font-bold text-[11px] sm:text-xs text-neutral-900 block">
+          </div>
+        </div>
+
+        {/* Right: National Registrar */}
+        <div className="text-right space-y-0.5">
+          <div className="h-7 flex items-center justify-end">
+            <span className="font-serif italic font-bold text-neutral-800 text-sm sm:text-base">
               Tafsirul Islam
             </span>
-            <span className="text-[9px] font-sans text-neutral-500 block leading-tight">
-              {language === "bn" ? "পরিচালক, ন্যাশনাল ব্লাড রেজিস্ট্রি" : "Director, National Blood Registry"}
-            </span>
           </div>
-        </div>
-
-        {/* Security Footer Note */}
-        <div className="pt-4 border-t border-neutral-300 flex items-center justify-between text-[9px] font-mono text-neutral-500">
-          <div>
-            REGISTRY REFERENCE: BL-DOC-{data.certificateId}
-          </div>
-          <div className="hidden sm:block">
-            SECURITY HASH: SHA-256 CLINICAL VERIFICATION
-          </div>
-          <div>
-            BLOODANDLIFE.COM
-          </div>
+          <div className="w-28 sm:w-36 ml-auto border-t border-neutral-300" />
+          <span className="font-bold text-[10px] text-neutral-800 block">
+            Tafsirul Islam
+          </span>
+          <span className="text-[9px] text-neutral-400 block">
+            {language === "bn" ? "পরিচালক, ন্যাশনাল রেজিস্ট্রি" : "Director, National Registry"}
+          </span>
         </div>
       </div>
     </div>

@@ -134,18 +134,20 @@ body {
   animation-play-state: paused;
 }
 
-/* Official Certificate Print Layout */
+/* Official Certificate Print Layout - Universal A4 Landscape (297x210mm) & US Letter (11x8.5in) */
 @media print {
   @page {
-    size: A4 portrait;
+    size: A4 landscape;
     margin: 8mm;
   }
 
-  body {
+  html, body {
     background: #ffffff !important;
     color: #000000 !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
 
   /* Hide navigation, footers, action buttons and modal chrome */
@@ -156,14 +158,19 @@ body {
   }
 
   #printable-cert {
+    position: relative !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    aspect-ratio: 1.414 / 1 !important;
     box-shadow: none !important;
     margin: 0 auto !important;
-    max-width: 100% !important;
-    border-width: 4px !important;
-    background: #FFFDF9 !important;
+    border: 2px solid #d1d5db !important;
+    background: #ffffff !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
-    page-break-inside: avoid;
+    page-break-inside: avoid !important;
+    page-break-after: avoid !important;
   }
 }
 
