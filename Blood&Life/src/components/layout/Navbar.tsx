@@ -52,6 +52,42 @@ export function Navbar({ onOpenSos }: NavbarProps) {
   );
   const dropdownRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const dropdownTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const userMenuTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleDropdownEnter = () => {
+    if (dropdownTimeoutRef.current) {
+      clearTimeout(dropdownTimeoutRef.current);
+      dropdownTimeoutRef.current = null;
+    }
+    setDropdownOpen(true);
+  };
+
+  const handleDropdownLeave = () => {
+    if (dropdownTimeoutRef.current) {
+      clearTimeout(dropdownTimeoutRef.current);
+    }
+    dropdownTimeoutRef.current = setTimeout(() => {
+      setDropdownOpen(false);
+    }, 150);
+  };
+
+  const handleUserMenuEnter = () => {
+    if (userMenuTimeoutRef.current) {
+      clearTimeout(userMenuTimeoutRef.current);
+      userMenuTimeoutRef.current = null;
+    }
+    setUserMenuOpen(true);
+  };
+
+  const handleUserMenuLeave = () => {
+    if (userMenuTimeoutRef.current) {
+      clearTimeout(userMenuTimeoutRef.current);
+    }
+    userMenuTimeoutRef.current = setTimeout(() => {
+      setUserMenuOpen(false);
+    }, 150);
+  };
 
   // Close menus when pathname changes
   useEffect(() => {
@@ -59,6 +95,14 @@ export function Navbar({ onOpenSos }: NavbarProps) {
     setUserMenuOpen(false);
     setMobileOpen(false);
   }, [pathname]);
+
+  // Cleanup hover timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (dropdownTimeoutRef.current) clearTimeout(dropdownTimeoutRef.current);
+      if (userMenuTimeoutRef.current) clearTimeout(userMenuTimeoutRef.current);
+    };
+  }, []);
 
   // Synchronize authenticated user state
   useEffect(() => {
@@ -242,7 +286,12 @@ export function Navbar({ onOpenSos }: NavbarProps) {
           </Link>
 
           {/* About Us Interactive Dropdown */}
-          <div className="relative" ref={dropdownRef}>
+          <div
+            className="relative"
+            ref={dropdownRef}
+            onMouseEnter={handleDropdownEnter}
+            onMouseLeave={handleDropdownLeave}
+          >
             <button
               type="button"
               onClick={() => setDropdownOpen(!dropdownOpen)}
@@ -261,7 +310,7 @@ export function Navbar({ onOpenSos }: NavbarProps) {
             </button>
 
             {dropdownOpen && (
-              <div className="absolute left-0 mt-1.5 w-64 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] shadow-xl p-1.5 z-50 animate-in fade-in slide-in-from-top-1 space-y-0.5">
+              <div className="absolute left-0 mt-1.5 w-64 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] shadow-xl p-1.5 z-50 animate-in fade-in slide-in-from-top-1 space-y-0.5 before:content-[''] before:absolute before:-top-2 before:left-0 before:right-0 before:h-2">
                 <Link
                   href="/hospitals"
                   onClick={() => setDropdownOpen(false)}
@@ -398,7 +447,12 @@ export function Navbar({ onOpenSos }: NavbarProps) {
           {!mounted ? (
             <div className="hidden sm:block w-20 h-7" suppressHydrationWarning />
           ) : currentUser ? (
-            <div className="relative hidden sm:block" ref={userMenuRef}>
+            <div
+              className="relative hidden sm:block"
+              ref={userMenuRef}
+              onMouseEnter={handleUserMenuEnter}
+              onMouseLeave={handleUserMenuLeave}
+            >
               <button
                 type="button"
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
@@ -424,7 +478,7 @@ export function Navbar({ onOpenSos }: NavbarProps) {
 
               {/* Profile Dropdown Menu */}
               {userMenuOpen && (
-                <div className="absolute right-0 mt-2 w-64 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] shadow-2xl p-2 z-50 animate-in fade-in slide-in-from-top-1 space-y-1">
+                <div className="absolute right-0 mt-2 w-64 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] shadow-2xl p-2 z-50 animate-in fade-in slide-in-from-top-1 space-y-1 before:content-[''] before:absolute before:-top-2.5 before:left-0 before:right-0 before:h-2.5">
                   {/* User Info Header */}
                   <div className="px-3 py-2.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-subtle)]/60">
                     <div className="flex items-center gap-2">
