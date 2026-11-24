@@ -22,6 +22,7 @@ import {
   Sparkles,
   MapPin,
   Building2,
+  Hospital,
   Settings,
 } from "lucide-react";
 import Link from "next/link";
@@ -207,121 +208,121 @@ export function Navbar({ onOpenSos }: NavbarProps) {
             </button>
 
             {dropdownOpen && (
-              <div className="absolute left-0 mt-1.5 w-52 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] shadow-xl py-1.5 z-50 animate-in fade-in slide-in-from-top-1">
+              <div className="absolute left-0 mt-1.5 w-64 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] shadow-xl p-1.5 z-50 animate-in fade-in slide-in-from-top-1 space-y-0.5">
                 <Link
                   href="/hospitals"
                   onClick={() => setDropdownOpen(false)}
-                  className={`flex items-center gap-2 px-3 py-2 text-xs transition-colors ${
+                  className={`flex items-center gap-2.5 px-3 py-2 text-xs rounded-xl transition-colors ${
                     pathname === "/hospitals"
                       ? "bg-red-500/10 text-red-500 font-bold"
                       : "text-[var(--text-primary)] hover:bg-[var(--bg-main)]"
                   }`}
                 >
-                  <Building2 size={14} className="text-red-500" />
+                  <Hospital size={16} className="text-red-500 shrink-0" />
                   <span>{language === "bn" ? "হাসপাতাল রক্তের চাহিদা ও শিডিউল" : "Hospital Demand & Schedules"}</span>
                 </Link>
 
                 <Link
                   href="/directory"
                   onClick={() => setDropdownOpen(false)}
-                  className={`flex items-center gap-2 px-3 py-2 text-xs transition-colors ${
+                  className={`flex items-center gap-2.5 px-3 py-2 text-xs rounded-xl transition-colors ${
                     pathname === "/directory"
                       ? "bg-red-500/10 text-red-500 font-bold"
                       : "text-[var(--text-primary)] hover:bg-[var(--bg-main)]"
                   }`}
                 >
-                  <MapPin size={14} className="text-blue-500" />
+                  <MapPin size={16} className="text-blue-500 shrink-0" />
                   <span>{language === "bn" ? "৪-স্তরের রক্তদাতা ডিরেক্টরি" : "Geo-Donor Directory"}</span>
                 </Link>
 
                 <Link
                   href="/fraud-shield"
                   onClick={() => setDropdownOpen(false)}
-                  className={`flex items-center gap-2 px-3 py-2 text-xs transition-colors ${
+                  className={`flex items-center gap-2.5 px-3 py-2 text-xs rounded-xl transition-colors ${
                     pathname === "/fraud-shield"
                       ? "bg-red-500/10 text-red-500 font-bold"
                       : "text-[var(--text-primary)] hover:bg-[var(--bg-main)]"
                   }`}
                 >
-                  <ShieldAlert size={14} className="text-amber-500" />
+                  <ShieldAlert size={16} className="text-amber-500 shrink-0" />
                   <span>{language === "bn" ? "প্রতারক ও দালাল ব্ল্যাকলিস্ট" : "Fraud Donor Blacklist"}</span>
                 </Link>
 
                 <Link
                   href="/clinical-shield"
                   onClick={() => setDropdownOpen(false)}
-                  className={`flex items-center gap-2 px-3 py-2 text-xs transition-colors ${
+                  className={`flex items-center gap-2.5 px-3 py-2 text-xs rounded-xl transition-colors ${
                     pathname === "/clinical-shield"
                       ? "bg-red-500/10 text-red-500 font-bold"
                       : "text-[var(--text-primary)] hover:bg-[var(--bg-main)]"
                   }`}
                 >
-                  <ShieldAlert size={14} className="text-red-500" />
+                  <ShieldAlert size={16} className="text-red-500 shrink-0" />
                   <span>{language === "bn" ? "রোগ ও রক্তের উপাদান শিল্ড" : "Clinical Disease Shield"}</span>
                 </Link>
 
                 <Link
                   href="/blood-info"
                   onClick={() => setDropdownOpen(false)}
-                  className={`flex items-center gap-2 px-3 py-2 text-xs transition-colors ${
+                  className={`flex items-center gap-2.5 px-3 py-2 text-xs rounded-xl transition-colors ${
                     pathname === "/blood-info"
                       ? "bg-red-500/10 text-red-500 font-bold"
                       : "text-[var(--text-primary)] hover:bg-[var(--bg-main)]"
                   }`}
                 >
-                  <Droplet size={14} className="text-red-500" />
+                  <Droplet size={16} className="text-red-500 shrink-0" />
                   <span>{language === "bn" ? "রক্তের তথ্য ও ম্যাচিং" : "Blood Info & Matching"}</span>
                 </Link>
 
                 <Link
                   href="/about"
                   onClick={() => setDropdownOpen(false)}
-                  className={`flex items-center gap-2 px-3 py-2 text-xs transition-colors ${
+                  className={`flex items-center gap-2.5 px-3 py-2 text-xs rounded-xl transition-colors ${
                     pathname === "/about"
                       ? "bg-red-500/10 text-red-500 font-bold"
                       : "text-[var(--text-primary)] hover:bg-[var(--bg-main)]"
                   }`}
                 >
-                  <Info size={14} className="text-red-500" />
+                  <Info size={16} className="text-red-500 shrink-0" />
                   <span>{language === "bn" ? "আমাদের কথা" : "Who We Are"}</span>
                 </Link>
 
                 <Link
                   href="/funding"
                   onClick={() => setDropdownOpen(false)}
-                  className={`flex items-center gap-2 px-3 py-2 text-xs transition-colors ${
+                  className={`flex items-center gap-2.5 px-3 py-2 text-xs rounded-xl transition-colors ${
                     pathname === "/funding"
                       ? "bg-red-500/10 text-red-500 font-bold"
                       : "text-[var(--text-primary)] hover:bg-[var(--bg-main)]"
                   }`}
                 >
-                  <DollarSign size={14} className="text-emerald-500" />
+                  <DollarSign size={16} className="text-emerald-500 shrink-0" />
                   <span>{language === "bn" ? "কমিউনিটি ফান্ড ও লেজার" : "Community Life Fund"}</span>
                 </Link>
 
                 <Link
                   href="/privacy"
                   onClick={() => setDropdownOpen(false)}
-                  className={`flex items-center gap-2 px-3 py-2 text-xs transition-colors ${
+                  className={`flex items-center gap-2.5 px-3 py-2 text-xs rounded-xl transition-colors ${
                     pathname === "/privacy"
                       ? "bg-red-500/10 text-red-500 font-bold"
                       : "text-[var(--text-primary)] hover:bg-[var(--bg-main)]"
                   }`}
                 >
-                  <Lock size={14} className="text-amber-500" />
+                  <Lock size={16} className="text-amber-500 shrink-0" />
                   <span>{language === "bn" ? "ডোনার প্রাইভেসি শিল্ড" : "Privacy Shield"}</span>
                 </Link>
 
                 <Link
                   href="/terms"
                   onClick={() => setDropdownOpen(false)}
-                  className={`flex items-center gap-2 px-3 py-2 text-xs transition-colors ${
+                  className={`flex items-center gap-2.5 px-3 py-2 text-xs rounded-xl transition-colors ${
                     pathname === "/terms"
                       ? "bg-red-500/10 text-red-500 font-bold"
                       : "text-[var(--text-primary)] hover:bg-[var(--bg-main)]"
                   }`}
                 >
-                  <FileText size={14} className="text-blue-500" />
+                  <FileText size={16} className="text-blue-500 shrink-0" />
                   <span>{language === "bn" ? "শর্তাবলী ও আচরণবিধি" : "Terms & Guidelines"}</span>
                 </Link>
               </div>
