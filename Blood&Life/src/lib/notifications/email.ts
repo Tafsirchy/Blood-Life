@@ -51,8 +51,13 @@ export async function sendTransactionalEmail({ to, subject, html, text, replyTo 
 
     if (!response.ok) {
       const err = await response.text();
-      console.error("Resend API delivery failed:", err);
-      return { success: false, error: err };
+      const isSandboxRestricted = err.includes("only send testing emails to your own email address") || err.includes("403");
+      if (isSandboxRestricted) {
+        console.warn(`\n[Resend Sandbox Warning]: Resend test account restricts delivery exclusively to the account owner (useproxynow@gmail.com). Recipients like "${recipients.join(", ")}" require a verified domain at resend.com/domains.`);
+      } else {
+        console.error("Resend API delivery failed:", err);
+      }
+      return { success: false, error: err, isSandboxRestricted };
     }
 
     const data = await response.json();

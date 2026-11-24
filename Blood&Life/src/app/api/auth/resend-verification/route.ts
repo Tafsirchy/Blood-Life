@@ -59,11 +59,28 @@ export async function POST(req: NextRequest) {
         verificationUrl,
       });
 
-      await sendTransactionalEmail({
+      const emailResult = await sendTransactionalEmail({
         to: user.email,
         subject: `✉️ নতুন ভেরিফিকেশন কোড: ${code} (New Verification Code) — BLOOD&LIFE`,
         html: emailContent.html,
         text: emailContent.text,
+      });
+
+      console.log(`\n======================================================`);
+      console.log(`✉️ RESENT VERIFICATION OTP`);
+      console.log(`👤 User: ${user.name} <${user.email}>`);
+      console.log(`🔑 6-Digit Code: [ ${code} ]`);
+      console.log(`🔗 Direct Verification Link: ${verificationUrl}`);
+      if (!emailResult.success) {
+        console.warn(`⚠️ Notice: Email delivery to third-party address was blocked by Resend sandbox. Use the code [ ${code} ] directly.`);
+      }
+      console.log(`======================================================\n`);
+
+      return NextResponse.json({
+        success: true,
+        devCode: code,
+        isEmailDelivered: emailResult.success,
+        message: "If an unverified account with this email exists, a new 6-digit verification code has been dispatched.",
       });
     }
 

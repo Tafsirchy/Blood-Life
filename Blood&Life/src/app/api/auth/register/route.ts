@@ -114,12 +114,22 @@ export async function POST(req: NextRequest) {
       verificationUrl,
     });
 
-    await sendTransactionalEmail({
+    const emailResult = await sendTransactionalEmail({
       to: userDoc.email,
       subject: `✉️ আপনার ভেরিফিকেশন কোড: ${verificationCode} (Verification Code) — BLOOD&LIFE`,
       html: emailContent.html,
       text: emailContent.text,
     });
+
+    console.log(`\n======================================================`);
+    console.log(`✉️ REGISTRATION VERIFICATION OTP DISPATCHED`);
+    console.log(`👤 User: ${userDoc.name} <${userDoc.email}>`);
+    console.log(`🔑 6-Digit Code: [ ${verificationCode} ]`);
+    console.log(`🔗 Direct Verification Link: ${verificationUrl}`);
+    if (!emailResult.success) {
+      console.warn(`⚠️ Notice: Email delivery to third-party address was blocked by Resend sandbox. Use the code [ ${verificationCode} ] directly.`);
+    }
+    console.log(`======================================================\n`);
 
     // Create session JWT
     const token = await signSessionJWT({
@@ -136,6 +146,8 @@ export async function POST(req: NextRequest) {
     const response = NextResponse.json({
       success: true,
       requiresVerification: true,
+      devCode: verificationCode,
+      isEmailDelivered: emailResult.success,
       message: "Account created! A verification link has been sent to your email.",
       user: {
         id: userDoc._id,
