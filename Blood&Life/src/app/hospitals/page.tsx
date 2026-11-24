@@ -206,10 +206,10 @@ export default function HospitalDemandBoardPage() {
       <main className="flex-1 py-8 sm:py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 space-y-8">
         {/* Top Hero Banner */}
-        <div className="card-clinical p-6 sm:p-8 relative overflow-hidden border border-[var(--border-subtle)] shadow-xl">
-          <div className="absolute top-0 right-0 w-80 h-80 bg-gradient-to-br from-red-600/10 via-rose-500/5 to-transparent rounded-full blur-3xl pointer-events-none" />
+        <div className="card-clinical p-6 sm:p-8 relative overflow-hidden border border-[var(--border-subtle)] shadow-xl text-center">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-br from-red-600/10 via-rose-500/5 to-transparent rounded-full blur-3xl pointer-events-none" />
 
-          <div className="relative z-10 max-w-3xl space-y-3">
+          <div className="relative z-10 max-w-3xl mx-auto space-y-3 flex flex-col items-center text-center">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-black uppercase tracking-wider">
               <Activity size={14} className="animate-pulse" />
               <span>
@@ -231,7 +231,7 @@ export default function HospitalDemandBoardPage() {
               )}
             </h1>
 
-            <p className="text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed">
+            <p className="text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed max-w-2xl mx-auto">
               {language === "bn"
                 ? "বাংলাদেশের শীর্ষ মেডিকেল কলেজ ও বিশেষায়িত হাসপাতালগুলোতে আইসিইউ, কার্ডিয়াক বাইপাস ও জরুরী সার্জারির জন্য কোন গ্রুপের কত ব্যাগ রক্ত কখন প্রয়োজন—তার সরাসরি লাইভ ট্র্যাকার ও স্বেচ্ছাসেবী অঙ্গীকার।"
                 : "Real-time surgery schedules, ICU transfusions, and clinical blood requirements across leading tertiary hospitals in Bangladesh. Connect directly with verified hospital attendants."}
@@ -240,42 +240,42 @@ export default function HospitalDemandBoardPage() {
 
           {/* Quick Counter Metrics Strip */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-6 mt-6 border-t border-[var(--border-subtle)]">
-            <div className="p-3.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-subtle)]">
-              <span className="text-[11px] font-bold text-[var(--text-muted)] block flex items-center gap-1">
+            <div className="p-3.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-subtle)] flex flex-col items-center text-center">
+              <span className="text-[11px] font-bold text-[var(--text-muted)] flex items-center justify-center gap-1">
                 <Flame size={12} className="text-red-500" />
                 {language === "bn" ? "ক্রিটিক্যাল সার্জারি" : "Critical Surgeries"}
               </span>
-              <span className="text-xl sm:text-2xl font-black text-red-500">
+              <span className="text-xl sm:text-2xl font-black text-red-500 mt-0.5">
                 {stats.criticalCases}
               </span>
             </div>
 
-            <div className="p-3.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-subtle)]">
-              <span className="text-[11px] font-bold text-[var(--text-muted)] block flex items-center gap-1">
+            <div className="p-3.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-subtle)] flex flex-col items-center text-center">
+              <span className="text-[11px] font-bold text-[var(--text-muted)] flex items-center justify-center gap-1">
                 <Heart size={12} className="text-rose-500" />
                 {language === "bn" ? "মোট রক্তের ব্যাগ" : "Total Units Needed"}
               </span>
-              <span className="text-xl sm:text-2xl font-black text-[var(--text-primary)]">
+              <span className="text-xl sm:text-2xl font-black text-[var(--text-primary)] mt-0.5">
                 {stats.totalUnitsNeeded}
               </span>
             </div>
 
-            <div className="p-3.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-subtle)]">
-              <span className="text-[11px] font-bold text-[var(--text-muted)] block flex items-center gap-1">
+            <div className="p-3.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-subtle)] flex flex-col items-center text-center">
+              <span className="text-[11px] font-bold text-[var(--text-muted)] flex items-center justify-center gap-1">
                 <Building2 size={12} className="text-blue-500" />
                 {language === "bn" ? "সক্রিয় হাসপাতাল" : "Active Hospitals"}
               </span>
-              <span className="text-xl sm:text-2xl font-black text-[var(--text-primary)]">
+              <span className="text-xl sm:text-2xl font-black text-[var(--text-primary)] mt-0.5">
                 {stats.activeHospitals}
               </span>
             </div>
 
-            <div className="p-3.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-subtle)]">
-              <span className="text-[11px] font-bold text-[var(--text-muted)] block flex items-center gap-1">
+            <div className="p-3.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-subtle)] flex flex-col items-center text-center">
+              <span className="text-[11px] font-bold text-[var(--text-muted)] flex items-center justify-center gap-1">
                 <CheckCircle2 size={12} className="text-emerald-500" />
                 {language === "bn" ? "নিশ্চিত অঙ্গীকার" : "Units Pledged"}
               </span>
-              <span className="text-xl sm:text-2xl font-black text-emerald-500">
+              <span className="text-xl sm:text-2xl font-black text-emerald-500 mt-0.5">
                 {stats.totalPledgedUnits} / {stats.totalUnitsNeeded}
               </span>
             </div>
