@@ -46,6 +46,7 @@ export default function MembershipPage() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const cardCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const logoImageRef = useRef<HTMLImageElement | null>(null);
+  const [logoLoaded, setLogoLoaded] = useState(false);
 
   // Pre-load official logo for canvas sticker
   useEffect(() => {
@@ -54,6 +55,10 @@ export default function MembershipPage() {
     logo.src = "/logo.png";
     logo.onload = () => {
       logoImageRef.current = logo;
+      setLogoLoaded(true);
+    };
+    logo.onerror = () => {
+      console.warn("Logo failed to load for canvas");
     };
   }, []);
 
@@ -183,23 +188,33 @@ export default function MembershipPage() {
     };
 
     const drawContent = (imgSrc: CanvasImageSource | null) => {
-      // 1. Dark Premium Background Card (Rounded 36px)
+      // 1. Pure White Premium Background Card (Solid 500x500 with smooth rounded corners)
       ctx.save();
-      ctx.fillStyle = "#090D16";
+      // Fill entire canvas with solid white so there are zero transparent or dark gaps
+      ctx.fillStyle = "#FFFFFF";
+      ctx.fillRect(0, 0, size, size);
+
+      // Card rounded frame with subtle luxury glow & soft border
       ctx.beginPath();
-      ctx.roundRect(0, 0, size, size, 36);
+      ctx.roundRect(4, 4, size - 8, size - 8, 32);
+      ctx.fillStyle = "#FFFFFF";
       ctx.fill();
 
-      // Ambient radial lighting from tier frame
-      const ambientGrad = ctx.createRadialGradient(cx, cy, 60, cx, cy, 260);
-      ambientGrad.addColorStop(0, frameTier.colorHex + "25");
-      ambientGrad.addColorStop(0.7, frameTier.colorHex + "08");
+      // Subtle light slate border
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "#E2E8F0";
+      ctx.stroke();
+
+      // Ambient warm radial glow from center
+      const ambientGrad = ctx.createRadialGradient(cx, cy, 50, cx, cy, 240);
+      ambientGrad.addColorStop(0, frameTier.colorHex + "12");
+      ambientGrad.addColorStop(0.7, frameTier.colorHex + "04");
       ambientGrad.addColorStop(1, "transparent");
       ctx.fillStyle = ambientGrad;
       ctx.fillRect(0, 0, size, size);
       ctx.restore();
 
-      // 2. Circular Centerpiece (User Photo or Elegant Deep Space Blood Group)
+      // 2. Circular Centerpiece (User Photo or Elegant Clinical Blood Group Showcase)
       const photoR = 185;
       ctx.save();
       ctx.beginPath();
@@ -210,62 +225,77 @@ export default function MembershipPage() {
       if (imgSrc) {
         drawCover(imgSrc, cx - photoR, cy - photoR, photoR * 2, photoR * 2);
 
-        // Soft Dark Vignette at outer edge
-        const vigGrad = ctx.createRadialGradient(cx, cy, photoR - 50, cx, cy, photoR);
+        // Soft subtle vignette at outer edge of photo
+        const vigGrad = ctx.createRadialGradient(cx, cy, photoR - 35, cx, cy, photoR);
         vigGrad.addColorStop(0, "transparent");
-        vigGrad.addColorStop(1, "rgba(0, 0, 0, 0.55)");
+        vigGrad.addColorStop(1, "rgba(0, 0, 0, 0.2)");
         ctx.fillStyle = vigGrad;
         ctx.fillRect(cx - photoR, cy - photoR, photoR * 2, photoR * 2);
       } else {
-        // Creative Fallback Gradient
-        const darkGrad = ctx.createRadialGradient(cx, cy - 30, 20, cx, cy, photoR);
-        darkGrad.addColorStop(0, "#1E293B");
-        darkGrad.addColorStop(0.65, "#0F172A");
-        darkGrad.addColorStop(1, "#070B14");
-        ctx.fillStyle = darkGrad;
+        // Pristine White-Based Clinical Card with soft warm depth
+        const lightGrad = ctx.createRadialGradient(cx, cy - 15, 20, cx, cy, photoR);
+        lightGrad.addColorStop(0, "#FFFFFF");
+        lightGrad.addColorStop(0.7, "#F8FAFC");
+        lightGrad.addColorStop(1, "#F1F5F9");
+        ctx.fillStyle = lightGrad;
         ctx.fillRect(cx - photoR, cy - photoR, photoR * 2, photoR * 2);
 
-        // Watermark Droplet
-        drawDroplet(cx, cy - 10, 85, "rgba(225, 29, 72, 0.08)", false);
+        // Watermark Droplets in background for rich texture
+        drawDroplet(cx, cy - 15, 90, "rgba(239, 68, 68, 0.06)", false);
+        drawDroplet(cx - 75, cy + 30, 35, "rgba(239, 68, 68, 0.04)", false);
+        drawDroplet(cx + 75, cy + 30, 35, "rgba(239, 68, 68, 0.04)", false);
 
-        // Blood Group Headline
+        // Blood Group Headline in Bold Crimson with high contrast
         ctx.save();
-        ctx.fillStyle = "#FFFFFF";
-        ctx.font = "900 108px system-ui, -apple-system, sans-serif";
+        ctx.fillStyle = "#DC2626";
+        ctx.font = "900 112px system-ui, -apple-system, sans-serif";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.shadowColor = "rgba(225, 29, 72, 0.7)";
-        ctx.shadowBlur = 24;
-        ctx.fillText(displayUser.bloodGroup || "O+", cx, cy - 12);
+        ctx.shadowColor = "rgba(220, 38, 38, 0.18)";
+        ctx.shadowBlur = 12;
+        ctx.shadowOffsetY = 2;
+        ctx.fillText(displayUser.bloodGroup || "O+", cx, cy - 14);
         ctx.restore();
 
-        // Subtitle Micro-badge: Verified Donor
+        // Subtitle Micro-badge: Verified Volunteer / Donor
         ctx.save();
-        const subPillW = 190;
-        const subPillH = 28;
-        ctx.fillStyle = "rgba(16, 185, 129, 0.15)";
-        ctx.strokeStyle = "rgba(16, 185, 129, 0.5)";
+        const subPillW = 200;
+        const subPillH = 32;
+        const subPillY = cy + 66;
+        ctx.fillStyle = "#FFFFFF";
+        ctx.strokeStyle = "rgba(16, 185, 129, 0.4)";
         ctx.lineWidth = 1.5;
+        ctx.shadowColor = "rgba(0, 0, 0, 0.06)";
+        ctx.shadowBlur = 8;
+        ctx.shadowOffsetY = 2;
         ctx.beginPath();
-        ctx.roundRect(cx - subPillW / 2, cy + 68, subPillW, subPillH, 14);
+        ctx.roundRect(cx - subPillW / 2, subPillY, subPillW, subPillH, 16);
         ctx.fill();
         ctx.stroke();
+        ctx.shadowBlur = 0;
 
         // Pulsing green dot
         ctx.fillStyle = "#10B981";
         ctx.beginPath();
-        ctx.arc(cx - subPillW / 2 + 16, cy + 82, 4.5, 0, Math.PI * 2);
+        ctx.arc(cx - subPillW / 2 + 20, subPillY + subPillH / 2, 4.5, 0, Math.PI * 2);
         ctx.fill();
 
-        // Verified text
-        ctx.fillStyle = "#A7F3D0";
+        // Outer pulse ring
+        ctx.strokeStyle = "rgba(16, 185, 129, 0.35)";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(cx - subPillW / 2 + 20, subPillY + subPillH / 2, 7, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Verified text in dark emerald
+        ctx.fillStyle = "#047857";
         ctx.font = "bold 11px system-ui, sans-serif";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.fillText(
           language === "bn" ? "ভেরিফাইড রক্তদাতা" : "VERIFIED VOLUNTEER",
-          cx + 6,
-          cy + 82
+          cx + 10,
+          subPillY + subPillH / 2
         );
         ctx.restore();
       }
@@ -279,13 +309,14 @@ export default function MembershipPage() {
         const bR = 32;
 
         // Shadow
-        ctx.shadowColor = "rgba(0,0,0,0.5)";
-        ctx.shadowBlur = 12;
+        ctx.shadowColor = "rgba(0,0,0,0.25)";
+        ctx.shadowBlur = 10;
+        ctx.shadowOffsetY = 3;
 
         // Badge Gradient
         const bGrad = ctx.createLinearGradient(bX - bR, bY - bR, bX + bR, bY + bR);
         bGrad.addColorStop(0, "#EF4444");
-        bGrad.addColorStop(1, "#9F1239");
+        bGrad.addColorStop(1, "#BE123C");
         ctx.fillStyle = bGrad;
         ctx.beginPath();
         ctx.arc(bX, bY, bR, 0, Math.PI * 2);
@@ -293,7 +324,7 @@ export default function MembershipPage() {
 
         // Specular White Border
         ctx.lineWidth = 2.5;
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
+        ctx.strokeStyle = "#FFFFFF";
         ctx.stroke();
 
         // Mini Droplet
@@ -317,16 +348,17 @@ export default function MembershipPage() {
       ctx.arc(cx, cy, ringR, 0, Math.PI * 2);
       ctx.lineWidth = 14;
       ctx.strokeStyle = frameTier.colorHex;
-      ctx.shadowColor = frameTier.colorHex;
-      ctx.shadowBlur = 28;
+      ctx.shadowColor = frameTier.colorHex + "55";
+      ctx.shadowBlur = 18;
+      ctx.shadowOffsetY = 3;
       ctx.stroke();
 
       // Metallic Gradient Stroke
       const ringGrad = ctx.createLinearGradient(cx - ringR, cy - ringR, cx + ringR, cy + ringR);
       ringGrad.addColorStop(0, frameTier.colorHex);
-      ringGrad.addColorStop(0.25, "#FFFFFF");
+      ringGrad.addColorStop(0.3, "#FFFFFF");
       ringGrad.addColorStop(0.5, frameTier.colorHex);
-      ringGrad.addColorStop(0.75, "#FFFFFF");
+      ringGrad.addColorStop(0.8, "#FFFFFF");
       ringGrad.addColorStop(1, frameTier.colorHex);
       ctx.lineWidth = 12;
       ctx.strokeStyle = ringGrad;
@@ -336,7 +368,7 @@ export default function MembershipPage() {
       ctx.beginPath();
       ctx.arc(cx, cy, ringR - 8, 0, Math.PI * 2);
       ctx.lineWidth = 1.5;
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.5)";
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
       ctx.stroke();
 
       // Outer Tech Compass Ring (Dashed)
@@ -344,11 +376,11 @@ export default function MembershipPage() {
       ctx.arc(cx, cy, ringR + 10, 0, Math.PI * 2);
       ctx.lineWidth = 1.5;
       ctx.setLineDash([4, 6]);
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.35)";
+      ctx.strokeStyle = "rgba(100, 116, 139, 0.35)";
       ctx.stroke();
       ctx.setLineDash([]);
 
-      // 4 Cardinal Glowing Diamond Studs
+      // 4 Cardinal Diamond Studs
       const studR = ringR + 10;
       const cardinalAngles = [0, Math.PI / 2, Math.PI, (3 * Math.PI) / 2];
       cardinalAngles.forEach((angle) => {
@@ -363,9 +395,7 @@ export default function MembershipPage() {
         ctx.lineTo(0, 4);
         ctx.lineTo(-4, 0);
         ctx.closePath();
-        ctx.fillStyle = "#FFFFFF";
-        ctx.shadowColor = frameTier.colorHex;
-        ctx.shadowBlur = 8;
+        ctx.fillStyle = frameTier.colorHex;
         ctx.fill();
         ctx.restore();
       });
@@ -373,40 +403,39 @@ export default function MembershipPage() {
 
       // 5. OFFICIAL BLOOD&LIFE LOGO CREST PILL (AT TOP)
       ctx.save();
-      const pillW = 200;
+      const pillW = 205;
       const pillH = 42;
       const pillX = cx - pillW / 2;
       const pillY = 16;
       const pillR = 21;
 
-      // Glow & Shadow
-      ctx.shadowColor = "rgba(225, 29, 72, 0.45)";
-      ctx.shadowBlur = 18;
+      // Crisp White Pill on White Background with Soft Shadow
+      ctx.shadowColor = "rgba(0, 0, 0, 0.12)";
+      ctx.shadowBlur = 14;
       ctx.shadowOffsetY = 3;
 
-      // Glass Pill Background
-      ctx.fillStyle = "rgba(10, 14, 26, 0.94)";
+      ctx.fillStyle = "#FFFFFF";
       ctx.beginPath();
       ctx.roundRect(pillX, pillY, pillW, pillH, pillR);
       ctx.fill();
 
-      // Specular Dual Border
-      ctx.lineWidth = 2;
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.35)";
+      // Light gray & crimson border
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = "rgba(225, 29, 72, 0.3)";
       ctx.stroke();
       ctx.shadowBlur = 0;
 
       // Render Official Logo Image if loaded
       if (logoImageRef.current && logoImageRef.current.complete) {
         // logo.png aspect ratio is 3:1 (2172x724)
-        const lw = 150;
+        const lw = 155;
         const lh = 30;
         ctx.drawImage(logoImageRef.current, cx - lw / 2, pillY + (pillH - lh) / 2, lw, lh);
       } else {
         // High-definition Vector Logo Fallback
         drawDroplet(pillX + 24, pillY + pillH / 2, 9, "#E11D48", true);
 
-        ctx.fillStyle = "#FFFFFF";
+        ctx.fillStyle = "#0F172A";
         ctx.font = "900 13px system-ui, sans-serif";
         ctx.textAlign = "left";
         ctx.textBaseline = "middle";
@@ -415,7 +444,7 @@ export default function MembershipPage() {
         ctx.fillStyle = "#EF4444";
         ctx.fillText("&", pillX + 96, pillY + pillH / 2);
 
-        ctx.fillStyle = "#FFFFFF";
+        ctx.fillStyle = "#0F172A";
         ctx.fillText("LIFE", pillX + 110, pillY + pillH / 2);
       }
       ctx.restore();
@@ -429,7 +458,7 @@ export default function MembershipPage() {
       const ribbonR = 30;
 
       // 3D Left Ribbon Tail
-      ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+      ctx.fillStyle = "rgba(100, 116, 139, 0.35)";
       ctx.beginPath();
       ctx.moveTo(ribbonX + 15, ribbonY + 12);
       ctx.lineTo(ribbonX - 22, ribbonY + 22);
@@ -450,8 +479,8 @@ export default function MembershipPage() {
       ctx.fill();
 
       // Ribbon Glow & Shadow
-      ctx.shadowColor = "rgba(0, 0, 0, 0.65)";
-      ctx.shadowBlur = 20;
+      ctx.shadowColor = "rgba(0, 0, 0, 0.22)";
+      ctx.shadowBlur = 18;
       ctx.shadowOffsetY = 6;
 
       // Ribbon Gradient Fill
@@ -481,9 +510,9 @@ export default function MembershipPage() {
       ctx.roundRect(ribbonX, ribbonY, ribbonW, ribbonH, ribbonR);
       ctx.stroke();
 
-      // Inner Gold/White Accent Line
+      // Inner Accent Line
       ctx.lineWidth = 1;
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.45)";
       ctx.beginPath();
       ctx.roundRect(ribbonX + 4, ribbonY + 4, ribbonW - 8, ribbonH - 8, ribbonR - 4);
       ctx.stroke();
@@ -493,7 +522,7 @@ export default function MembershipPage() {
       ctx.font = "bold 16px sans-serif";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.shadowColor = "rgba(0, 0, 0, 0.6)";
+      ctx.shadowColor = "rgba(0, 0, 0, 0.4)";
       ctx.shadowBlur = 4;
       ctx.shadowOffsetY = 1;
       ctx.fillText("★", ribbonX + 28, ribbonY + ribbonH / 2);
@@ -504,7 +533,7 @@ export default function MembershipPage() {
       ctx.font = "900 17px system-ui, -apple-system, sans-serif";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.shadowColor = "rgba(0, 0, 0, 0.75)";
+      ctx.shadowColor = "rgba(0, 0, 0, 0.65)";
       ctx.shadowBlur = 6;
       ctx.shadowOffsetY = 2;
       ctx.fillText(stickerText, cx, ribbonY + ribbonH / 2);
@@ -521,7 +550,7 @@ export default function MembershipPage() {
     } else {
       drawContent(null);
     }
-  }, [avatarImage, selectedFrame, selectedSticker, language, displayUser.bloodGroup]);
+  }, [avatarImage, selectedFrame, selectedSticker, language, displayUser.bloodGroup, displayUser.name, logoLoaded]);
 
   // Download Avatar PNG
   const handleDownloadAvatar = () => {
@@ -713,10 +742,10 @@ export default function MembershipPage() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
               {/* Left Column: Live Canvas Preview */}
               <div className="lg:col-span-5 flex flex-col items-center justify-center space-y-4">
-                <div className="relative p-3 rounded-3xl bg-linear-to-b from-red-500/20 via-[var(--bg-main)] to-[var(--bg-main)] border-2 border-[var(--border-subtle)] shadow-2xl">
+                <div className="relative p-3 rounded-3xl bg-linear-to-b from-red-500/10 via-white to-white dark:via-zinc-900 dark:to-zinc-900 border-2 border-slate-200 dark:border-zinc-700 shadow-xl">
                   <canvas
                     ref={canvasRef}
-                    className="w-72 h-72 sm:w-88 sm:h-88 rounded-2xl bg-[#090D16] shadow-2xl block"
+                    className="w-72 h-72 sm:w-88 sm:h-88 rounded-2xl bg-white shadow-md block border border-slate-200 dark:border-zinc-800"
                   />
                 </div>
 
