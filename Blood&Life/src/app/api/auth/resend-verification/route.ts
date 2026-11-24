@@ -78,7 +78,6 @@ export async function POST(req: NextRequest) {
 
       return NextResponse.json({
         success: true,
-        devCode: code,
         isEmailDelivered: emailResult.success,
         message: "If an unverified account with this email exists, a new 6-digit verification code has been dispatched.",
       });

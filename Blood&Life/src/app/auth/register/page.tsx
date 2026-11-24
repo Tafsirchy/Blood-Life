@@ -187,8 +187,7 @@ export default function RegisterPage() {
 
       localStorage.setItem("dashboard_preferred_role", "donor");
       if (data.requiresVerification) {
-        const codeParam = data.devCode ? `&code=${encodeURIComponent(data.devCode)}` : "";
-        router.push(`/auth/verify-email?email=${encodeURIComponent(email)}${codeParam}`);
+        router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`);
       } else {
         router.push("/dashboard");
       }

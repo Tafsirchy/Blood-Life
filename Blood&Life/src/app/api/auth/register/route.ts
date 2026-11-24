@@ -146,7 +146,6 @@ export async function POST(req: NextRequest) {
     const response = NextResponse.json({
       success: true,
       requiresVerification: true,
-      devCode: verificationCode,
       isEmailDelivered: emailResult.success,
       message: "Account created! A verification link has been sent to your email.",
       user: {

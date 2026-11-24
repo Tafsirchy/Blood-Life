@@ -222,22 +222,13 @@ function VerifyEmailContent() {
       const data = await res.json();
       if (res.ok) {
         setResendCooldown(60);
-        if (data.devCode) {
-          handlePastedCode(data.devCode);
-          setResendMessage(
-            language === "bn"
-              ? `ভেরিফিকেশন কোড: ${data.devCode} (টেস্টিং মোডে স্বয়ংক্রিয়ভাবে কোড ইনপুট করা হয়েছে)`
-              : `Verification code: ${data.devCode} (Auto-filled in test mode)`
-          );
-        } else {
-          setDigits(["", "", "", "", "", ""]);
-          inputRefs.current[0]?.focus();
-          setResendMessage(
-            language === "bn"
-              ? "নতুন ৬-সংখ্যার ভেরিফিকেশন কোড আপনার ইমেইলে পাঠানো হয়েছে।"
-              : "A new 6-digit verification code has been dispatched to your email."
-          );
-        }
+        setDigits(["", "", "", "", "", ""]);
+        inputRefs.current[0]?.focus();
+        setResendMessage(
+          language === "bn"
+            ? "নতুন ৬-সংখ্যার ভেরিফিকেশন কোড পাঠানো হয়েছে। আপনার ইনবক্স চেক করুন।"
+            : "A new 6-digit verification code has been dispatched. Please check your inbox."
+        );
         if (status === "error") setStatus("idle");
       } else {
         setErrorMessage(data.error || "Failed to resend verification code");
