@@ -394,7 +394,7 @@ export default function GeoDirectoryPage() {
           recipientEmail: emailForm.recipientEmail,
           patientName: emailForm.patientName,
           hospital: emailForm.hospital,
-          bloodGroup: selectedBloodGroup === "all" ? "O+" : selectedBloodGroup,
+          bloodGroup: selectedBloodGroup,
           division: selectedDivision,
           district: currentDistrictObj?.nameEn || selectedDistrict,
           upazila: selectedUpazila,
@@ -1141,7 +1141,7 @@ export default function GeoDirectoryPage() {
                       {language === "bn" ? "নির্বাচিত ফিল্টার:" : "Active Filter Target:"}
                     </span>
                     <p className="font-bold text-red-600 text-xs">
-                      {selectedBloodGroup === "all" ? "O+ (Default)" : selectedBloodGroup} • {selectedDistrict} ({selectedUpazila !== "all" ? selectedUpazila : "সকল উপজেলা"})
+                      {selectedBloodGroup === "all" ? (language === "bn" ? "সকল গ্রুপ" : "All Blood Groups") : selectedBloodGroup} • {selectedDistrict} ({selectedUpazila !== "all" ? selectedUpazila : (language === "bn" ? "সকল উপজেলা" : "All Upazilas")})
                     </p>
                   </div>
 

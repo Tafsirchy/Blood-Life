@@ -40,9 +40,9 @@ export async function POST(req: NextRequest) {
       thana,
     } = body;
 
-    if (!recipientEmail || !district || !bloodGroup) {
+    if (!recipientEmail || !district) {
       return NextResponse.json(
-        { error: "অনুগ্রহ করে আপনার ইমেইল, রক্তের গ্রুপ ও জেলা নির্বাচন করুন।" },
+        { error: "অনুগ্রহ করে আপনার ইমেইল ও জেলা নির্বাচন করুন।" },
         { status: 400 }
       );
     }
@@ -68,11 +68,13 @@ export async function POST(req: NextRequest) {
       role: "Donor",
       status: "Active",
       isAvailable: true,
-      bloodGroup,
-      district: { $regex: district, $options: "i" },
+      district: { $regex: new RegExp(`^${district}$`, "i") },
     };
+    if (bloodGroup && bloodGroup !== "all") {
+      userFilter.bloodGroup = bloodGroup.replace(" ", "+");
+    }
     if (upazila && upazila !== "all") {
-      userFilter.upazila = { $regex: upazila, $options: "i" };
+      userFilter.upazila = { $regex: new RegExp(`^${upazila}$`, "i") };
     }
 
     const registeredDonors = await User.find(userFilter)
@@ -83,11 +85,13 @@ export async function POST(req: NextRequest) {
     // Query approved community donors
     const communityFilter: Record<string, unknown> = {
       status: "approved",
-      bloodGroup,
-      district: { $regex: district, $options: "i" },
+      district: { $regex: new RegExp(`^${district}$`, "i") },
     };
+    if (bloodGroup && bloodGroup !== "all") {
+      communityFilter.bloodGroup = bloodGroup.replace(" ", "+");
+    }
     if (upazila && upazila !== "all") {
-      communityFilter.upazila = { $regex: upazila, $options: "i" };
+      communityFilter.upazila = { $regex: new RegExp(`^${upazila}$`, "i") };
     }
 
     const communityDonors = await CommunityDonorSubmission.find(communityFilter)

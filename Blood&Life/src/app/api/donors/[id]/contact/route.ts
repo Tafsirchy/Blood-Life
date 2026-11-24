@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getValidatedSession } from "@/lib/auth/session";
 import { connectDB } from "@/lib/db";
 import { User } from "@/models/User";
+import { CommunityDonorSubmission } from "@/models/CommunityDonorSubmission";
 import { Notification } from "@/models/Notification";
 import { revealDonorContact, maskPhoneNumber } from "@/lib/security/privacyShield";
 import { isValidObjectId } from "@/lib/security/validators";
@@ -35,7 +36,21 @@ export async function GET(
 
     await connectDB();
 
-    const donor = await User.findById(donorId).lean();
+    let isCommunity = false;
+    let donor = await User.findById(donorId).lean();
+    if (!donor) {
+      const community = await CommunityDonorSubmission.findById(donorId).lean();
+      if (community) {
+        isCommunity = true;
+        donor = {
+          _id: community._id,
+          phone: community.donorPhone,
+          name: community.donorName,
+          privacy: { notifyOnProfileView: false },
+        } as any;
+      }
+    }
+
     if (!donor) {
       return NextResponse.json({ error: "Donor record not found" }, { status: 404 });
     }
@@ -74,7 +89,7 @@ export async function GET(
       );
     }
 
-    if (donor.privacy?.notifyOnProfileView) {
+    if (!isCommunity && donor.privacy?.notifyOnProfileView) {
       Notification.create({
         recipientId: String(donor._id),
         category: "SECURITY",

@@ -30,11 +30,21 @@ export async function GET(req: NextRequest) {
       filter.status = "approved";
     }
 
-    if (division && division !== "all") filter.division = division;
-    if (district && district !== "all") filter.district = district;
-    if (upazila && upazila !== "all") filter.upazila = upazila;
-    if (thana && thana !== "all") filter.thana = { $regex: thana, $options: "i" };
-    if (bloodGroup && bloodGroup !== "all") filter.bloodGroup = bloodGroup;
+    if (division && division !== "all") {
+      filter.division = { $regex: new RegExp(`^${division}$`, "i") };
+    }
+    if (district && district !== "all") {
+      filter.district = { $regex: new RegExp(`^${district}$`, "i") };
+    }
+    if (upazila && upazila !== "all") {
+      filter.upazila = { $regex: new RegExp(`^${upazila}$`, "i") };
+    }
+    if (thana && thana !== "all") {
+      filter.thana = { $regex: thana, $options: "i" };
+    }
+    if (bloodGroup && bloodGroup !== "all") {
+      filter.bloodGroup = bloodGroup.replace(" ", "+");
+    }
 
     const submissions = await CommunityDonorSubmission.find(filter)
       .sort({ createdAt: -1 })
