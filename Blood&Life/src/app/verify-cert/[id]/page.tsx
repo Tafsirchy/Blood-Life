@@ -6,21 +6,15 @@ import { Navbar } from "@/components/layout/Navbar";
 import { EmergencyFooter } from "@/components/home/EmergencyFooter";
 import { useLanguage } from "@/lib/i18n/context";
 import {
-  CheckCircle2,
   ShieldCheck,
   AlertCircle,
   Award,
-  Heart,
-  Building2,
-  Calendar,
   Printer,
-  Sparkles,
   ArrowLeft,
-  Share2,
-  Star,
-  ExternalLink,
+  Sparkles,
 } from "lucide-react";
 import Link from "next/link";
+import { ProfessionalCertificate } from "@/components/certificate/ProfessionalCertificate";
 
 export default function CertificateVerificationPage() {
   const params = useParams();
@@ -109,8 +103,8 @@ export default function CertificateVerificationPage() {
             </div>
           ) : (
             <div className="space-y-6">
-              {/* Verification Header Banner */}
-              <div className="p-4 sm:p-5 rounded-2xl bg-emerald-500/10 border-2 border-emerald-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              {/* Verification Header Banner (Hidden on Print) */}
+              <div className="no-print p-4 sm:p-5 rounded-2xl bg-emerald-500/10 border-2 border-emerald-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center shrink-0 shadow-md">
                     <ShieldCheck size={24} />
@@ -137,111 +131,29 @@ export default function CertificateVerificationPage() {
                 </div>
               </div>
 
-              {/* Printable Certificate Canvas */}
-              <div
-                id="printable-cert"
-                className="p-8 sm:p-12 rounded-3xl bg-linear-to-b from-amber-500/5 via-[var(--bg-surface)] to-amber-500/5 border-4 border-amber-500/40 text-center relative overflow-hidden shadow-xl"
-              >
-                {/* Watermark / Background Crest */}
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-3">
-                  <Heart size={300} fill="currentColor" className="text-red-600" />
-                </div>
+              {/* Printable Professional Certificate */}
+              <ProfessionalCertificate
+                data={{
+                  certificateId: certData.certificateId,
+                  donorName: certData.donorName,
+                  bloodGroup: certData.bloodGroup,
+                  units: certData.units || 1,
+                  hospital: certData.hospital,
+                  district: certData.district,
+                  date: certData.date,
+                  recipientVerified: certData.recipientVerified,
+                  rating: certData.rating,
+                  recipientFeedback: certData.recipientFeedback,
+                  tierTitleBn: certData.tier?.certificateTitleBn,
+                  tierTitleEn: certData.tier?.certificateTitleEn,
+                  citationBn: certData.tier?.citationBn,
+                  citationEn: certData.tier?.citationEn,
+                }}
+                language={language as "bn" | "en"}
+              />
 
-                <div className="relative z-10 space-y-4">
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-xs font-black uppercase tracking-widest">
-                    <Sparkles size={14} />
-                    <span>{certData.tier?.certificateTitleEn || "NATIONAL APPRECIATION AWARD"}</span>
-                  </div>
-
-                  <h1 className="text-2xl sm:text-4xl font-black text-[var(--text-primary)] tracking-tight">
-                    {certData.tier?.certificateTitleBn || "ব্লাড অ্যান্ড লাইফ লাইফ-সেভার স্বীকৃতি"}
-                  </h1>
-
-                  <p className="text-xs sm:text-sm text-[var(--text-secondary)] max-w-lg mx-auto leading-relaxed">
-                    {certData.tier?.citationBn || "মানবতার কল্যাণে স্বেচ্ছায় অমূল্য রক্তদান করে মুমূর্ষু রোগীর জীবন রক্ষায় অনন্য ভূমিকা রাখার জন্য এই সনদ প্রদান করা হলো।"}
-                  </p>
-
-                  {/* Donor Honor Plaque */}
-                  <div className="py-6 border-y-2 border-[var(--border-subtle)] my-6 space-y-2">
-                    <span className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider block">
-                      Awarded with Highest Honor to Voluntary Blood Donor
-                    </span>
-                    <h2 className="text-2xl sm:text-3xl font-black text-red-600 dark:text-red-500 tracking-tight">
-                      {certData.donorName}
-                    </h2>
-                    <div className="flex flex-wrap items-center justify-center gap-2 pt-1 text-xs">
-                      <span className="px-3 py-1 rounded-full font-black bg-red-500/10 text-red-600 border border-red-500/20">
-                        Blood Group: {certData.bloodGroup}
-                      </span>
-                      <span className="px-3 py-1 rounded-full font-bold bg-[var(--bg-main)] text-[var(--text-primary)] border border-[var(--border-subtle)]">
-                        {certData.tier?.nameBn || "স্বেচ্ছাসেবী রক্তদাতা"}
-                      </span>
-                    </div>
-
-                    {/* Recipient Verified Badge */}
-                    {certData.recipientVerified && (
-                      <div className="pt-3 flex flex-col items-center">
-                        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-700 dark:text-amber-400 text-xs font-bold">
-                          <Star size={13} className="fill-amber-500 text-amber-500" />
-                          <span>
-                            {language === "bn"
-                              ? `রক্তগ্রহীতা পরিবার কর্তৃক ভেরিফাইড (${certData.rating || 5}★ রেটিং)`
-                              : `Recipient Family Verified Voluntary Transfusion (${certData.rating || 5}★)`}
-                          </span>
-                        </div>
-                        {certData.recipientFeedback && (
-                          <p className="text-xs text-[var(--text-secondary)] italic mt-1.5 max-w-md">
-                            "{certData.recipientFeedback}"
-                          </p>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Clinical & Transfusion Details */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left text-xs bg-[var(--bg-main)]/60 p-4 rounded-2xl border border-[var(--border-subtle)]">
-                    <div className="space-y-1">
-                      <span className="text-[11px] font-bold text-[var(--text-muted)] block flex items-center gap-1">
-                        <Building2 size={12} className="text-red-500" />
-                        <span>{language === "bn" ? "হাসপাতাল ও এলাকা:" : "Hospital & District:"}</span>
-                      </span>
-                      <span className="font-bold text-[var(--text-primary)] block">
-                        {certData.hospital} • {certData.district}
-                      </span>
-                    </div>
-
-                    <div className="space-y-1 sm:text-right">
-                      <span className="text-[11px] font-bold text-[var(--text-muted)] block flex items-center sm:justify-end gap-1">
-                        <Calendar size={12} className="text-blue-500" />
-                        <span>{language === "bn" ? "রক্তদানের তারিখ ও কোড:" : "Date & Verification Serial:"}</span>
-                      </span>
-                      <span className="font-mono font-bold text-[var(--text-primary)] block">
-                        {new Date(certData.date).toLocaleDateString("en-GB", {
-                          day: "numeric",
-                          month: "short",
-                          year: "numeric",
-                        })}{" "}
-                        • #{certData.certificateId}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Seal and Signatures */}
-                  <div className="pt-6 flex items-center justify-between border-t border-[var(--border-subtle)] text-[10px] text-[var(--text-muted)] font-bold">
-                    <div className="text-left">
-                      <span className="block text-[var(--text-primary)] font-black">BLOOD&LIFE CENTRAL CLINICAL DESK</span>
-                      <span>Health & Family Welfare Emergency Protocol</span>
-                    </div>
-                    <div className="text-right">
-                      <span className="block text-emerald-600 font-black">VERIFIED VOLUNTARY DISPATCH</span>
-                      <span>Digital Ledger Reference: BL-{certData.certificateId}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+              {/* Action Buttons (Hidden on Print) */}
+              <div className="no-print flex flex-wrap items-center justify-between gap-3 pt-2">
                 <Link
                   href="/membership"
                   className="px-4 py-2 rounded-xl bg-[var(--bg-surface)] hover:bg-[var(--bg-main)] border border-[var(--border-subtle)] text-xs font-bold text-[var(--text-primary)] inline-flex items-center gap-2 transition-colors"

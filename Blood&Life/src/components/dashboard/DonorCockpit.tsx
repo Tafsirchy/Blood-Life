@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { getDonorTier, getNextTierProgress } from "@/lib/badges";
+import { ProfessionalCertificate } from "@/components/certificate/ProfessionalCertificate";
 
 interface TransfusionRecord {
   id: string;
@@ -663,85 +664,51 @@ export function DonorCockpit() {
         </div>
       )}
 
-      {/* Vector Printable Certificate Modal */}
+      {/* Professional Printable Certificate Modal */}
       {selectedCert && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="card-clinical max-w-2xl w-full p-6 sm:p-8 space-y-6 relative border-4 border-amber-500/30">
-            {/* Certificate Canvas */}
-            <div
-              id="printable-cert"
-              className="p-8 rounded-2xl bg-gradient-to-b from-amber-50/20 via-[var(--bg-surface)] to-amber-50/10 border-2 border-amber-500/40 text-center relative overflow-hidden"
-            >
-              <Sparkles size={32} className="text-amber-500/40 mx-auto mb-2" />
-              <span className="text-[10px] font-black uppercase tracking-widest text-amber-500 block mb-1">
-                NATIONAL HERO CERTIFICATE OF APPRECIATION
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+          <div className="max-w-3xl w-full space-y-4 relative my-auto">
+            {/* Modal Controls (Hidden in Print) */}
+            <div className="no-print flex items-center justify-between bg-[var(--bg-surface)] p-3 rounded-2xl border border-[var(--border-subtle)] shadow-lg">
+              <span className="text-xs font-bold text-[var(--text-secondary)]">
+                {language === "bn" ? "অফিসিয়াল সম্মাননা সনদপত্র প্রিভিউ" : "Official Recognition Certificate Preview"}
               </span>
-              <h2 className="text-2xl sm:text-3xl font-black text-[var(--text-primary)] tracking-tight mb-2">
-                ব্লাড অ্যান্ড লাইফ লাইফ-সেভার স্বীকৃতি
-              </h2>
-              <p className="text-xs text-[var(--text-secondary)] max-w-md mx-auto mb-6">
-                This certifies with highest gratitude that the voluntary donor selflessly donated blood to preserve a human life.
-              </p>
-
-              <div className="py-4 border-y border-[var(--border-subtle)] my-4 space-y-1">
-                <span className="text-xs text-[var(--text-muted)] block">Awarded to Voluntary Donor</span>
-                <span className="text-xl font-black text-red-500">
-                  {userProfile?.name || "Verified Blood Hero"}
-                </span>
-                <span className="text-xs font-bold text-[var(--text-secondary)] block">
-                  Blood Group: {selectedCert.bloodGroup} • {selectedCert.units} Unit
-                </span>
-                {selectedCert.recipientVerified && (
-                  <div className="pt-2">
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-700 dark:text-amber-400 text-xs font-bold">
-                      <span>★</span>
-                      <span>
-                        {language === "bn"
-                          ? `রক্তগ্রহীতা কর্তৃক ভেরিফাইড রিকগনিশন (${selectedCert.rating || 5}★)`
-                          : `Recipient Peer-Verified Recognition (${selectedCert.rating || 5}★)`}
-                      </span>
-                    </span>
-                    {selectedCert.recipientFeedback && (
-                      <p className="text-xs text-[var(--text-secondary)] italic mt-1 max-w-sm mx-auto">
-                        "{selectedCert.recipientFeedback}"
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              <div className="grid grid-cols-2 gap-4 text-left text-xs pt-2">
-                <div>
-                  <span className="text-[10px] text-[var(--text-muted)] block">Patient & Hospital:</span>
-                  <span className="font-bold text-[var(--text-primary)]">
-                    {selectedCert.patientName} ({selectedCert.hospital})
-                  </span>
-                </div>
-                <div className="text-right">
-                  <span className="text-[10px] text-[var(--text-muted)] block">Date & Certificate ID:</span>
-                  <span className="font-mono font-bold text-[var(--text-primary)]">
-                    {selectedCert.date} • #{selectedCert.certificateId}
-                  </span>
-                </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedCert(null)}
+                  className="px-3 py-1.5 rounded-xl text-xs font-bold text-[var(--text-secondary)] hover:bg-[var(--bg-main)] border border-[var(--border-subtle)]"
+                >
+                  {language === "bn" ? "বন্ধ করুন" : "Close"}
+                </button>
+                <button
+                  type="button"
+                  onClick={handlePrintCertificate}
+                  className="btn-emergency !py-1.5 !px-4 text-xs font-bold inline-flex items-center gap-1.5"
+                >
+                  <Printer size={14} />
+                  <span>{language === "bn" ? "প্রিন্ট / পিডিএফ সেভ" : "Print / Save PDF"}</span>
+                </button>
               </div>
             </div>
 
-            {/* Modal Actions */}
-            <div className="flex items-center justify-between pt-2">
-              <button
-                onClick={() => setSelectedCert(null)}
-                className="px-4 py-2 rounded-xl text-xs font-bold text-[var(--text-secondary)] hover:bg-[var(--bg-main)] border border-[var(--border-subtle)]"
-              >
-                {language === "bn" ? "বন্ধ করুন" : "Close"}
-              </button>
-              <button
-                onClick={handlePrintCertificate}
-                className="btn-emergency !py-2 !px-4 text-xs font-bold inline-flex items-center gap-1.5"
-              >
-                <Printer size={14} />
-                <span>{language === "bn" ? "প্রিন্ট বা পিডিএফ সেভ" : "Print / Save PDF"}</span>
-              </button>
-            </div>
+            {/* Official Professional Certificate Component */}
+            <ProfessionalCertificate
+              data={{
+                certificateId: selectedCert.certificateId,
+                donorName: userProfile?.name || "স্বেচ্ছাসেবী রক্তদাতা (Verified Donor)",
+                bloodGroup: selectedCert.bloodGroup || userProfile?.bloodGroup || "O+",
+                units: selectedCert.units || 1,
+                hospital: selectedCert.hospital,
+                district: selectedCert.district || "বাংলাদেশ",
+                date: selectedCert.date,
+                recipientVerified: selectedCert.recipientVerified,
+                rating: selectedCert.rating,
+                recipientFeedback: selectedCert.recipientFeedback,
+                patientName: selectedCert.patientName,
+              }}
+              language={language as "bn" | "en"}
+            />
           </div>
         </div>
       )}
