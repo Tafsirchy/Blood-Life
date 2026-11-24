@@ -27,6 +27,7 @@ import {
   Flame,
   Navigation,
   MessageCircle,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import { DISTRICTS } from "@/lib/geo/bangladeshData";
@@ -91,11 +92,11 @@ export default function HospitalDemandBoardPage() {
 
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<HospitalStats>({
-    totalSurgeries: 8,
-    totalUnitsNeeded: 17,
-    totalPledgedUnits: 6,
-    criticalCases: 5,
-    activeHospitals: 8,
+    totalSurgeries: 0,
+    totalUnitsNeeded: 0,
+    totalPledgedUnits: 0,
+    criticalCases: 0,
+    activeHospitals: 0,
   });
   const [hospitals, setHospitals] = useState<HospitalSummary[]>([]);
   const [patients, setPatients] = useState<ScheduledPatient[]>([]);
@@ -110,11 +111,12 @@ export default function HospitalDemandBoardPage() {
   const [isSosOpen, setIsSosOpen] = useState(false);
 
   // Fetch hospital data from API
-  const fetchHospitalDemand = async () => {
+  const fetchHospitalDemand = async (overrideSearch?: string) => {
     try {
       setLoading(true);
+      const querySearch = overrideSearch !== undefined ? overrideSearch : searchTerm;
       const params = new URLSearchParams();
-      if (searchTerm.trim()) params.set("hospital", searchTerm.trim());
+      if (querySearch.trim()) params.set("hospital", querySearch.trim());
       if (selectedDistrict !== "all") params.set("district", selectedDistrict);
       if (selectedBloodGroup !== "all") params.set("bloodGroup", selectedBloodGroup);
       if (selectedUrgency !== "all") params.set("urgency", selectedUrgency);
@@ -177,7 +179,7 @@ export default function HospitalDemandBoardPage() {
             ? `ধন্যবাদ! আপনি ${pledgeTarget.hospital}-এর ${pledgeTarget.patientCode} রোগীর জন্য ১ ব্যাগ রক্তদানের প্রতিশ্রুতি দিয়েছেন। রোগী পরিবারকে বার্তা পাঠানো হয়েছে।`
             : `Pledge confirmed! You have committed 1 unit of blood for patient ${pledgeTarget.patientCode} at ${pledgeTarget.hospital}. Attendants notified.`
         );
-        // Optimistically increment pledged count
+        // Optimistically increment pledged count across patients, hospitals, and stats
         setPatients((prev) =>
           prev.map((p) =>
             p.id === pledgeTarget.id
@@ -185,6 +187,21 @@ export default function HospitalDemandBoardPage() {
               : p
           )
         );
+        setHospitals((prev) =>
+          prev.map((h) => ({
+            ...h,
+            patients: h.patients.map((p) =>
+              p.id === pledgeTarget.id
+                ? { ...p, pledgedUnits: Math.min(p.unitsNeeded, p.pledgedUnits + 1) }
+                : p
+            ),
+          }))
+        );
+        setStats((prev) => ({
+          ...prev,
+          totalPledgedUnits: Math.min(prev.totalUnitsNeeded, prev.totalPledgedUnits + 1),
+        }));
+
         setTimeout(() => {
           setPledgeTarget(null);
           setPledgeSuccess(null);
@@ -301,8 +318,21 @@ export default function HospitalDemandBoardPage() {
                     ? "হাসপাতালের নাম লিখুন (যেমন: ঢাকা মেডিকেল, BSMMU)..."
                     : "Search by hospital name (e.g. DMCH, NICVD)..."
                 }
-                className="w-full pl-9 pr-20 py-2 rounded-xl bg-[var(--bg-main)] border border-[var(--border-subtle)] text-xs text-[var(--text-primary)] outline-none focus:border-red-500 transition-colors"
+                className="w-full pl-9 pr-24 py-2 rounded-xl bg-[var(--bg-main)] border border-[var(--border-subtle)] text-xs text-[var(--text-primary)] outline-none focus:border-red-500 transition-colors"
               />
+              {searchTerm && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchTerm("");
+                    fetchHospitalDemand("");
+                  }}
+                  className="absolute right-16 top-1/2 -translate-y-1/2 p-1 text-[var(--text-muted)] hover:text-red-500 transition-colors"
+                  title={language === "bn" ? "মুছে ফেলুন" : "Clear search"}
+                >
+                  <X size={14} />
+                </button>
+              )}
               <button
                 type="submit"
                 className="absolute right-1.5 top-1/2 -translate-y-1/2 px-3 py-1 rounded-lg bg-red-600 hover:bg-red-700 text-white text-[11px] font-bold transition-colors"
@@ -715,35 +745,82 @@ export default function HospitalDemandBoardPage() {
                           {h.patients.map((p) => (
                             <div
                               key={p.id}
-                              className="p-3 rounded-xl bg-[var(--bg-main)] border border-[var(--border-subtle)] space-y-2 text-xs"
+                              className="p-3.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-subtle)] space-y-2.5 text-xs"
                             >
-                              <div className="flex items-center justify-between">
-                                <span className="font-bold text-[var(--text-primary)]">
-                                  {p.department}
-                                </span>
-                                <span className="badge-blood text-xs font-black px-2 py-0.5">
-                                  {p.bloodGroup}
-                                </span>
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="space-y-0.5">
+                                  <span className="font-mono font-bold text-[10px] px-1.5 py-0.5 rounded bg-[var(--bg-surface)] border border-[var(--border-subtle)] text-[var(--text-muted)]">
+                                    {p.patientCode}
+                                  </span>
+                                  <h4 className="font-bold text-[var(--text-primary)] text-xs mt-1">
+                                    {p.department}
+                                  </h4>
+                                </div>
+                                <div className="text-right shrink-0">
+                                  <span className="badge-blood text-xs font-black px-2 py-0.5">
+                                    {p.bloodGroup}
+                                  </span>
+                                  <span className="block text-[10px] font-bold text-red-600 dark:text-red-400 bg-red-500/10 px-1.5 py-0.5 rounded-md mt-0.5 border border-red-500/20">
+                                    {p.bloodComponent}
+                                  </span>
+                                </div>
                               </div>
 
                               <div className="flex items-center justify-between text-[11px] text-[var(--text-muted)]">
                                 <span className="flex items-center gap-1">
-                                  <Calendar size={11} /> {p.scheduledDate}
+                                  <Calendar size={11} className="text-red-500" /> {p.scheduledDate}
                                 </span>
                                 <span className="flex items-center gap-1 font-mono font-bold text-red-500">
                                   <Clock size={11} /> {p.scheduledTime}
                                 </span>
                               </div>
 
-                              <div className="flex items-center justify-between pt-1 border-t border-[var(--border-subtle)]">
-                                <span className="text-[11px] font-bold text-[var(--text-secondary)]">
-                                  {p.pledgedUnits} / {p.unitsNeeded} {language === "bn" ? "ব্যাগ" : "Bags"}
-                                </span>
+                              <p className="text-[11px] text-[var(--text-secondary)] italic leading-tight">
+                                "{p.medicalReason}"
+                              </p>
+
+                              {/* Action Buttons: Phone & Pledge */}
+                              <div className="flex items-center gap-2 pt-2 border-t border-[var(--border-subtle)]">
+                                {revealedPhones[p.id] ? (
+                                  <div className="flex-1 flex items-center gap-1">
+                                    <a
+                                      href={`tel:${p.requesterPhone}`}
+                                      className="flex-1 py-1.5 px-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold flex items-center justify-center gap-1 transition-colors"
+                                      title={language === "bn" ? "সরাসরি কল করুন" : "Call Attendant"}
+                                    >
+                                      <Phone size={11} className="fill-white" />
+                                      <span className="font-mono text-[10px]">{p.requesterPhone}</span>
+                                    </a>
+                                    <a
+                                      href={`https://wa.me/${p.requesterPhone.replace(/[^0-9]/g, "").replace(/^0/, "880")}?text=${encodeURIComponent(
+                                        language === "bn"
+                                          ? `আসসালামু আলাইকুম, আমি Blood&Life প্ল্যাটফর্ম থেকে ${p.hospital}-এ ${p.patientCode} রোগীর জন্য (${p.bloodGroup} ${p.bloodComponent}) রক্তদানে যোগাযোগ করছি।`
+                                          : `Hello, I am contacting from Blood&Life regarding blood donation for patient ${p.patientCode} at ${p.hospital} (${p.bloodGroup} ${p.bloodComponent}).`
+                                      )}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="p-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold flex items-center justify-center transition-colors"
+                                      title="WhatsApp Chat"
+                                    >
+                                      <MessageCircle size={13} />
+                                    </a>
+                                  </div>
+                                ) : (
+                                  <button
+                                    onClick={() => togglePhone(p.id)}
+                                    className="flex-1 py-1.5 px-2 rounded-lg border border-[var(--border-subtle)] hover:bg-[var(--bg-surface)] text-[11px] font-bold text-[var(--text-primary)] flex items-center justify-center gap-1 transition-colors"
+                                  >
+                                    <Phone size={11} className="text-blue-500" />
+                                    <span>{language === "bn" ? "ফোন নম্বর" : "Attendant Phone"}</span>
+                                  </button>
+                                )}
+
                                 <button
                                   onClick={() => setPledgeTarget(p)}
-                                  className="px-3 py-1 rounded-lg bg-red-600 hover:bg-red-700 text-white text-[11px] font-bold"
+                                  className="py-1.5 px-3 rounded-lg bg-red-600 hover:bg-red-700 text-white text-[11px] font-bold flex items-center gap-1 shadow-xs"
                                 >
-                                  {language === "bn" ? "রক্ত দিন" : "Pledge"}
+                                  <Heart size={11} className="fill-white" />
+                                  <span>{language === "bn" ? "রক্ত দিন" : "Pledge"}</span>
                                 </button>
                               </div>
                             </div>
@@ -803,6 +880,15 @@ export default function HospitalDemandBoardPage() {
                       </span>
                       <span className="font-bold text-[var(--text-primary)]">
                         {pledgeTarget.department}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-[var(--text-muted)]">
+                        {language === "bn" ? "রক্তের উপাদান:" : "Blood Component:"}
+                      </span>
+                      <span className="font-bold text-red-600 dark:text-red-400">
+                        {pledgeTarget.bloodComponent}
                       </span>
                     </div>
 

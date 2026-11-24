@@ -203,7 +203,7 @@ export function Navbar({ onOpenSos }: NavbarProps) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const isAboutActive = ["/about", "/funding", "/privacy", "/terms", "/blood-info", "/clinical-shield", "/fraud-shield", "/directory", "/hospitals"].includes(pathname);
+  const isAboutActive = ["/about", "/privacy", "/terms", "/blood-info", "/clinical-shield", "/fraud-shield"].includes(pathname);
 
   return (
     <header className="sticky top-0 z-40">
