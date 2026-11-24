@@ -22,6 +22,7 @@ import {
   Sparkles,
   MapPin,
   Building2,
+  Settings,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -36,8 +37,17 @@ export function Navbar({ onOpenSos }: NavbarProps) {
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<{ name: string; role: string; email: string } | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+
+  // Close menus when pathname changes
+  useEffect(() => {
+    setDropdownOpen(false);
+    setUserMenuOpen(false);
+    setMobileOpen(false);
+  }, [pathname]);
 
   // Synchronize authenticated user state
   useEffect(() => {
@@ -75,11 +85,14 @@ export function Navbar({ onOpenSos }: NavbarProps) {
     }
   };
 
-  // Close dropdown when clicking outside
+  // Close dropdowns when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setDropdownOpen(false);
+      }
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setUserMenuOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -314,17 +327,6 @@ export function Navbar({ onOpenSos }: NavbarProps) {
               </div>
             )}
           </div>
-
-          <Link
-            href="/dashboard"
-            className={`px-2 py-1 rounded-md transition-colors whitespace-nowrap ${
-              pathname.startsWith("/dashboard")
-                ? "bg-red-500/10 text-red-600 dark:text-red-400 font-extrabold border border-red-500/20"
-                : "hover:text-red-500 hover:bg-black/5 dark:hover:bg-white/5"
-            }`}
-          >
-            {t.nav.dashboard}
-          </Link>
         </div>
 
         {/* Action Controls */}
@@ -338,27 +340,118 @@ export function Navbar({ onOpenSos }: NavbarProps) {
             <span>{t.nav.needBloodNow}</span>
           </button>
 
-          {/* User Profile or Sign In Buttons */}
+          {/* User Profile Dropdown or Sign In Buttons */}
           {currentUser ? (
-            <div className="hidden sm:flex items-center gap-1.5 pl-1 border-l border-[var(--border-subtle)]">
-              <Link
-                href="/dashboard/settings"
-                className="px-2.5 py-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-main)] text-[11px] font-bold text-[var(--text-primary)] hover:border-red-500/40 transition-colors flex items-center gap-1.5"
+            <div className="relative hidden sm:block" ref={userMenuRef}>
+              <button
+                type="button"
+                onClick={() => setUserMenuOpen(!userMenuOpen)}
+                className={`px-2.5 py-1.5 rounded-xl border transition-all flex items-center gap-2 cursor-pointer shadow-xs ${
+                  pathname.startsWith("/dashboard") || userMenuOpen
+                    ? "border-red-500/40 bg-red-500/10 text-red-600 dark:text-red-400"
+                    : "border-[var(--border-subtle)] bg-[var(--bg-main)] text-[var(--text-primary)] hover:border-red-500/30"
+                }`}
                 title={currentUser.email}
+                aria-expanded={userMenuOpen}
               >
-                <span className="w-5 h-5 rounded-md bg-red-600 text-white flex items-center justify-center text-[10px] font-black">
+                <span className="w-5 h-5 rounded-lg bg-red-600 text-white flex items-center justify-center text-[10px] font-black shrink-0">
                   {currentUser.name ? currentUser.name.charAt(0).toUpperCase() : "U"}
                 </span>
-                <span className="max-w-[75px] truncate">{currentUser.name}</span>
-              </Link>
-              <button
-                onClick={handleLogout}
-                className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-red-600 hover:bg-red-500/10 transition-colors cursor-pointer"
-                title={language === "bn" ? "লগআউট" : "Sign Out"}
-                aria-label="Sign Out"
-              >
-                <LogOut size={16} />
+                <span className="text-xs font-bold max-w-[85px] truncate">{currentUser.name}</span>
+                <ChevronDown
+                  size={12}
+                  className={`text-[var(--text-muted)] transition-transform duration-150 ${
+                    userMenuOpen ? "rotate-180 text-red-500" : ""
+                  }`}
+                />
               </button>
+
+              {/* Profile Dropdown Menu */}
+              {userMenuOpen && (
+                <div className="absolute right-0 mt-2 w-64 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] shadow-2xl p-2 z-50 animate-in fade-in slide-in-from-top-1 space-y-1">
+                  {/* User Info Header */}
+                  <div className="px-3 py-2.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-subtle)]/60">
+                    <div className="flex items-center gap-2">
+                      <span className="w-7 h-7 rounded-xl bg-red-600 text-white flex items-center justify-center text-xs font-black shrink-0 shadow-xs">
+                        {currentUser.name ? currentUser.name.charAt(0).toUpperCase() : "U"}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <span className="text-xs font-black text-[var(--text-primary)] block truncate">
+                          {currentUser.name}
+                        </span>
+                        <span className="text-[10px] text-[var(--text-muted)] block truncate">
+                          {currentUser.email}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="mt-2 pt-2 border-t border-[var(--border-subtle)] flex items-center justify-between">
+                      <span className="text-[10px] font-bold text-red-600 dark:text-red-400 bg-red-500/10 px-2 py-0.5 rounded-full">
+                        {language === "bn" ? "রক্তদাতা ও গ্রহীতা" : "Donor & Requester"}
+                      </span>
+                      <span className="text-[10px] font-semibold text-[var(--text-muted)]">
+                        {currentUser.role}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Menu Links */}
+                  <div className="pt-1 space-y-0.5">
+                    <Link
+                      href="/dashboard"
+                      onClick={() => setUserMenuOpen(false)}
+                      className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-colors ${
+                        pathname === "/dashboard"
+                          ? "bg-red-500/10 text-red-600 dark:text-red-400"
+                          : "text-[var(--text-primary)] hover:bg-[var(--bg-main)]"
+                      }`}
+                    >
+                      <LayoutDashboard size={15} className="text-red-500" />
+                      <span>{language === "bn" ? "ইউজার ড্যাশবোর্ড" : "User Dashboard"}</span>
+                    </Link>
+
+                    <Link
+                      href="/dashboard/donations"
+                      onClick={() => setUserMenuOpen(false)}
+                      className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-colors ${
+                        pathname === "/dashboard/donations"
+                          ? "bg-red-500/10 text-red-600 dark:text-red-400"
+                          : "text-[var(--text-primary)] hover:bg-[var(--bg-main)]"
+                      }`}
+                    >
+                      <Droplet size={15} className="text-rose-500" />
+                      <span>{language === "bn" ? "রক্তদানের ইতিহাস" : "Donation Records"}</span>
+                    </Link>
+
+                    <Link
+                      href="/dashboard/settings"
+                      onClick={() => setUserMenuOpen(false)}
+                      className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-colors ${
+                        pathname === "/dashboard/settings"
+                          ? "bg-red-500/10 text-red-600 dark:text-red-400"
+                          : "text-[var(--text-primary)] hover:bg-[var(--bg-main)]"
+                      }`}
+                    >
+                      <Settings size={15} className="text-blue-500" />
+                      <span>{language === "bn" ? "প্রোফাইল ও সেটিংস" : "Profile & Settings"}</span>
+                    </Link>
+                  </div>
+
+                  {/* Logout Button */}
+                  <div className="pt-1 border-t border-[var(--border-subtle)]">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setUserMenuOpen(false);
+                        handleLogout();
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-red-600 dark:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer text-left"
+                    >
+                      <LogOut size={15} />
+                      <span>{language === "bn" ? "লগআউট করুন" : "Sign Out"}</span>
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div className="hidden sm:flex items-center gap-1 pl-1 border-l border-[var(--border-subtle)]">
@@ -508,15 +601,6 @@ export function Navbar({ onOpenSos }: NavbarProps) {
           >
             {language === "bn" ? "শর্তাবলী" : "Terms & Guidelines"}
           </Link>
-          <Link
-            href="/dashboard"
-            onClick={() => setMobileOpen(false)}
-            className={`block px-3 py-2 rounded-lg transition-colors ${
-              pathname.startsWith("/dashboard") ? "bg-red-500/10 text-red-500" : "text-[var(--text-primary)]"
-            }`}
-          >
-            {t.nav.dashboard}
-          </Link>
 
           {/* Emergency SOS in Mobile Menu */}
           <button
@@ -533,21 +617,48 @@ export function Navbar({ onOpenSos }: NavbarProps) {
           {/* Mobile Auth Actions */}
           <div className="pt-2 mt-2 border-t border-[var(--border-subtle)] space-y-1">
             {currentUser ? (
-              <div className="px-3 py-2 rounded-lg bg-[var(--bg-main)] flex items-center justify-between">
-                <div>
-                  <span className="text-xs font-bold text-[var(--text-primary)] block">{currentUser.name}</span>
-                  <span className="text-[10px] text-[var(--text-muted)] font-medium block">{currentUser.role}</span>
+              <div className="p-3 rounded-xl bg-[var(--bg-main)] border border-[var(--border-subtle)] space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="w-7 h-7 rounded-xl bg-red-600 text-white flex items-center justify-center text-xs font-black shrink-0">
+                      {currentUser.name ? currentUser.name.charAt(0).toUpperCase() : "U"}
+                    </span>
+                    <div className="min-w-0">
+                      <span className="text-xs font-bold text-[var(--text-primary)] block truncate">{currentUser.name}</span>
+                      <span className="text-[10px] text-[var(--text-muted)] font-medium block truncate">{currentUser.email}</span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setMobileOpen(false);
+                      handleLogout();
+                    }}
+                    className="px-2 py-1 rounded-md text-[11px] font-bold text-red-500 hover:bg-red-500/10 flex items-center gap-1 shrink-0"
+                  >
+                    <LogOut size={12} />
+                    <span>{language === "bn" ? "লগআউট" : "Sign Out"}</span>
+                  </button>
                 </div>
-                <button
-                  onClick={() => {
-                    setMobileOpen(false);
-                    handleLogout();
-                  }}
-                  className="px-2.5 py-1 rounded-md text-xs font-bold text-red-500 hover:bg-red-500/10 flex items-center gap-1"
-                >
-                  <LogOut size={13} />
-                  <span>{language === "bn" ? "লগআউট" : "Sign Out"}</span>
-                </button>
+
+                <div className="grid grid-cols-2 gap-1.5 pt-1 border-t border-[var(--border-subtle)]">
+                  <Link
+                    href="/dashboard"
+                    onClick={() => setMobileOpen(false)}
+                    className="py-1.5 px-2 text-center rounded-lg bg-red-500/10 text-red-600 dark:text-red-400 text-xs font-bold flex items-center justify-center gap-1.5"
+                  >
+                    <LayoutDashboard size={13} />
+                    <span>{language === "bn" ? "ড্যাশবোর্ড" : "Dashboard"}</span>
+                  </Link>
+
+                  <Link
+                    href="/dashboard/settings"
+                    onClick={() => setMobileOpen(false)}
+                    className="py-1.5 px-2 text-center rounded-lg border border-[var(--border-subtle)] text-[var(--text-primary)] text-xs font-bold flex items-center justify-center gap-1.5"
+                  >
+                    <Settings size={13} />
+                    <span>{language === "bn" ? "প্রোফাইল" : "Profile"}</span>
+                  </Link>
+                </div>
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-2 pt-1">
