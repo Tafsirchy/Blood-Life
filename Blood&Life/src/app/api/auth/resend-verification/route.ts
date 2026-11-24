@@ -4,7 +4,7 @@ import { User } from "@/models/User";
 import { sendTransactionalEmail } from "@/lib/notifications/email";
 import { buildVerificationEmailTemplate } from "@/lib/notifications/emailTemplates";
 import { generateVerificationCode, hashVerificationCode, getOtpExpiryDate } from "@/lib/security/otp";
-import { checkRateLimit } from "@/lib/security/rateLimiter";
+import { checkRateLimit, getClientIp } from "@/lib/security/rateLimiter";
 import { z } from "zod";
 
 const resendSchema = z.object({
@@ -13,7 +13,7 @@ const resendSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const ip = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown-ip";
+    const ip = getClientIp(req);
 
     // Strict rate limiting: 5 attempts per hour per IP
     const ipRateLimit = await checkRateLimit(`resend-verif-ip:${ip}`, 5, 3600);

@@ -18,6 +18,22 @@ export interface RateLimitResult {
   resetMs: number;
 }
 
+/**
+ * Extracts client IP securely handling proxies, Cloudflare, and X-Forwarded-For lists
+ */
+export function getClientIp(req: { headers: { get: (name: string) => string | null } }): string {
+  const xForwardedFor = req.headers.get("x-forwarded-for");
+  if (xForwardedFor) {
+    const firstIp = xForwardedFor.split(",")[0].trim();
+    if (firstIp) return firstIp;
+  }
+  const xRealIp = req.headers.get("x-real-ip");
+  if (xRealIp) return xRealIp.trim();
+  const cfConnectingIp = req.headers.get("cf-connecting-ip");
+  if (cfConnectingIp) return cfConnectingIp.trim();
+  return "unknown-ip";
+}
+
 export async function checkRateLimit(
   key: string,
   limit: number = 3,

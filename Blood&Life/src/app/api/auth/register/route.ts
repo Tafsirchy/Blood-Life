@@ -2,9 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
 import { User } from "@/models/User";
 import bcrypt from "bcryptjs";
-import { signSessionJWT } from "@/lib/auth/jwt";
-import { SESSION_COOKIE_NAME } from "@/lib/auth/session";
-import { checkRateLimit } from "@/lib/security/rateLimiter";
+import { checkRateLimit, getClientIp } from "@/lib/security/rateLimiter";
 import { sendTransactionalEmail } from "@/lib/notifications/email";
 import { buildVerificationEmailTemplate } from "@/lib/notifications/emailTemplates";
 import { generateVerificationCode, hashVerificationCode, getOtpExpiryDate } from "@/lib/security/otp";
@@ -30,7 +28,7 @@ const registerSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const ip = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown-ip";
+    const ip = getClientIp(req);
     const rateLimit = await checkRateLimit(`register-ip:${ip}`, 5, 3600);
     if (!rateLimit.success) {
       return NextResponse.json(
@@ -61,16 +59,9 @@ export async function POST(req: NextRequest) {
 
     let userDoc;
     if (existingUser) {
-      // Claim pre-existing intake record created without a password
-      existingUser.name = validated.name;
+      // Securely claim pre-existing intake record created without a password:
+      // Bind credentials & OTP token, but do not overwrite profile fields until email ownership is verified!
       existingUser.password = hashedPassword;
-      existingUser.phone = validated.phone;
-      existingUser.bloodGroup = validated.bloodGroup;
-      existingUser.division = validated.division;
-      existingUser.district = validated.district;
-      existingUser.upazila = validated.upazila;
-      existingUser.union = validated.union || "";
-      existingUser.address = validated.address || "";
       existingUser.isEmailVerified = false;
       existingUser.emailVerificationToken = hashedVerificationToken;
       existingUser.emailVerificationExpires = verificationExpires;
@@ -131,23 +122,13 @@ export async function POST(req: NextRequest) {
     }
     console.log(`======================================================\n`);
 
-    // Create session JWT
-    const token = await signSessionJWT({
-      userId: String(userDoc._id),
-      email: userDoc.email,
-      name: userDoc.name,
-      role: userDoc.role,
-      bloodGroup: userDoc.bloodGroup,
-      district: userDoc.district,
-      isEmailVerified: false,
-      tokenVersion: 0,
-    });
-
-    const response = NextResponse.json({
+    // Session cookie is NOT issued here.
+    // The user MUST verify email ownership via /api/auth/verify-email before receiving an active session.
+    return NextResponse.json({
       success: true,
       requiresVerification: true,
       isEmailDelivered: emailResult.success,
-      message: "Account created! A verification link has been sent to your email.",
+      message: "Account created! A verification code has been dispatched to your email. Please verify to sign in.",
       user: {
         id: userDoc._id,
         name: userDoc.name,
@@ -157,16 +138,6 @@ export async function POST(req: NextRequest) {
         isEmailVerified: false,
       },
     });
-
-    response.cookies.set(SESSION_COOKIE_NAME, token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 7 * 24 * 60 * 60, // 7 days
-      path: "/",
-    });
-
-    return response;
   } catch (error: any) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.issues[0]?.message || "Validation failed" }, { status: 400 });

@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
 import { User } from "@/models/User";
+import { signSessionJWT } from "@/lib/auth/jwt";
+import { SESSION_COOKIE_NAME } from "@/lib/auth/session";
 import { sendTransactionalEmail } from "@/lib/notifications/email";
 import { buildWelcomeEmailTemplate } from "@/lib/notifications/emailTemplates";
 import { hashVerificationCode } from "@/lib/security/otp";
-import { checkRateLimit } from "@/lib/security/rateLimiter";
+import { checkRateLimit, getClientIp } from "@/lib/security/rateLimiter";
 import { z } from "zod";
 
 const verifySchema = z.object({
@@ -15,6 +17,15 @@ const verifySchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = getClientIp(req);
+    const ipRateLimit = await checkRateLimit(`verify-ip:${ip}`, 20, 900);
+    if (!ipRateLimit.success) {
+      return NextResponse.json(
+        { error: "Too many verification requests from this network. Please wait 15 minutes." },
+        { status: 429 }
+      );
+    }
+
     const body = await req.json();
     const { code, token, email } = verifySchema.parse(body);
 
@@ -73,10 +84,40 @@ export async function POST(req: NextRequest) {
       text: welcomeContent.text,
     });
 
-    return NextResponse.json({
-      success: true,
-      message: "Email verified successfully! You may now access all features.",
+    // Generate authenticated session JWT for immediate seamless sign-in
+    const sessionToken = await signSessionJWT({
+      userId: String(user._id),
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      bloodGroup: user.bloodGroup,
+      district: user.district,
+      isEmailVerified: true,
+      tokenVersion: user.tokenVersion || 0,
     });
+
+    const response = NextResponse.json({
+      success: true,
+      message: "Email verified successfully! You are now securely signed in.",
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        bloodGroup: user.bloodGroup,
+        district: user.district,
+      },
+    });
+
+    response.cookies.set(SESSION_COOKIE_NAME, sessionToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 7 * 24 * 60 * 60,
+      path: "/",
+    });
+
+    return response;
   } catch (error) {
     console.error("Verification error:", error);
     if (error instanceof z.ZodError) {

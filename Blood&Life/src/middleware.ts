@@ -78,6 +78,13 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(loginUrl);
     }
 
+    // Strict Email Verification Guard for Dashboard Access
+    if (session.isEmailVerified === false) {
+      const verifyUrl = new URL("/auth/verify-email", request.url);
+      verifyUrl.searchParams.set("email", session.email);
+      return NextResponse.redirect(verifyUrl);
+    }
+
     // Role-Based Guards
     if (pathname.startsWith("/dashboard/admin") && session.role !== "Admin") {
       return NextResponse.redirect(new URL("/dashboard?error=unauthorized", request.url));

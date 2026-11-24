@@ -3,7 +3,7 @@ import { connectDB } from "@/lib/db";
 import { User } from "@/models/User";
 import { sendTransactionalEmail } from "@/lib/notifications/email";
 import { buildPasswordResetEmailTemplate } from "@/lib/notifications/emailTemplates";
-import { checkRateLimit } from "@/lib/security/rateLimiter";
+import { checkRateLimit, getClientIp } from "@/lib/security/rateLimiter";
 import crypto from "crypto";
 import { z } from "zod";
 
@@ -13,7 +13,7 @@ const forgotPasswordSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const ip = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown-ip";
+    const ip = getClientIp(req);
     
     // Anti-Email-Bombing Rate Limit: 3 requests per 15 minutes per IP
     const rateLimit = await checkRateLimit(`forgot-ip:${ip}`, 3, 900);

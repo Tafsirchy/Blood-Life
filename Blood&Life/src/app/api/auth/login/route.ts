@@ -3,7 +3,7 @@ import { connectDB } from "@/lib/db";
 import { User } from "@/models/User";
 import { signSessionJWT } from "@/lib/auth/jwt";
 import { SESSION_COOKIE_NAME } from "@/lib/auth/session";
-import { checkRateLimit } from "@/lib/security/rateLimiter";
+import { checkRateLimit, getClientIp } from "@/lib/security/rateLimiter";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 
@@ -14,9 +14,9 @@ const loginSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const ip = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown-ip";
+    const ip = getClientIp(req);
     
-    // Strict Brute-Force Rate Limiting (5 failed attempts per 15 min per IP)
+    // Strict Brute-Force Rate Limiting (10 failed attempts per 15 min per IP)
     const rateLimit = await checkRateLimit(`login-ip:${ip}`, 10, 900);
     if (!rateLimit.success) {
       return NextResponse.json(
@@ -27,6 +27,15 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
     const { email, password } = loginSchema.parse(body);
+
+    // Account-Level Brute-Force Rate Limiting (5 attempts per 15 min per email)
+    const accountRateLimit = await checkRateLimit(`login-acc:${email.toLowerCase()}`, 5, 900);
+    if (!accountRateLimit.success) {
+      return NextResponse.json(
+        { error: "Too many failed attempts for this account. Please wait 15 minutes or reset your password." },
+        { status: 429 }
+      );
+    }
 
     await connectDB();
 
