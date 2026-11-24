@@ -12,20 +12,42 @@ interface LanguageContextType {
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
-export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [language, setLanguageState] = useState<Language>("bn"); // Default to Bangla as primary national resonance
+let globalCachedLang: Language | null = null;
+
+export function LanguageProvider({
+  children,
+  initialLanguage = "bn",
+}: {
+  children: ReactNode;
+  initialLanguage?: Language;
+}) {
+  const [language, setLanguageState] = useState<Language>(() => {
+    if (globalCachedLang) return globalCachedLang;
+    return initialLanguage;
+  });
 
   useEffect(() => {
-    const saved = localStorage.getItem("blood_lagbe_lang") as Language | null;
-    if (saved === "en" || saved === "bn") {
-      setLanguageState(saved);
-    }
-  }, []);
+    try {
+      const saved = localStorage.getItem("blood_lagbe_lang") as Language | null;
+      if (saved === "en" || saved === "bn") {
+        globalCachedLang = saved;
+        if (language !== saved) {
+          setLanguageState(saved);
+        }
+      } else {
+        localStorage.setItem("blood_lagbe_lang", language);
+      }
+      document.cookie = `blood_lagbe_lang=${language}; path=/; max-age=31536000; SameSite=Lax`;
+    } catch {}
+  }, [language]);
 
   const setLanguage = (lang: Language) => {
+    globalCachedLang = lang;
     setLanguageState(lang);
-    localStorage.setItem("blood_lagbe_lang", lang);
-    document.cookie = `blood_lagbe_lang=${lang}; path=/; max-age=31536000`;
+    try {
+      localStorage.setItem("blood_lagbe_lang", lang);
+      document.cookie = `blood_lagbe_lang=${lang}; path=/; max-age=31536000; SameSite=Lax`;
+    } catch {}
   };
 
   const toggleLanguage = () => {

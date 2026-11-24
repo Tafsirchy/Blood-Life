@@ -1,8 +1,10 @@
 import type { Metadata, Viewport } from "next";
+import { cookies } from "next/headers";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { LanguageProvider } from "@/lib/i18n/context";
+import { Language } from "@/lib/i18n/dictionaries";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -60,16 +62,20 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const cookieStore = await cookies();
+  const savedLang = cookieStore.get("blood_lagbe_lang")?.value as Language | undefined;
+  const initialLanguage: Language = savedLang === "en" || savedLang === "bn" ? savedLang : "bn";
+
   return (
-    <html lang="bn" suppressHydrationWarning className={`${geistSans.variable} ${geistMono.variable}`}>
+    <html lang={initialLanguage} suppressHydrationWarning className={`${geistSans.variable} ${geistMono.variable}`}>
       <body className="min-h-screen flex flex-col font-sans transition-colors duration-200">
         <ThemeProvider>
-          <LanguageProvider>
+          <LanguageProvider initialLanguage={initialLanguage}>
             {children}
           </LanguageProvider>
         </ThemeProvider>
