@@ -1,4 +1,4 @@
-import webpush from "web-push";
+import * as webpush from "web-push";
 
 // Environment VAPID keys - strictly no hardcoded fallback secrets in production
 const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;

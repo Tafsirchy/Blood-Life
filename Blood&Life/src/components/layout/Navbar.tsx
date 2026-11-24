@@ -47,7 +47,12 @@ export function Navbar({ onOpenSos }: NavbarProps) {
   // On SSR & initial client hydration: mounted is false, so Server & Client produce 100% IDENTICAL HTML.
   // On subsequent client-side route navigations: hasHydrated is true, so it renders immediately without flashing!
   const [mounted, setMounted] = useState<boolean>(() => hasHydrated);
-  const [currentUser, setCurrentUser] = useState<{ name: string; role: string; email: string } | null>(
+  const [currentUser, setCurrentUser] = useState<{
+    name: string;
+    role: string;
+    email: string;
+    bloodGroup?: string;
+  } | null>(
     () => (hasHydrated ? globalCachedUser : null)
   );
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -131,6 +136,7 @@ export function Navbar({ onOpenSos }: NavbarProps) {
               name: d.user.name,
               role: d.user.role,
               email: d.user.email,
+              bloodGroup: d.user.bloodGroup,
             };
             globalCachedUser = u;
             setCurrentUser(u);
@@ -495,12 +501,31 @@ export function Navbar({ onOpenSos }: NavbarProps) {
                       </div>
                     </div>
                     <div className="mt-2 pt-2 border-t border-[var(--border-subtle)] flex items-center justify-between">
-                      <span className="text-[10px] font-bold text-red-600 dark:text-red-400 bg-red-500/10 px-2 py-0.5 rounded-full">
-                        {language === "bn" ? "রক্তদাতা ও গ্রহীতা" : "Donor & Requester"}
+                      <span className="text-[10px] font-bold text-red-600 dark:text-red-400 bg-red-500/10 px-2 py-0.5 rounded-full capitalize">
+                        {currentUser.role === "donor"
+                          ? language === "bn"
+                            ? "স্বেচ্ছাসেবী রক্তদাতা"
+                            : "Blood Donor"
+                          : currentUser.role === "recipient"
+                          ? language === "bn"
+                            ? "রক্তগ্রহীতা"
+                            : "Blood Requester"
+                          : currentUser.role === "admin"
+                          ? language === "bn"
+                            ? "অ্যাডমিন"
+                            : "Administrator"
+                          : currentUser.role}
                       </span>
-                      <span className="text-[10px] font-semibold text-[var(--text-muted)]">
-                        {currentUser.role}
-                      </span>
+                      {currentUser.bloodGroup ? (
+                        <span className="badge-blood text-[10px] font-black px-1.5 py-0.5">
+                          {currentUser.bloodGroup}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-bold text-emerald-500 flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                          {language === "bn" ? "ভেরিফাইড" : "Verified"}
+                        </span>
+                      )}
                     </div>
                   </div>
 

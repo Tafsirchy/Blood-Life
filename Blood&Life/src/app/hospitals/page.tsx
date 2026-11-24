@@ -25,8 +25,11 @@ import {
   Sparkles,
   ExternalLink,
   Flame,
+  Navigation,
+  MessageCircle,
 } from "lucide-react";
 import Link from "next/link";
+import { DISTRICTS } from "@/lib/geo/bangladeshData";
 
 interface ScheduledPatient {
   id: string;
@@ -69,16 +72,12 @@ interface HospitalStats {
 }
 
 const BLOOD_GROUPS = ["all", "A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"];
-const DISTRICT_OPTIONS = [
-  "all",
-  "Dhaka",
-  "Chittagong",
-  "Rajshahi",
-  "Sylhet",
-  "Mymensingh",
-  "Barisal",
-  "Rangpur",
-  "Khulna",
+const BLOOD_COMPONENTS = [
+  { id: "all", labelEn: "All Types", labelBn: "সব উপাদান" },
+  { id: "Whole Blood", labelEn: "Whole Blood", labelBn: "হোল ব্লাড" },
+  { id: "PRBC", labelEn: "PRBC (Red Cells)", labelBn: "পিআরবিসি" },
+  { id: "Platelets", labelEn: "Platelets (SDP/RDP)", labelBn: "প্লাটিলেট" },
+  { id: "Plasma", labelEn: "Plasma / FFP", labelBn: "প্লাজমা" },
 ];
 
 export default function HospitalDemandBoardPage() {
@@ -88,6 +87,7 @@ export default function HospitalDemandBoardPage() {
   const [selectedDistrict, setSelectedDistrict] = useState("all");
   const [selectedBloodGroup, setSelectedBloodGroup] = useState("all");
   const [selectedUrgency, setSelectedUrgency] = useState("all");
+  const [selectedComponent, setSelectedComponent] = useState("all");
 
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<HospitalStats>({
@@ -118,6 +118,7 @@ export default function HospitalDemandBoardPage() {
       if (selectedDistrict !== "all") params.set("district", selectedDistrict);
       if (selectedBloodGroup !== "all") params.set("bloodGroup", selectedBloodGroup);
       if (selectedUrgency !== "all") params.set("urgency", selectedUrgency);
+      if (selectedComponent !== "all") params.set("bloodComponent", selectedComponent);
 
       const res = await fetch(`/api/hospitals/demand?${params.toString()}`);
       const data = await res.json();
@@ -136,7 +137,7 @@ export default function HospitalDemandBoardPage() {
 
   useEffect(() => {
     fetchHospitalDemand();
-  }, [selectedDistrict, selectedBloodGroup, selectedUrgency]);
+  }, [selectedDistrict, selectedBloodGroup, selectedUrgency, selectedComponent]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -339,20 +340,20 @@ export default function HospitalDemandBoardPage() {
 
           {/* Secondary Quick Filters: District, Blood Group, Urgency */}
           <div className="pt-3 border-t border-[var(--border-subtle)] flex flex-wrap items-center gap-3 text-xs">
-            {/* District Dropdown */}
+            {/* District Dropdown - 64 Districts */}
             <div className="flex items-center gap-1.5">
               <MapPin size={13} className="text-blue-500" />
               <select
                 value={selectedDistrict}
                 onChange={(e) => setSelectedDistrict(e.target.value)}
-                className="py-1 px-2.5 rounded-lg bg-[var(--bg-main)] border border-[var(--border-subtle)] text-xs text-[var(--text-primary)] outline-none focus:border-red-500"
+                className="py-1 px-2.5 rounded-lg bg-[var(--bg-main)] border border-[var(--border-subtle)] text-xs text-[var(--text-primary)] outline-none focus:border-red-500 max-w-[150px] sm:max-w-none truncate"
               >
                 <option value="all">
-                  {language === "bn" ? "সকল জেলা (All Districts)" : "All Districts"}
+                  {language === "bn" ? "সকল জেলা (৬৪ জেলা)" : "All Districts (64)"}
                 </option>
-                {DISTRICT_OPTIONS.filter((d) => d !== "all").map((dist) => (
-                  <option key={dist} value={dist}>
-                    {dist}
+                {DISTRICTS.map((d) => (
+                  <option key={d.id} value={d.nameEn}>
+                    {language === "bn" ? `${d.nameBn} (${d.nameEn})` : d.nameEn}
                   </option>
                 ))}
               </select>
@@ -379,7 +380,7 @@ export default function HospitalDemandBoardPage() {
                 <button
                   key={bg}
                   onClick={() => setSelectedBloodGroup(bg)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-black transition-all ${
+                  className={`px-2.5 py-1 rounded-lg text-xs font-black transition-all shrink-0 ${
                     selectedBloodGroup === bg
                       ? "bg-red-600 text-white shadow-sm scale-105"
                       : "bg-[var(--bg-main)] border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:border-red-500/40"
@@ -388,6 +389,28 @@ export default function HospitalDemandBoardPage() {
                   {bg === "all" ? (language === "bn" ? "সব গ্রুপ" : "All") : bg}
                 </button>
               ))}
+            </div>
+
+            {/* Blood Component Chips */}
+            <div className="w-full flex items-center gap-1.5 pt-2.5 border-t border-[var(--border-subtle)]/70 overflow-x-auto py-1">
+              <span className="text-[11px] text-[var(--text-muted)] font-bold shrink-0">
+                {language === "bn" ? "রক্তের উপাদান:" : "Component:"}
+              </span>
+              <div className="flex items-center gap-1 shrink-0">
+                {BLOOD_COMPONENTS.map((c) => (
+                  <button
+                    key={c.id}
+                    onClick={() => setSelectedComponent(c.id)}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all shrink-0 ${
+                      selectedComponent === c.id
+                        ? "bg-red-600 text-white shadow-xs scale-105"
+                        : "bg-[var(--bg-main)] border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:border-red-500/40"
+                    }`}
+                  >
+                    {language === "bn" ? c.labelBn : c.labelEn}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -462,7 +485,7 @@ export default function HospitalDemandBoardPage() {
                           <span className="badge-blood text-sm font-black px-2.5 py-1">
                             {p.bloodGroup}
                           </span>
-                          <span className="block text-[10px] font-bold text-[var(--text-muted)] mt-0.5">
+                          <span className="block text-[10px] font-bold text-red-600 dark:text-red-400 bg-red-500/10 px-2 py-0.5 rounded-md mt-1 border border-red-500/20">
                             {p.bloodComponent}
                           </span>
                         </div>
@@ -470,9 +493,23 @@ export default function HospitalDemandBoardPage() {
 
                       {/* Hospital & Department */}
                       <div className="p-3 rounded-xl bg-[var(--bg-main)] border border-[var(--border-subtle)] text-xs space-y-2">
-                        <div className="flex items-center gap-1.5 text-[var(--text-primary)] font-bold">
-                          <Building2 size={13} className="text-blue-500 shrink-0" />
-                          <span className="truncate">{p.hospital}</span>
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-1.5 text-[var(--text-primary)] font-bold min-w-0">
+                            <Building2 size={13} className="text-blue-500 shrink-0" />
+                            <span className="truncate">{p.hospital}</span>
+                          </div>
+                          <a
+                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                              `${p.hospital}, ${p.district}, Bangladesh`
+                            )}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500/20 text-[10px] font-bold shrink-0 transition-colors"
+                            title={language === "bn" ? "গুগল ম্যাপে দিকনির্দেশনা দেখুন" : "Get Google Maps Directions"}
+                          >
+                            <Navigation size={10} />
+                            <span>{language === "bn" ? "দিকনির্দেশনা" : "Map"}</span>
+                          </a>
                         </div>
 
                         <div className="grid grid-cols-2 gap-2 text-[11px] text-[var(--text-secondary)] pt-1 border-t border-[var(--border-subtle)]">
@@ -521,20 +558,42 @@ export default function HospitalDemandBoardPage() {
 
                       {/* Action Buttons: Phone Reveal & Pledge */}
                       <div className="flex items-center gap-2 pt-1 border-t border-[var(--border-subtle)]">
-                        {/* Phone Reveal Button */}
-                        <button
-                          onClick={() => togglePhone(p.id)}
-                          className="flex-1 py-2 px-3 rounded-xl border border-[var(--border-subtle)] hover:bg-[var(--bg-main)] text-xs font-bold text-[var(--text-primary)] flex items-center justify-center gap-1.5 transition-colors"
-                        >
-                          <Phone size={13} className="text-blue-500" />
-                          <span>
-                            {revealedPhones[p.id]
-                              ? p.requesterPhone
-                              : language === "bn"
-                              ? "অ্যাটেনডেন্ট ফোন"
-                              : "Attendant Phone"}
-                          </span>
-                        </button>
+                        {/* Phone Reveal / Instant Call & WhatsApp */}
+                        {revealedPhones[p.id] ? (
+                          <div className="flex-1 flex items-center gap-1.5">
+                            <a
+                              href={`tel:${p.requesterPhone}`}
+                              className="flex-1 py-2 px-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-xs"
+                              title={language === "bn" ? "সরাসরি কল করুন" : "Call Attendant"}
+                            >
+                              <Phone size={13} className="fill-white" />
+                              <span className="font-mono">{p.requesterPhone}</span>
+                            </a>
+                            <a
+                              href={`https://wa.me/${p.requesterPhone.replace(/[^0-9]/g, "").replace(/^0/, "880")}?text=${encodeURIComponent(
+                                language === "bn"
+                                  ? `আসসালামু আলাইকুম, আমি Blood&Life প্ল্যাটফর্ম থেকে ${p.hospital}-এ ${p.patientCode} রোগীর জন্য (${p.bloodGroup} ${p.bloodComponent}) রক্তদানে যোগাযোগ করছি।`
+                                  : `Hello, I am contacting from Blood&Life regarding blood donation for patient ${p.patientCode} at ${p.hospital} (${p.bloodGroup} ${p.bloodComponent}).`
+                              )}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="p-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center justify-center transition-colors shadow-xs"
+                              title="WhatsApp Chat"
+                            >
+                              <MessageCircle size={15} />
+                            </a>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => togglePhone(p.id)}
+                            className="flex-1 py-2 px-3 rounded-xl border border-[var(--border-subtle)] hover:bg-[var(--bg-main)] text-xs font-bold text-[var(--text-primary)] flex items-center justify-center gap-1.5 transition-colors"
+                          >
+                            <Phone size={13} className="text-blue-500" />
+                            <span>
+                              {language === "bn" ? "অ্যাটেনডেন্ট ফোন নম্বর" : "Attendant Phone"}
+                            </span>
+                          </button>
+                        )}
 
                         {/* Pledge Blood Button */}
                         <button
@@ -578,6 +637,18 @@ export default function HospitalDemandBoardPage() {
                           <h3 className="text-sm sm:text-base font-bold text-[var(--text-primary)]">
                             {h.hospitalName}
                           </h3>
+                          <a
+                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                              `${h.hospitalName}, ${h.district}, Bangladesh`
+                            )}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500/20 text-[10px] font-bold ml-1 transition-colors"
+                            title={language === "bn" ? "গুগল ম্যাপে দেখুন" : "View on Google Maps"}
+                          >
+                            <Navigation size={10} />
+                            <span className="hidden sm:inline">{language === "bn" ? "ম্যাপ" : "Map"}</span>
+                          </a>
                         </div>
                         <p className="text-xs text-[var(--text-secondary)] mt-0.5 flex items-center gap-1.5">
                           <MapPin size={12} className="text-blue-500" />

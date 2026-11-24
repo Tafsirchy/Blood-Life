@@ -13,6 +13,19 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id: requestId } = await params;
+
+    // Handle demonstration & hospital sample cases seamlessly
+    if (requestId.startsWith("case-")) {
+      const sample = SAMPLE_EMERGENCY_CASES[requestId];
+      const pledgedUnits = sample ? Math.min(sample.unitsNeeded, (sample.pledgedUnits || 0) + 1) : 1;
+      return NextResponse.json({
+        success: true,
+        message: "Thank you for committing to donate blood! The attending hospital coordinator and patient family have been notified.",
+        pledgedUnits,
+      });
+    }
+
     const session = await getValidatedSession();
     if (!session) {
       return NextResponse.json(
@@ -31,18 +44,6 @@ export async function POST(
           headers: { "Retry-After": String(Math.max(1, Math.ceil(pledgeLimit.resetMs / 1000))) },
         }
       );
-    }
-
-    const { id: requestId } = await params;
-    if (requestId.startsWith("case-")) {
-      const sample = SAMPLE_EMERGENCY_CASES[requestId];
-      if (sample) {
-        return NextResponse.json({
-          success: true,
-          message: "Thank you for committing to donate blood! The attending hospital coordinator and patient family have been notified.",
-          pledgedUnits: Math.min(sample.unitsNeeded, (sample.pledgedUnits || 0) + 1),
-        });
-      }
     }
 
     if (!isValidObjectId(requestId)) {

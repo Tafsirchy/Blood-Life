@@ -196,6 +196,7 @@ export async function GET(req: NextRequest) {
     const districtFilter = searchParams.get("district");
     const divisionFilter = searchParams.get("division");
     const bloodGroupFilter = searchParams.get("bloodGroup");
+    const bloodComponentFilter = searchParams.get("bloodComponent");
     const urgencyFilter = searchParams.get("urgency");
 
     const query: Record<string, unknown> = {
@@ -213,6 +214,9 @@ export async function GET(req: NextRequest) {
     }
     if (bloodGroupFilter && bloodGroupFilter !== "all") {
       query.bloodGroup = bloodGroupFilter;
+    }
+    if (bloodComponentFilter && bloodComponentFilter !== "all") {
+      query.bloodComponent = { $regex: bloodComponentFilter, $options: "i" };
     }
     if (urgencyFilter && urgencyFilter !== "all") {
       query.urgency = urgencyFilter;
@@ -265,6 +269,11 @@ export async function GET(req: NextRequest) {
     }
     if (bloodGroupFilter && bloodGroupFilter !== "all") {
       filteredSamples = filteredSamples.filter((p) => p.bloodGroup === bloodGroupFilter);
+    }
+    if (bloodComponentFilter && bloodComponentFilter !== "all") {
+      filteredSamples = filteredSamples.filter((p) =>
+        p.bloodComponent.toLowerCase().includes(bloodComponentFilter.toLowerCase())
+      );
     }
     if (urgencyFilter && urgencyFilter !== "all") {
       filteredSamples = filteredSamples.filter((p) => p.urgency === urgencyFilter);
