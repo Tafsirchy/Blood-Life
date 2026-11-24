@@ -1,6 +1,9 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { Navbar } from "@/components/layout/Navbar";
+import { EmergencyFooter } from "@/components/home/EmergencyFooter";
+import { SosBroadcastModal } from "@/components/requests/SosBroadcastModal";
 import { useLanguage } from "@/lib/i18n/context";
 import {
   Building2,
@@ -104,6 +107,7 @@ export default function HospitalDemandBoardPage() {
   const [pledging, setPledging] = useState(false);
   const [pledgeSuccess, setPledgeSuccess] = useState<string | null>(null);
   const [pledgeError, setPledgeError] = useState<string | null>(null);
+  const [isSosOpen, setIsSosOpen] = useState(false);
 
   // Fetch hospital data from API
   const fetchHospitalDemand = async () => {
@@ -196,8 +200,11 @@ export default function HospitalDemandBoardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--bg-main)] text-[var(--text-primary)] transition-colors py-8 sm:py-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 space-y-8">
+    <div className="min-h-screen flex flex-col bg-[var(--bg-main)] text-[var(--text-primary)] transition-colors">
+      <Navbar onOpenSos={() => setIsSosOpen(true)} />
+
+      <main className="flex-1 py-8 sm:py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 space-y-8">
         {/* Top Hero Banner */}
         <div className="card-clinical p-6 sm:p-8 relative overflow-hidden border border-[var(--border-subtle)] shadow-xl">
           <div className="absolute top-0 right-0 w-80 h-80 bg-gradient-to-br from-red-600/10 via-rose-500/5 to-transparent rounded-full blur-3xl pointer-events-none" />
@@ -796,7 +803,13 @@ export default function HospitalDemandBoardPage() {
             </div>
           </div>
         )}
-      </div>
+        </div>
+      </main>
+
+      <EmergencyFooter />
+
+      {/* SOS Modal if triggered from Navbar */}
+      <SosBroadcastModal isOpen={isSosOpen} onClose={() => setIsSosOpen(false)} />
     </div>
   );
 }
