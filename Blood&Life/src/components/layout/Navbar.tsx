@@ -34,7 +34,7 @@ interface NavbarProps {
 
 // Global in-memory cache to guarantee zero-latency synchronous initialization across all route navigations
 let globalCachedUser: { name: string; role: string; email: string } | null = null;
-let isAuthInitialResolved = false;
+let hasHydrated = false;
 
 export function Navbar({ onOpenSos }: NavbarProps) {
   const { t, language } = useLanguage();
@@ -43,22 +43,13 @@ export function Navbar({ onOpenSos }: NavbarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [authLoaded, setAuthLoaded] = useState<boolean>(() => isAuthInitialResolved);
-  const [currentUser, setCurrentUser] = useState<{ name: string; role: string; email: string } | null>(() => {
-    if (globalCachedUser !== null) return globalCachedUser;
-    if (typeof window !== "undefined") {
-      try {
-        const stored = localStorage.getItem("bloodlife_cached_user");
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          globalCachedUser = parsed;
-          isAuthInitialResolved = true;
-          return parsed;
-        }
-      } catch {}
-    }
-    return null;
-  });
+
+  // On SSR & initial client hydration: mounted is false, so Server & Client produce 100% IDENTICAL HTML.
+  // On subsequent client-side route navigations: hasHydrated is true, so it renders immediately without flashing!
+  const [mounted, setMounted] = useState<boolean>(() => hasHydrated);
+  const [currentUser, setCurrentUser] = useState<{ name: string; role: string; email: string } | null>(
+    () => (hasHydrated ? globalCachedUser : null)
+  );
   const dropdownRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
@@ -69,9 +60,25 @@ export function Navbar({ onOpenSos }: NavbarProps) {
     setMobileOpen(false);
   }, [pathname]);
 
-  // Synchronize authenticated user state once on mount and on auth-changed event
+  // Synchronize authenticated user state
   useEffect(() => {
+    hasHydrated = true;
+    setMounted(true);
+
     const syncUser = () => {
+      // 1. Instantly restore from localStorage if memory cache is empty
+      if (!globalCachedUser && typeof window !== "undefined") {
+        try {
+          const stored = localStorage.getItem("bloodlife_cached_user");
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            globalCachedUser = parsed;
+            setCurrentUser(parsed);
+          }
+        } catch {}
+      }
+
+      // 2. Verify with server
       fetch("/api/auth/me")
         .then((r) => r.json())
         .then((d) => {
@@ -82,14 +89,12 @@ export function Navbar({ onOpenSos }: NavbarProps) {
               email: d.user.email,
             };
             globalCachedUser = u;
-            isAuthInitialResolved = true;
             setCurrentUser(u);
             try {
               localStorage.setItem("bloodlife_cached_user", JSON.stringify(u));
             } catch {}
           } else {
             globalCachedUser = null;
-            isAuthInitialResolved = true;
             setCurrentUser(null);
             try {
               localStorage.removeItem("bloodlife_cached_user");
@@ -100,9 +105,6 @@ export function Navbar({ onOpenSos }: NavbarProps) {
           if (globalCachedUser === null) {
             setCurrentUser(null);
           }
-        })
-        .finally(() => {
-          setAuthLoaded(true);
         });
     };
 
@@ -119,7 +121,6 @@ export function Navbar({ onOpenSos }: NavbarProps) {
       await fetch("/api/auth/logout", { method: "POST" });
       setCurrentUser(null);
       globalCachedUser = null;
-      isAuthInitialResolved = true;
       try {
         localStorage.removeItem("bloodlife_cached_user");
       } catch {}
@@ -394,8 +395,8 @@ export function Navbar({ onOpenSos }: NavbarProps) {
           </button>
 
           {/* User Profile Dropdown or Sign In Buttons */}
-          {!authLoaded && !currentUser ? (
-            <div className="hidden sm:block w-20 h-7" />
+          {!mounted ? (
+            <div className="hidden sm:block w-20 h-7" suppressHydrationWarning />
           ) : currentUser ? (
             <div className="relative hidden sm:block" ref={userMenuRef}>
               <button
@@ -671,8 +672,8 @@ export function Navbar({ onOpenSos }: NavbarProps) {
 
           {/* Mobile Auth Actions */}
           <div className="pt-2 mt-2 border-t border-[var(--border-subtle)] space-y-1">
-            {!authLoaded && !currentUser ? (
-              <div className="h-9" />
+            {!mounted ? (
+              <div className="h-9" suppressHydrationWarning />
             ) : currentUser ? (
               <div className="p-3 rounded-xl bg-[var(--bg-main)] border border-[var(--border-subtle)] space-y-2.5">
                 <div className="flex items-center justify-between">
