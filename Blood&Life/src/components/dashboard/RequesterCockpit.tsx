@@ -21,6 +21,8 @@ import {
   Star,
   Award,
   MessageSquare,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -76,6 +78,16 @@ export function RequesterCockpit({ onOpenSos }: RequesterCockpitProps) {
   const [verifyFeedback, setVerifyFeedback] = useState<string>("");
   const [submittingVerify, setSubmittingVerify] = useState<boolean>(false);
   const [verifySuccessMsg, setVerifySuccessMsg] = useState<string>("");
+
+  // Edit Request Modal State
+  const [editingCase, setEditingCase] = useState<RequesterCase | null>(null);
+  const [editForm, setEditForm] = useState({
+    recipientName: "",
+    hospital: "",
+    unitsNeeded: 1,
+    urgency: "urgent" as "critical" | "urgent" | "standard",
+  });
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const fetchCases = async () => {
     try {
@@ -190,6 +202,61 @@ export function RequesterCockpit({ onOpenSos }: RequesterCockpitProps) {
       }
     } catch (e) {
       console.error("Error updating case:", e);
+    }
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingCase) return;
+    setSavingEdit(true);
+    try {
+      const res = await fetch(`/api/requests/${editingCase.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editForm),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setCases((prev) =>
+          prev.map((c) =>
+            c.id === editingCase.id
+              ? {
+                  ...c,
+                  patientName: editForm.recipientName,
+                  hospital: editForm.hospital,
+                  units: editForm.unitsNeeded,
+                  urgency: editForm.urgency,
+                }
+              : c
+          )
+        );
+        setEditingCase(null);
+      } else {
+        alert(data.error || "Failed to update request");
+      }
+    } catch {
+      alert("Network error while updating request.");
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const handleDeleteRequest = async (id: string) => {
+    const confirmMsg =
+      language === "bn"
+        ? "আপনি কি স্থায়ীভাবে এই রক্তের আবেদনটি মুছে ফেলতে চান?"
+        : "Permanently delete this blood request record?";
+    if (!window.confirm(confirmMsg)) return;
+    try {
+      const res = await fetch(`/api/requests/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        setCases((prev) => prev.filter((c) => c.id !== id));
+      } else {
+        const err = await res.json();
+        alert(err.error || "Failed to delete request");
+      }
+    } catch {
+      alert("Network error while deleting request.");
     }
   };
 
@@ -488,7 +555,24 @@ export function RequesterCockpit({ onOpenSos }: RequesterCockpitProps) {
                     )}
 
                     {isActive && (
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingCase(item);
+                            setEditForm({
+                              recipientName: item.patientName,
+                              hospital: item.hospital,
+                              unitsNeeded: item.units,
+                              urgency: (item.urgency as "critical" | "urgent" | "standard") || "urgent",
+                            });
+                          }}
+                          className="px-3 py-1.5 rounded-xl border border-[var(--border-subtle)] text-[var(--text-primary)] hover:bg-[var(--bg-main)] text-xs font-bold inline-flex items-center gap-1 transition-colors"
+                        >
+                          <Pencil size={12} />
+                          <span>{language === "bn" ? "সম্পাদনা" : "Edit"}</span>
+                        </button>
+
                         <button
                           onClick={() => handleUpdateStatus(item.id, "done")}
                           className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold inline-flex items-center gap-1.5 transition-colors shadow-xs"
@@ -499,12 +583,32 @@ export function RequesterCockpit({ onOpenSos }: RequesterCockpitProps) {
 
                         <button
                           onClick={() => handleUpdateStatus(item.id, "canceled")}
-                          className="px-3 py-1.5 rounded-xl border border-red-500/30 text-red-500 hover:bg-red-500/10 text-xs font-bold transition-colors"
+                          className="px-3 py-1.5 rounded-xl border border-red-500/30 text-red-500 hover:bg-red-500/10 text-xs font-bold inline-flex items-center gap-1 transition-colors"
                         >
                           <CloseIcon size={13} />
-                          <span>{language === "bn" ? "আবেদন বাতিল" : "Cancel SOS"}</span>
+                          <span>{language === "bn" ? "বাতিল" : "Cancel"}</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteRequest(item.id)}
+                          className="p-1.5 rounded-xl border border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-red-500 hover:bg-red-500/10 transition-colors"
+                          title={language === "bn" ? "মুছে ফেলুন" : "Delete Request"}
+                        >
+                          <Trash2 size={13} />
                         </button>
                       </div>
+                    )}
+
+                    {isCanceled && (
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteRequest(item.id)}
+                        className="px-3 py-1.5 rounded-xl border border-red-500/30 text-red-500 hover:bg-red-500/10 text-xs font-bold inline-flex items-center gap-1 transition-colors"
+                      >
+                        <Trash2 size={12} />
+                        <span>{language === "bn" ? "স্থায়ীভাবে মুছুন" : "Delete"}</span>
+                      </button>
                     )}
                   </div>
                 </div>
@@ -684,6 +788,104 @@ export function RequesterCockpit({ onOpenSos }: RequesterCockpitProps) {
                   </div>
                 </form>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* Edit Request Modal */}
+        {editingCase && (
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+            <div className="bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+              <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-3">
+                <div className="flex items-center gap-2 text-red-500">
+                  <Pencil size={18} />
+                  <h3 className="text-base font-black text-[var(--text-primary)]">
+                    {language === "bn" ? "আবেদনের তথ্য সম্পাদনা" : "Edit Blood Request"}
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEditingCase(null)}
+                  className="p-1 rounded-lg text-[var(--text-muted)] hover:bg-[var(--bg-main)]"
+                >
+                  <CloseIcon size={18} />
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveEdit} className="space-y-3 text-xs">
+                <div>
+                  <label className="block font-bold text-[var(--text-secondary)] mb-1">
+                    {language === "bn" ? "রোগীর নাম" : "Patient Name"}
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editForm.recipientName}
+                    onChange={(e) => setEditForm({ ...editForm, recipientName: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl bg-[var(--bg-main)] border border-[var(--border-subtle)] outline-none focus:border-red-500"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-[var(--text-secondary)] mb-1">
+                    {language === "bn" ? "হাসপাতালের নাম" : "Hospital Name"}
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editForm.hospital}
+                    onChange={(e) => setEditForm({ ...editForm, hospital: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl bg-[var(--bg-main)] border border-[var(--border-subtle)] outline-none focus:border-red-500"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-bold text-[var(--text-secondary)] mb-1">
+                      {language === "bn" ? "প্রয়োজনীয় ব্যাগ" : "Units Needed"}
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={20}
+                      required
+                      value={editForm.unitsNeeded}
+                      onChange={(e) => setEditForm({ ...editForm, unitsNeeded: Number(e.target.value) })}
+                      className="w-full px-3 py-2 rounded-xl bg-[var(--bg-main)] border border-[var(--border-subtle)] outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-[var(--text-secondary)] mb-1">
+                      {language === "bn" ? "জরুরি স্তর" : "Urgency"}
+                    </label>
+                    <select
+                      value={editForm.urgency}
+                      onChange={(e) => setEditForm({ ...editForm, urgency: e.target.value as any })}
+                      className="w-full px-3 py-2 rounded-xl bg-[var(--bg-main)] border border-[var(--border-subtle)] outline-none font-bold"
+                    >
+                      <option value="critical">Critical</option>
+                      <option value="urgent">Urgent</option>
+                      <option value="standard">Standard</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="flex items-center justify-end gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditingCase(null)}
+                    className="px-3 py-1.5 rounded-xl border border-[var(--border-subtle)] text-[var(--text-secondary)] font-bold"
+                  >
+                    {language === "bn" ? "বাতিল" : "Cancel"}
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={savingEdit}
+                    className="px-4 py-1.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold disabled:opacity-50"
+                  >
+                    {savingEdit
+                      ? language === "bn" ? "সংরক্ষণ হচ্ছে..." : "Saving..."
+                      : language === "bn" ? "আপডেট সংরক্ষণ করুন" : "Save Changes"}
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         )}
