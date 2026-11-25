@@ -18,6 +18,8 @@ import {
   Building2,
   MapPin,
   Sparkles,
+  ShieldAlert,
+  Trash2,
 } from "lucide-react";
 
 interface PendingCase {
@@ -68,11 +70,13 @@ const SAMPLE_PENDING_CASES: PendingCase[] = [
 
 export default function VolunteerTriageStation() {
   const { language } = useLanguage();
-  const [activeTab, setActiveTab] = useState<"prescriptions" | "community_donors">("prescriptions");
+  const [activeTab, setActiveTab] = useState<"prescriptions" | "community_donors" | "fraud_reports">("prescriptions");
   const [cases, setCases] = useState<PendingCase[]>([]);
   const [communityDonors, setCommunityDonors] = useState<any[]>([]);
+  const [fraudReports, setFraudReports] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingCommunity, setLoadingCommunity] = useState(false);
+  const [loadingFraud, setLoadingFraud] = useState(false);
   const [selectedCaseId, setSelectedCaseId] = useState<string>("");
   const [zoomLevel, setZoomLevel] = useState<number>(1);
   const [actionLoading, setActionLoading] = useState(false);
@@ -98,8 +102,81 @@ export default function VolunteerTriageStation() {
   React.useEffect(() => {
     if (activeTab === "community_donors") {
       fetchCommunityDonors();
+    } else if (activeTab === "fraud_reports") {
+      fetchFraudReports();
     }
   }, [activeTab]);
+
+  const fetchFraudReports = async () => {
+    try {
+      setLoadingFraud(true);
+      const res = await fetch("/api/fraud?status=pending_review");
+      const data = await res.json();
+      if (data.reports) {
+        setFraudReports(data.reports);
+      }
+    } catch (e) {
+      console.error("Error loading fraud reports:", e);
+    } finally {
+      setLoadingFraud(false);
+    }
+  };
+
+  const handleReviewFraud = async (id: string, status: "confirmed_fraud" | "dismissed") => {
+    setActionLoading(true);
+    try {
+      const res = await fetch(`/api/fraud/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      if (res.ok) {
+        setFraudReports((prev) => prev.filter((r) => r.id !== id));
+        setSuccessMessage(
+          language === "bn"
+            ? status === "confirmed_fraud"
+              ? "অভিযোগটি নিশ্চিত প্রতারণা হিসেবে ব্ল্যাকলিস্টে যুক্ত হয়েছে!"
+              : "অভিযোগটি খারিজ করা হয়েছে।"
+            : `Report marked as ${status}.`
+        );
+        setTimeout(() => setSuccessMessage(null), 4000);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDeleteFraud = async (id: string) => {
+    if (!window.confirm(language === "bn" ? "অভিযোগটি ডিলিট করতে চান?" : "Delete this fraud report?")) return;
+    setActionLoading(true);
+    try {
+      const res = await fetch(`/api/fraud/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        setFraudReports((prev) => prev.filter((r) => r.id !== id));
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDeleteCommunityDonor = async (id: string) => {
+    if (!window.confirm(language === "bn" ? "ডোনার এন্ট্রিটি মুছতে চান?" : "Delete this submission?")) return;
+    setActionLoading(true);
+    try {
+      const res = await fetch(`/api/donors/community/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        setCommunityDonors((prev) => prev.filter((d) => (d.id || d._id) !== id));
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
   React.useEffect(() => {
     fetch("/api/requests/search?status=pending&limit=50")
@@ -268,6 +345,23 @@ export default function VolunteerTriageStation() {
             </span>
           </span>
         </button>
+
+        <button
+          onClick={() => setActiveTab("fraud_reports")}
+          className={`pb-3 px-4 text-xs font-bold transition-all relative ${
+            activeTab === "fraud_reports"
+              ? "text-amber-500 border-b-2 border-amber-500"
+              : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+          }`}
+        >
+          <span className="flex items-center gap-2">
+            <ShieldAlert size={15} />
+            {language === "bn" ? "প্রতারণা অভিযোগ যাচাই" : "Fraud Reports Review"}
+            <span className="px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-500 text-[10px] font-black">
+              {fraudReports.length}
+            </span>
+          </span>
+        </button>
       </div>
 
       {/* Success Alert Banner */}
@@ -312,8 +406,10 @@ export default function VolunteerTriageStation() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {communityDonors.map((donor) => (
-                <div key={donor._id} className="card-clinical p-5 space-y-4 border border-[var(--border-subtle)] hover:border-blue-500/40 transition-all">
+              {communityDonors.map((donor) => {
+                const donorId = donor.id || donor._id;
+                return (
+                <div key={donorId} className="card-clinical p-5 space-y-4 border border-[var(--border-subtle)] hover:border-blue-500/40 transition-all">
                   <div className="flex items-start justify-between">
                     <div>
                       <div className="flex items-center gap-2">
@@ -361,7 +457,7 @@ export default function VolunteerTriageStation() {
 
                   <div className="flex items-center gap-2 pt-1">
                     <button
-                      onClick={() => handleReviewCommunityDonor(donor._id, "APPROVE")}
+                      onClick={() => handleReviewCommunityDonor(donorId, "APPROVE")}
                       disabled={actionLoading}
                       className="flex-1 py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50"
                     >
@@ -369,12 +465,94 @@ export default function VolunteerTriageStation() {
                       <span>{language === "bn" ? "অনুমোদন করুন (Approve)" : "Approve & Activate"}</span>
                     </button>
                     <button
-                      onClick={() => handleReviewCommunityDonor(donor._id, "REJECT")}
+                      onClick={() => handleReviewCommunityDonor(donorId, "REJECT")}
                       disabled={actionLoading}
                       className="py-2 px-3 rounded-xl border border-red-500/40 text-red-500 hover:bg-red-500/10 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50"
                     >
                       <X size={14} />
                       <span>{language === "bn" ? "বাতিল" : "Reject"}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteCommunityDonor(donorId)}
+                      disabled={actionLoading}
+                      className="p-2 rounded-xl border border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-red-500 hover:bg-red-500/10 transition-colors"
+                      title={language === "bn" ? "ডিলিট করুন" : "Delete"}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+              );})}
+            </div>
+          )}
+        </div>
+      ) : activeTab === "fraud_reports" ? (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xs font-black uppercase tracking-wider text-[var(--text-muted)]">
+              {language === "bn" ? "যাচাইয়ের অপেক্ষায় থাকা প্রতারণা অভিযোগ" : "Pending Fraud Shield Reports"}
+            </h2>
+            <button
+              onClick={fetchFraudReports}
+              className="text-xs text-amber-500 hover:underline flex items-center gap-1 font-bold"
+            >
+              <RotateCcw size={12} />
+              <span>{language === "bn" ? "রিফ্রেশ" : "Refresh"}</span>
+            </button>
+          </div>
+
+          {loadingFraud ? (
+            <div className="card-clinical p-8 text-center text-xs text-[var(--text-muted)] animate-pulse">
+              {language === "bn" ? "অভিযোগ লোড হচ্ছে..." : "Loading fraud reports..."}
+            </div>
+          ) : fraudReports.length === 0 ? (
+            <div className="card-clinical p-12 text-center max-w-lg mx-auto space-y-3">
+              <CheckCircle2 size={40} className="text-emerald-500 mx-auto" />
+              <h3 className="text-base font-bold text-[var(--text-primary)]">
+                {language === "bn" ? "কোনো পেন্ডিং অভিযোগ নেই!" : "No Pending Fraud Reports!"}
+              </h3>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {fraudReports.map((rep) => (
+                <div key={rep.id} className="card-clinical p-5 space-y-3 border border-[var(--border-subtle)]">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <span className="px-2 py-0.5 rounded bg-red-500/10 text-red-500 text-[10px] font-bold uppercase">
+                        {rep.scamCategory}
+                      </span>
+                      <h3 className="text-sm font-black text-[var(--text-primary)] mt-1">
+                        {rep.reportedName} • <span className="font-mono text-red-500">{rep.maskedPhone}</span>
+                      </h3>
+                      <p className="text-xs text-[var(--text-muted)]">{rep.hospitalName}, {rep.district}</p>
+                    </div>
+                  </div>
+                  <p className="text-xs text-[var(--text-secondary)] bg-[var(--bg-main)] p-3 rounded-lg border border-[var(--border-subtle)]">
+                    {rep.description}
+                  </p>
+                  <div className="flex items-center gap-2 pt-1">
+                    <button
+                      disabled={actionLoading}
+                      onClick={() => handleReviewFraud(rep.id, "confirmed_fraud")}
+                      className="flex-1 py-2 px-3 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold"
+                    >
+                      {language === "bn" ? "ব্ল্যাকলিস্ট নিশ্চিত করুন" : "Confirm Blacklist"}
+                    </button>
+                    <button
+                      disabled={actionLoading}
+                      onClick={() => handleReviewFraud(rep.id, "dismissed")}
+                      className="py-2 px-3 rounded-xl border border-[var(--border-subtle)] text-[var(--text-secondary)] text-xs font-bold hover:bg-[var(--bg-main)]"
+                    >
+                      {language === "bn" ? "খারিজ" : "Dismiss"}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={actionLoading}
+                      onClick={() => handleDeleteFraud(rep.id)}
+                      className="p-2 rounded-xl border border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-red-500"
+                    >
+                      <Trash2 size={14} />
                     </button>
                   </div>
                 </div>
