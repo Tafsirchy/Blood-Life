@@ -35,3 +35,10 @@ export function sanitizeText(
 
   return sanitized;
 }
+
+/**
+ * Escapes special RegExp metacharacters for safe case-insensitive MongoDB regex queries.
+ */
+export function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
