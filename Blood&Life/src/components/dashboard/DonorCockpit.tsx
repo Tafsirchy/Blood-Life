@@ -19,6 +19,7 @@ import {
   User,
   ShieldCheck,
   Star,
+  Trash2,
 } from "lucide-react";
 import Link from "next/link";
 import { getDonorTier, getNextTierProgress } from "@/lib/badges";
@@ -37,6 +38,7 @@ interface TransfusionRecord {
   recipientVerified?: boolean;
   rating?: number;
   recipientFeedback?: string;
+  canDelete?: boolean;
 }
 
 interface PledgedRequest {
@@ -128,7 +130,7 @@ export function DonorCockpit() {
       if (donRes.ok) {
         const donData = await donRes.json();
         const serverLogs: TransfusionRecord[] = (donData.transfusionLogs || []).map((l: any) => ({
-          id: l._id || l.certificateId,
+          id: String(l._id || l.certificateId),
           patientName: l.recipientName,
           hospital: l.hospital,
           district: l.district || meData.user?.district || "Bangladesh",
@@ -137,13 +139,14 @@ export function DonorCockpit() {
             month: "short",
             year: "numeric",
           }),
-          units: 1,
+          units: l.units || 1,
           bloodGroup: l.bloodGroup || meData.user?.bloodGroup || "O+",
           certificateId: l.certificateId,
           status: "COMPLETED",
           recipientVerified: l.recipientVerified || false,
           rating: l.rating || 5,
           recipientFeedback: l.recipientFeedback || "",
+          canDelete: !l.recipientVerified && /^[0-9a-fA-F]{24}$/.test(String(l._id || "")),
         }));
 
         // If user already had donations or sample donations
@@ -230,6 +233,44 @@ export function DonorCockpit() {
       alert("Error submitting donation log");
     } finally {
       setSubmittingLog(false);
+    }
+  };
+
+  const handleDeleteDonationLog = async (logId: string) => {
+    const msg =
+      language === "bn"
+        ? "আপনি কি নিশ্চিত যে এই রক্তদান রেকর্ডটি মুছে ফেলতে চান?"
+        : "Are you sure you want to delete this self-logged donation record?";
+    if (!window.confirm(msg)) return;
+    try {
+      const res = await fetch(`/api/donations/${logId}`, { method: "DELETE" });
+      if (res.ok) {
+        await fetchDonorData();
+      } else {
+        const err = await res.json();
+        alert(err.error || "Failed to delete log");
+      }
+    } catch {
+      alert("Network error while deleting donation log");
+    }
+  };
+
+  const handleWithdrawPledge = async (requestId: string) => {
+    const msg =
+      language === "bn"
+        ? "আপনি কি এই জরুরি রক্তদানের প্রতিশ্রুতি প্রত্যাহার করতে চান?"
+        : "Withdraw your donation pledge for this emergency request?";
+    if (!window.confirm(msg)) return;
+    try {
+      const res = await fetch(`/api/requests/${requestId}/pledge`, { method: "DELETE" });
+      if (res.ok) {
+        setPledges((prev) => prev.filter((p) => p._id !== requestId));
+      } else {
+        const err = await res.json();
+        alert(err.error || "Failed to withdraw pledge");
+      }
+    } catch {
+      alert("Network error while withdrawing pledge");
     }
   };
 
@@ -487,13 +528,25 @@ export function DonorCockpit() {
                     </div>
                   </div>
 
-                  <button
-                    onClick={() => setSelectedCert(item)}
-                    className="px-3 py-1.5 rounded-xl bg-[var(--bg-surface)] hover:bg-red-500/10 border border-[var(--border-subtle)] text-xs font-bold text-red-500 inline-flex items-center gap-1.5 self-start sm:self-auto transition-colors"
-                  >
-                    <Award size={13} />
-                    <span>{language === "bn" ? "সার্টিফিকেট দেখুন" : "View Certificate"}</span>
-                  </button>
+                  <div className="flex items-center gap-2 self-start sm:self-auto">
+                    <button
+                      onClick={() => setSelectedCert(item)}
+                      className="px-3 py-1.5 rounded-xl bg-[var(--bg-surface)] hover:bg-red-500/10 border border-[var(--border-subtle)] text-xs font-bold text-red-500 inline-flex items-center gap-1.5 transition-colors"
+                    >
+                      <Award size={13} />
+                      <span>{language === "bn" ? "সার্টিফিকেট দেখুন" : "View Certificate"}</span>
+                    </button>
+                    {item.canDelete && (
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteDonationLog(item.id)}
+                        className="p-2 rounded-xl border border-[var(--border-subtle)] hover:bg-red-500/10 text-[var(--text-muted)] hover:text-red-500 transition-colors"
+                        title={language === "bn" ? "রেকর্ড মুছুন" : "Delete Log"}
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))
             )}
@@ -545,11 +598,20 @@ export function DonorCockpit() {
 
                   <div className="flex items-center gap-2 self-start sm:self-auto">
                     <Link
-                      href={`/search?tab=requests`}
+                      href={`/requests/${req._id}`}
                       className="px-3 py-1.5 rounded-xl bg-[var(--bg-surface)] hover:bg-[var(--bg-main)] border border-[var(--border-subtle)] text-xs font-bold text-[var(--text-primary)] transition-colors"
                     >
                       {language === "bn" ? "আবেদন বিস্তারিত" : "View Case Details"}
                     </Link>
+                    {(req.status === "pending" || req.status === "inprogress") && (
+                      <button
+                        type="button"
+                        onClick={() => handleWithdrawPledge(req._id)}
+                        className="px-3 py-1.5 rounded-xl border border-red-500/30 text-red-500 hover:bg-red-500/10 text-xs font-bold transition-colors"
+                      >
+                        {language === "bn" ? "প্রত্যাহার" : "Withdraw"}
+                      </button>
+                    )}
                   </div>
                 </div>
               ))
