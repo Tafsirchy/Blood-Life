@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
 import { CommunityDonorSubmission } from "@/models/CommunityDonorSubmission";
 import { getValidatedSession } from "@/lib/auth/session";
-import { sanitizeText } from "@/lib/security/sanitize";
+import { sanitizeText, escapeRegex } from "@/lib/security/sanitize";
+import { checkRateLimit, getClientIp } from "@/lib/security/rateLimiter";
 
 export async function GET(req: NextRequest) {
   try {
@@ -31,16 +32,16 @@ export async function GET(req: NextRequest) {
     }
 
     if (division && division !== "all") {
-      filter.division = { $regex: new RegExp(`^${division}$`, "i") };
+      filter.division = { $regex: new RegExp(`^${escapeRegex(division)}$`, "i") };
     }
     if (district && district !== "all") {
-      filter.district = { $regex: new RegExp(`^${district}$`, "i") };
+      filter.district = { $regex: new RegExp(`^${escapeRegex(district)}$`, "i") };
     }
     if (upazila && upazila !== "all") {
-      filter.upazila = { $regex: new RegExp(`^${upazila}$`, "i") };
+      filter.upazila = { $regex: new RegExp(`^${escapeRegex(upazila)}$`, "i") };
     }
     if (thana && thana !== "all") {
-      filter.thana = { $regex: thana, $options: "i" };
+      filter.thana = { $regex: escapeRegex(thana), $options: "i" };
     }
     if (bloodGroup && bloodGroup !== "all") {
       filter.bloodGroup = bloodGroup.replace(" ", "+");
@@ -102,6 +103,15 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = getClientIp(req);
+    const rateLimit = await checkRateLimit(`community-donor-ip:${ip}`, 10, 3600);
+    if (!rateLimit.success) {
+      return NextResponse.json(
+        { error: "অনেক বেশি রিকোয়েস্ট পাঠানো হয়েছে। অনুগ্রহ করে কিছুক্ষণ পর চেষ্টা করুন।" },
+        { status: 429 }
+      );
+    }
+
     await connectDB();
     const session = await getValidatedSession();
     const body = await req.json();
