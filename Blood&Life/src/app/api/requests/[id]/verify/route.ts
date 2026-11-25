@@ -42,6 +42,8 @@ export async function POST(
       dispatchVerificationAlerts({
         requestId: String(request._id),
         requesterId: request.requesterId,
+        recipientName: request.recipientName,
+        hospital: request.hospital,
         action: "VERIFY",
       }).catch((e) => console.error("Verification alert error:", e));
 
@@ -59,6 +61,8 @@ export async function POST(
       dispatchVerificationAlerts({
         requestId: String(request._id),
         requesterId: request.requesterId,
+        recipientName: request.recipientName,
+        hospital: request.hospital,
         action: "REJECT",
         rejectReason: sanitizedReason,
       }).catch((e) => console.error("Verification alert error:", e));
