@@ -83,7 +83,9 @@ const BLOOD_COMPONENTS = [
 
 export default function HospitalDemandBoardPage() {
   const { language } = useLanguage();
-  const [viewMode, setViewMode] = useState<"patients" | "hospitals">("patients");
+  const [viewMode, setViewMode] = useState<"patients" | "hospitals" | "inventory">("patients");
+  const [inventories, setInventories] = useState<any[]>([]);
+  const [loadingInventory, setLoadingInventory] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDistrict, setSelectedDistrict] = useState("all");
   const [selectedBloodGroup, setSelectedBloodGroup] = useState("all");
@@ -140,6 +142,22 @@ export default function HospitalDemandBoardPage() {
   useEffect(() => {
     fetchHospitalDemand();
   }, [selectedDistrict, selectedBloodGroup, selectedUrgency, selectedComponent]);
+
+  useEffect(() => {
+    if (viewMode === "inventory") {
+      setLoadingInventory(true);
+      const params = new URLSearchParams();
+      if (selectedDistrict !== "all") params.set("district", selectedDistrict);
+      if (searchTerm.trim()) params.set("hospitalName", searchTerm.trim());
+      fetch(`/api/hospitals/inventory?${params.toString()}`)
+        .then((r) => r.json())
+        .then((d) => {
+          if (d.inventories) setInventories(d.inventories);
+        })
+        .catch(() => {})
+        .finally(() => setLoadingInventory(false));
+    }
+  }, [viewMode, selectedDistrict]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -364,6 +382,17 @@ export default function HospitalDemandBoardPage() {
               >
                 <Building2 size={13} />
                 <span>{language === "bn" ? "হাসপাতালভিত্তিক ভিউ" : "By Hospital"}</span>
+              </button>
+              <button
+                onClick={() => setViewMode("inventory")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                  viewMode === "inventory"
+                    ? "bg-red-600 text-white shadow-sm"
+                    : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                }`}
+              >
+                <Activity size={13} />
+                <span>{language === "bn" ? "ব্লাড ব্যাংক স্টক" : "Blood Stock"}</span>
               </button>
             </div>
           </div>
@@ -637,6 +666,60 @@ export default function HospitalDemandBoardPage() {
                     </div>
                   );
                 })}
+              </div>
+            )}
+          </div>
+        ) : viewMode === "inventory" ? (
+          /* Live Blood Bank Stock View */
+          <div className="space-y-4">
+            {loadingInventory ? (
+              <div className="card-clinical p-12 text-center text-xs text-[var(--text-muted)]">
+                {language === "bn" ? "ব্লাড ব্যাংক স্টক লোড হচ্ছে..." : "Loading live hospital blood inventory..."}
+              </div>
+            ) : inventories.length === 0 ? (
+              <div className="card-clinical p-12 text-center text-xs text-[var(--text-muted)]">
+                {language === "bn" ? "এই জেলায় কোনো ব্লাড ব্যাংক স্টক তথ্য পাওয়া যায়নি।" : "No blood bank stock data found for this filter."}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {inventories.map((inv: any) => (
+                  <div key={inv._id} className="card-clinical p-5 space-y-3 border border-[var(--border-subtle)]">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <h3 className="text-sm font-black text-[var(--text-primary)]">{inv.hospitalName}</h3>
+                        <p className="text-xs text-[var(--text-muted)] flex items-center gap-1 mt-0.5">
+                          <MapPin size={12} className="text-red-500" />
+                          <span>{inv.district}, {inv.division}</span>
+                        </p>
+                      </div>
+                      <a
+                        href={`tel:${inv.contactNumber}`}
+                        className="px-2.5 py-1 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 text-[11px] font-mono font-bold inline-flex items-center gap-1"
+                      >
+                        <Phone size={11} />
+                        <span>{inv.contactNumber}</span>
+                      </a>
+                    </div>
+                    <div className="grid grid-cols-4 gap-2 pt-2 border-t border-[var(--border-subtle)]">
+                      {["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map((bg) => {
+                        const qty = inv.inventory?.[bg] ?? 0;
+                        return (
+                          <div
+                            key={bg}
+                            className={`p-2 rounded-lg text-center border ${
+                              qty === 0
+                                ? "bg-red-500/10 border-red-500/30 text-red-500"
+                                : "bg-[var(--bg-main)] border-[var(--border-subtle)] text-[var(--text-primary)]"
+                            }`}
+                          >
+                            <span className="text-xs font-black block">{bg}</span>
+                            <span className="text-[11px] font-bold">{qty} {language === "bn" ? "ব্যাগ" : "bags"}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>
