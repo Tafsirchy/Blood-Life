@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
 import { DonationRequest } from "@/models/DonationRequest";
 import { paginateWithCursor } from "@/lib/pagination";
+import { escapeRegex } from "@/lib/security/sanitize";
 import {
   SAMPLE_EMERGENCY_CASES,
   getPersistentEmergencyDeadline,
@@ -47,11 +48,11 @@ export async function GET(req: NextRequest) {
     }
 
     if (division && division !== "all") {
-      filter.division = division;
+      filter.division = { $regex: new RegExp(`^${escapeRegex(division)}$`, "i") };
     }
 
     if (district && district !== "all") {
-      filter.district = district;
+      filter.district = { $regex: new RegExp(`^${escapeRegex(district)}$`, "i") };
     }
 
     if (urgency && urgency !== "all") {
@@ -147,7 +148,12 @@ export async function GET(req: NextRequest) {
     });
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to query emergency requests", details: error instanceof Error ? error.message : "Unknown error" },
+      {
+        error: "Failed to query emergency requests",
+        ...(process.env.NODE_ENV !== "production" && {
+          details: error instanceof Error ? error.message : "Unknown error",
+        }),
+      },
       { status: 500 }
     );
   }
