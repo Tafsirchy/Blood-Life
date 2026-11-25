@@ -142,6 +142,8 @@ export interface ITransfusionLog {
   recipientName: string;
   bloodGroup: BloodGroup;
   hospital: string;
+  district?: string;
+  units?: number;
   completedAt: Date;
   certificateId: string;
   verifiedByVolunteerId?: string;
@@ -150,12 +152,28 @@ export interface ITransfusionLog {
   recipientFeedback?: string;
 }
 
+export type AuditAction =
+  | "CONTACT_REVEAL"
+  | "ROLE_CHANGE"
+  | "REQUEST_VERIFIED"
+  | "REQUEST_DELETED"
+  | "STATUS_UPDATE"
+  | "DONATION_VERIFIED"
+  | "DONATION_DELETED"
+  | "FRAUD_REPORTED"
+  | "FRAUD_REVIEWED"
+  | "USER_CREATED"
+  | "USER_DELETED"
+  | "ACCOUNT_DELETED"
+  | "DONOR_DELETED"
+  | "INVENTORY_UPDATED";
+
 export interface IAuditLog {
   _id: string;
-  action: "CONTACT_REVEAL" | "ROLE_CHANGE" | "REQUEST_VERIFIED" | "STATUS_UPDATE" | "DONATION_VERIFIED" | "FRAUD_REPORTED";
+  action: AuditAction;
   performedBy: string;
   targetId: string;
-  targetType: "DONOR" | "REQUEST" | "USER";
+  targetType: "DONOR" | "REQUEST" | "USER" | "FRAUD" | "INVENTORY" | "DONATION";
   ipAddress?: string;
   userAgent?: string;
   metadata?: Record<string, unknown>;
