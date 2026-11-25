@@ -10,10 +10,12 @@ import { checkRateLimit, getClientIp } from "@/lib/security/rateLimiter";
 import { z } from "zod";
 
 const verifySchema = z.object({
-  code: z.string().optional(),
-  token: z.string().optional(),
-  email: z.string().email("Invalid email format"),
+  code: z.string().max(128).optional(),
+  token: z.string().max(128).optional(),
+  email: z.string().email("Invalid email format").max(254),
 });
+
+const NO_STORE = { "Cache-Control": "no-store, private" };
 
 export async function POST(req: NextRequest) {
   try {
@@ -22,7 +24,7 @@ export async function POST(req: NextRequest) {
     if (!ipRateLimit.success) {
       return NextResponse.json(
         { error: "Too many verification requests from this network. Please wait 15 minutes." },
-        { status: 429 }
+        { status: 429, headers: NO_STORE }
       );
     }
 
@@ -33,16 +35,16 @@ export async function POST(req: NextRequest) {
     if (!inputCode) {
       return NextResponse.json(
         { error: "Verification code is required." },
-        { status: 400 }
+        { status: 400, headers: NO_STORE }
       );
     }
 
-    // Anti-Brute-Force Protection: max 5 failed attempts per 15 minutes per email
+    // Anti-Brute-Force Protection: max 5 attempts per 15 minutes per email
     const failRateLimit = await checkRateLimit(`verify-fail:${email.toLowerCase()}`, 5, 900);
     if (!failRateLimit.success) {
       return NextResponse.json(
         { error: "Too many incorrect verification attempts. Please wait 15 minutes or request a new code." },
-        { status: 429 }
+        { status: 429, headers: NO_STORE }
       );
     }
 
@@ -54,16 +56,23 @@ export async function POST(req: NextRequest) {
       email: email.toLowerCase(),
       emailVerificationToken: hashedToken,
       emailVerificationExpires: { $gt: new Date() },
-    }).select("+emailVerificationToken +emailVerificationExpires");
+    }).select("+emailVerificationToken +emailVerificationExpires +tokenVersion");
 
     if (!user) {
       return NextResponse.json(
         { error: "Invalid, expired, or previously used verification code." },
-        { status: 400 }
+        { status: 400, headers: NO_STORE }
       );
     }
 
-    // Mark verified and invalidate verification token
+    if (user.status === "Blocked") {
+      return NextResponse.json(
+        { error: "Your account has been suspended. Contact support." },
+        { status: 403, headers: NO_STORE }
+      );
+    }
+
+    // Mark verified and invalidate verification token (single-use)
     user.isEmailVerified = true;
     user.emailVerificationToken = undefined;
     user.emailVerificationExpires = undefined;
@@ -96,18 +105,20 @@ export async function POST(req: NextRequest) {
       tokenVersion: user.tokenVersion || 0,
     });
 
-    const response = NextResponse.json({
-      success: true,
-      message: "Email verified successfully! You are now securely signed in.",
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        bloodGroup: user.bloodGroup,
-        district: user.district,
+    const response = NextResponse.json(
+      {
+        success: true,
+        message: "Email verified successfully! You are now securely signed in.",
+        user: {
+          id: user._id,
+          name: user.name,
+          role: user.role,
+          bloodGroup: user.bloodGroup,
+          district: user.district,
+        },
       },
-    });
+      { headers: NO_STORE }
+    );
 
     response.cookies.set(SESSION_COOKIE_NAME, sessionToken, {
       httpOnly: true,
@@ -119,11 +130,13 @@ export async function POST(req: NextRequest) {
 
     return response;
   } catch (error) {
-    console.error("Verification error:", error);
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.issues[0]?.message || "Invalid payload" }, { status: 400 });
+      return NextResponse.json(
+        { error: error.issues[0]?.message || "Invalid payload" },
+        { status: 400, headers: NO_STORE }
+      );
     }
-    return NextResponse.json({ error: "Failed to verify email" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to verify email" }, { status: 500, headers: NO_STORE });
   }
 }
 
