@@ -3,7 +3,8 @@ import { connectDB } from "@/lib/db";
 import { FraudReport } from "@/models/FraudReport";
 import { User } from "@/models/User";
 import { getValidatedSession } from "@/lib/auth/session";
-import { sanitizeText } from "@/lib/security/sanitize";
+import { sanitizeText, escapeRegex } from "@/lib/security/sanitize";
+import { checkRateLimit, getClientIp } from "@/lib/security/rateLimiter";
 
 // Helper to mask phone numbers: e.g. "01712345890" -> "01712•••890"
 function maskPhoneNumber(phone: string): string {
@@ -18,10 +19,13 @@ function maskPhoneNumber(phone: string): string {
 export async function GET(req: NextRequest) {
   try {
     await connectDB();
+    const session = await getValidatedSession();
+    const isStaff = session && (session.role === "Admin" || session.role === "Volunteer");
     const { searchParams } = new URL(req.url);
     const checkPhone = searchParams.get("phone");
     const category = searchParams.get("category");
     const district = searchParams.get("district");
+    const requestedStatus = searchParams.get("status");
 
     // Mode 1: Instant Phone Verification Check
     if (checkPhone) {
@@ -69,16 +73,21 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // Mode 2: Public Blacklist Directory
-    const filter: Record<string, unknown> = {
-      status: "confirmed_fraud",
-    };
+    // Mode 2: Public Blacklist Directory or Staff Triage Queue
+    const filter: Record<string, unknown> = {};
+    if (requestedStatus && isStaff) {
+      if (requestedStatus !== "all") {
+        filter.status = requestedStatus;
+      }
+    } else {
+      filter.status = "confirmed_fraud";
+    }
 
     if (category && category !== "all") {
       filter.scamCategory = category;
     }
     if (district && district !== "all") {
-      filter.district = district;
+      filter.district = { $regex: new RegExp(`^${escapeRegex(district)}$`, "i") };
     }
 
     let reports = await FraudReport.find(filter)
@@ -155,15 +164,19 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // Mask phone numbers for public directory
+    // Mask phone numbers for public directory (staff receive unmasked triage info)
     const maskedReports = reports.map((r: any) => ({
       id: r._id,
-      maskedPhone: maskPhoneNumber(r.reportedPhone),
+      maskedPhone: isStaff ? r.reportedPhone : maskPhoneNumber(r.reportedPhone),
       reportedName: r.reportedName || "অজ্ঞাতপরিচয় / ছদ্মনাম",
       scamCategory: r.scamCategory,
       hospitalName: r.hospitalName || "হাসপাতাল উল্লেখিত নেই",
       district: r.district || "বাংলাদেশ",
       description: r.description,
+      evidenceDetails: isStaff ? r.evidenceDetails : undefined,
+      reporterName: isStaff ? r.reporterName : undefined,
+      reporterPhone: isStaff ? r.reporterPhone : undefined,
+      adminNotes: isStaff ? r.adminNotes : undefined,
       status: r.status,
       incidentDate: r.incidentDate || r.createdAt,
       bannedAt: r.bannedAt,
@@ -193,6 +206,15 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = getClientIp(req);
+    const rateLimit = await checkRateLimit(`fraud-report-ip:${ip}`, 5, 3600);
+    if (!rateLimit.success) {
+      return NextResponse.json(
+        { error: "নিরাপত্তার স্বার্থে প্রতি ঘণ্টায় সর্বোচ্চ ৫টি অভিযোগ জমা দেওয়া যায়।" },
+        { status: 429 }
+      );
+    }
+
     await connectDB();
     const session = await getValidatedSession();
     const body = await req.json();
