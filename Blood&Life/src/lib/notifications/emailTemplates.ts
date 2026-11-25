@@ -358,3 +358,339 @@ ${EMAIL_FOOTER_TEXT}
 
   return { html, text };
 }
+
+/**
+ * 5. Targeted Urgent Blood Match Email Template (With Full Clinical & Contact Context)
+ */
+export function buildUrgentMatchEmailTemplate({
+  donorName,
+  patientName,
+  bloodGroup,
+  unitsNeeded = 1,
+  bloodComponent = "whole_blood",
+  urgency = "urgent",
+  hospital,
+  upazila,
+  district,
+  division,
+  scheduledDate,
+  scheduledTime,
+  medicalReason,
+  message,
+  requesterName,
+  requesterPhone,
+  isVerifiedGenuine = false,
+  caseId,
+  matchTierLabel,
+  settingsUrl,
+}: {
+  donorName: string;
+  patientName: string;
+  bloodGroup: string;
+  unitsNeeded?: number;
+  bloodComponent?: string;
+  urgency?: string;
+  hospital: string;
+  upazila?: string;
+  district: string;
+  division?: string;
+  scheduledDate?: string;
+  scheduledTime?: string;
+  medicalReason?: string;
+  message?: string;
+  requesterName?: string;
+  requesterPhone?: string;
+  isVerifiedGenuine?: boolean;
+  caseId: string;
+  matchTierLabel?: string;
+  settingsUrl?: string;
+}): { html: string; text: string } {
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000").replace(/\/$/, "");
+  const caseUrl = `${appUrl}/requests/${encodeURIComponent(caseId)}`;
+  const prefsUrl = settingsUrl || `${appUrl}/dashboard/settings`;
+
+  const safeDonor = sanitizeHtml(donorName || "সম্মানিত রক্তদাতা");
+  const safePatient = sanitizeHtml(patientName || "জরুরি রোগী");
+  const safeBlood = sanitizeHtml(bloodGroup);
+  const safeHospital = sanitizeHtml(hospital);
+  const locationLine = [upazila, district, division]
+    .filter((v): v is string => Boolean(v))
+    .map(sanitizeHtml)
+    .join(", ");
+  const safeReason = medicalReason ? sanitizeHtml(medicalReason) : "";
+  const safeMessage = message ? sanitizeHtml(message) : "";
+  const safeRequester = requesterName ? sanitizeHtml(requesterName) : "";
+  const safePhone = requesterPhone ? sanitizeHtml(requesterPhone) : "";
+  const safeTierLabel = matchTierLabel
+    ? sanitizeHtml(matchTierLabel)
+    : `রক্তের গ্রুপ (${safeBlood}) ও এলাকা (${sanitizeHtml(district)}) ম্যাচ`;
+
+  const componentLabelMap: Record<string, string> = {
+    whole_blood: "Whole Blood (হোল ব্লাড)",
+    prbc: "PRBC / Red Cells (লোহিত রক্তকণিকা)",
+    platelets: "Platelets / SDP-RDP (প্লাটিলেট)",
+    plasma: "Plasma / FFP (প্লাজমা)",
+  };
+  const componentLabel = componentLabelMap[bloodComponent] || sanitizeHtml(bloodComponent);
+
+  const urgencyBadge =
+    urgency === "critical"
+      ? { bg: "#991b1b", label: "🚨 CRITICAL • আশঙ্কাজনক জরুরি" }
+      : urgency === "urgent"
+      ? { bg: "#dc2626", label: "⚡ URGENT • অতি জরুরি" }
+      : { bg: "#2563eb", label: "📅 SCHEDULED • নির্ধারিত সময়" };
+
+  const verificationText = isVerifiedGenuine
+    ? "✅ ভলান্টিয়ার কর্তৃক যাচাইকৃত (Verified Genuine)"
+    : "⏳ নতুন জরুরি আবেদন (যাচাই চলমান)";
+
+  const scheduleInfo =
+    scheduledDate || scheduledTime
+      ? sanitizeHtml([scheduledDate, scheduledTime].filter(Boolean).join(" • "))
+      : "যত দ্রুত সম্ভব (Immediate)";
+
+  const html = `<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>জরুরি ${safeBlood} রক্তের আবেদন — BLOOD&LIFE</title>
+</head>
+<body style="margin: 0; padding: 20px 0; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+  <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 14px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);" border="0" cellspacing="0" cellpadding="0">
+          <tr>
+            <td style="background: linear-gradient(135deg, ${urgencyBadge.bg} 0%, #7f1d1d 100%); padding: 24px; text-align: center; color: #ffffff;">
+              <span style="display: inline-block; background: rgba(255,255,255,0.18); padding: 4px 12px; border-radius: 999px; font-size: 11px; font-weight: 800; letter-spacing: 0.5px; margin-bottom: 8px;">
+                ${urgencyBadge.label}
+              </span>
+              <h1 style="margin: 0; font-size: 22px; font-weight: 800;">BLOOD&LIFE — জরুরি ${safeBlood} রক্তের আহ্বান</h1>
+              <p style="margin: 6px 0 0 0; font-size: 12px; opacity: 0.92;">🎯 ${safeTierLabel}</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 26px 24px; color: #0f172a;">
+              <p style="font-size: 15px; margin-top: 0;">প্রিয় <strong>${safeDonor}</strong>,</p>
+              <p style="font-size: 14px; line-height: 1.6; color: #334155;">
+                আপনার প্রোফাইল তথ্য অনুযায়ী <strong>${locationLine}</strong> এলাকায় চিকিৎসাধীন রোগী <strong>${safePatient}</strong>-এর জন্য জরুরি ভিত্তিতে <strong>${unitsNeeded} ব্যাগ ${safeBlood}</strong> রক্তের প্রয়োজন হয়েছে।
+              </p>
+
+              <div style="background: #fff1f2; border-left: 4px solid #dc2626; padding: 16px 18px; border-radius: 8px; margin: 20px 0; font-size: 13px; color: #1e293b; line-height: 1.7;">
+                <p style="margin: 2px 0;"><strong>🩸 রক্তের গ্রুপ ও পরিমাণ:</strong> <span style="color: #dc2626; font-weight: 900; font-size: 15px;">${safeBlood}</span> (${unitsNeeded} ব্যাগ • ${componentLabel})</p>
+                <p style="margin: 2px 0;"><strong>🏥 হাসপাতাল:</strong> ${safeHospital}</p>
+                <p style="margin: 2px 0;"><strong>📍 এলাকা:</strong> ${locationLine}</p>
+                <p style="margin: 2px 0;"><strong>⏰ রক্তদানের সময়:</strong> ${scheduleInfo}</p>
+                ${safeReason ? `<p style="margin: 2px 0;"><strong>🩺 রোগীর অবস্থা / কারণ:</strong> ${safeReason}</p>` : ""}
+                <p style="margin: 2px 0;"><strong>🛡️ যাচাই অবস্থা:</strong> ${verificationText}</p>
+                ${safeRequester || safePhone ? `<p style="margin: 6px 0 0 0; padding-top: 6px; border-top: 1px dashed #fecdd3;"><strong>📞 যোগাযোগ:</strong> ${safeRequester}${safeRequester && safePhone ? " • " : ""}${safePhone ? `<a href="tel:${safePhone}" style="color: #dc2626; font-weight: 800; text-decoration: none;">${safePhone}</a>` : ""}</p>` : ""}
+              </div>
+
+              ${safeMessage ? `<p style="font-size: 13px; background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px 14px; border-radius: 8px; color: #475569; font-style: italic;">"${safeMessage}"</p>` : ""}
+
+              <p style="font-size: 13px; line-height: 1.6; color: #475569;">
+                আপনি যদি বর্তমানে শারীরিকভাবে সুস্থ থাকেন এবং গত ৯০ দিনে রক্তদান না করে থাকেন, তবে অনুগ্রহ করে নিচের বাটনে ক্লিক করে রক্তদানের অঙ্গীকার (Pledge) করুন অথবা সরাসরি রোগীর স্বজনের সাথে যোগাযোগ করুন।
+              </p>
+
+              <div style="text-align: center; margin: 26px 0;">
+                <a href="${caseUrl}" style="background: #dc2626; color: #ffffff; padding: 13px 30px; text-decoration: none; border-radius: 10px; font-weight: 800; font-size: 14px; display: inline-block; box-shadow: 0 2px 6px rgba(220, 38, 38, 0.3);">
+                  কেস বিস্তারিত দেখুন ও রক্ত দিন (View &amp; Pledge)
+                </a>
+              </div>
+
+              <p style="font-size: 11px; color: #94a3b8; text-align: center; margin-top: 16px;">
+                ইমেইল অ্যালার্ট পছন্দ না করলে আপনার <a href="${prefsUrl}" style="color: #64748b;">প্রোফাইল সেটিংস</a> থেকে নোটিফিকেশন বন্ধ করতে পারেন।
+              </p>
+              ${EMAIL_FOOTER_HTML}
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+  const text = `
+BLOOD&LIFE — জরুরি ${bloodGroup} রক্তের আবেদন (${urgencyBadge.label})
+ম্যাচ ধরন: ${matchTierLabel || `${bloodGroup} • ${district}`}
+
+প্রিয় ${donorName || "সম্মানিত রক্তদাতা"},
+${locationLine} এলাকায় রোগী ${patientName}-এর জন্য ${unitsNeeded} ব্যাগ ${bloodGroup} (${componentLabel}) রক্তের জরুরি প্রয়োজন।
+
+হাসপাতাল: ${hospital}
+এলাকা: ${locationLine}
+সময়: ${scheduleInfo}
+${medicalReason ? `কারণ: ${medicalReason}\n` : ""}যাচাই অবস্থা: ${verificationText}
+${requesterName || requesterPhone ? `যোগাযোগ: ${requesterName || ""} ${requesterPhone || ""}\n` : ""}
+${message ? `বার্তা: "${message}"\n` : ""}
+কেস বিস্তারিত দেখুন ও অঙ্গীকার করুন: ${caseUrl}
+সেটিংস পরিবর্তন: ${prefsUrl}
+
+${EMAIL_FOOTER_TEXT}
+  `.trim();
+
+  return { html, text };
+}
+
+/**
+ * 6. Donor Pledge Confirmation Email to Patient Requester
+ */
+export function buildPledgeAlertEmailTemplate({
+  requesterName,
+  patientName,
+  donorName,
+  donorBloodGroup,
+  donorPhone,
+  hospital,
+  caseId,
+}: {
+  requesterName: string;
+  patientName: string;
+  donorName: string;
+  donorBloodGroup: string;
+  donorPhone?: string;
+  hospital: string;
+  caseId: string;
+}): { html: string; text: string } {
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000").replace(/\/$/, "");
+  const caseUrl = `${appUrl}/requests/${encodeURIComponent(caseId)}`;
+  const safeRequester = sanitizeHtml(requesterName || "সম্মানিত আবেদনকারী");
+  const safePatient = sanitizeHtml(patientName);
+  const safeDonor = sanitizeHtml(donorName);
+  const safeBlood = sanitizeHtml(donorBloodGroup);
+  const safePhone = donorPhone ? sanitizeHtml(donorPhone) : "";
+  const safeHospital = sanitizeHtml(hospital);
+
+  const html = `<!DOCTYPE html>
+<html lang="bn">
+<head><meta charset="UTF-8"><title>রক্তদাতা পাওয়া গেছে — BLOOD&LIFE</title></head>
+<body style="margin: 0; padding: 20px 0; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;">
+  <table role="presentation" width="100%" style="max-width: 580px; margin: 0 auto; background: #ffffff; border-radius: 14px; overflow: hidden; border: 1px solid #e2e8f0;" border="0" cellspacing="0" cellpadding="0">
+    <tr><td style="background: #059669; padding: 22px; text-align: center; color: #ffffff;">
+      <h1 style="margin: 0; font-size: 20px; font-weight: 800;">🩸 সুখবর! রক্তদাতা পাওয়া গেছে</h1>
+    </td></tr>
+    <tr><td style="padding: 24px; color: #0f172a; font-size: 14px; line-height: 1.6;">
+      <p style="margin-top: 0;">প্রিয় <strong>${safeRequester}</strong>,</p>
+      <p><strong>${safeHospital}</strong>-এ চিকিৎসাধীন রোগী <strong>${safePatient}</strong>-এর জন্য স্বেচ্ছাসেবী রক্তদাতা <strong>${safeDonor} (${safeBlood})</strong> রক্তদানের অঙ্গীকার (Pledge) করেছেন।</p>
+      ${safePhone ? `<p style="background: #ecfdf5; border: 1px solid #a7f3d0; padding: 12px; border-radius: 8px;"><strong>📞 রক্তদাতার ফোন নম্বর:</strong> <a href="tel:${safePhone}" style="color: #047857; font-weight: 800;">${safePhone}</a></p>` : ""}
+      <div style="text-align: center; margin: 22px 0;">
+        <a href="${caseUrl}" style="background: #059669; color: #ffffff; padding: 12px 26px; text-decoration: none; border-radius: 10px; font-weight: 700;">আবেদন ও ডোনার বিস্তারিত দেখুন</a>
+      </div>
+      <p style="font-size: 12px; color: #64748b;">⚠️ সতর্কতা: কোনো অবস্থাতেই রক্তের জন্য কাউকে বিকাশ/নগদে অগ্রিম টাকা পাঠাবেন না।</p>
+      ${EMAIL_FOOTER_HTML}
+    </td></tr>
+  </table>
+</body>
+</html>`;
+
+  const text = `সুখবর! ${donorName} (${donorBloodGroup}) রোগী ${patientName}-এর জন্য (${hospital}) রক্তদানের অঙ্গীকার করেছেন। ${donorPhone ? `ফোন: ${donorPhone}` : ""}\nবিস্তারিত: ${caseUrl}\n${EMAIL_FOOTER_TEXT}`.trim();
+  return { html, text };
+}
+
+/**
+ * 7. Request Verification / Rejection Email to Requester
+ */
+export function buildRequestVerificationEmailTemplate({
+  requesterName,
+  patientName,
+  hospital,
+  action,
+  rejectReason,
+  caseId,
+}: {
+  requesterName: string;
+  patientName: string;
+  hospital: string;
+  action: "VERIFY" | "REJECT";
+  rejectReason?: string;
+  caseId: string;
+}): { html: string; text: string } {
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000").replace(/\/$/, "");
+  const caseUrl = `${appUrl}/requests/${encodeURIComponent(caseId)}`;
+  const isVerified = action === "VERIFY";
+  const safeRequester = sanitizeHtml(requesterName || "সম্মানিত আবেদনকারী");
+  const safePatient = sanitizeHtml(patientName);
+  const safeHospital = sanitizeHtml(hospital);
+  const safeReason = rejectReason ? sanitizeHtml(rejectReason) : "অসম্পূর্ণ বা অস্পষ্ট প্রেসক্রিপশন";
+
+  const html = `<!DOCTYPE html>
+<html lang="bn">
+<head><meta charset="UTF-8"><title>আবেদন আপডেট — BLOOD&LIFE</title></head>
+<body style="margin: 0; padding: 20px 0; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;">
+  <table role="presentation" width="100%" style="max-width: 580px; margin: 0 auto; background: #ffffff; border-radius: 14px; overflow: hidden; border: 1px solid #e2e8f0;" border="0" cellspacing="0" cellpadding="0">
+    <tr><td style="background: ${isVerified ? "#2563eb" : "#dc2626"}; padding: 22px; text-align: center; color: #ffffff;">
+      <h1 style="margin: 0; font-size: 20px; font-weight: 800;">${isVerified ? "✅ আবেদন ভেরিফাইড হয়েছে" : "❌ আবেদন বাতিল করা হয়েছে"}</h1>
+    </td></tr>
+    <tr><td style="padding: 24px; color: #0f172a; font-size: 14px; line-height: 1.6;">
+      <p style="margin-top: 0;">প্রিয় <strong>${safeRequester}</strong>,</p>
+      <p>${isVerified
+        ? `<strong>${safeHospital}</strong>-এ রোগী <strong>${safePatient}</strong>-এর জন্য আপনার রক্তের আবেদনটি আমাদের ভলান্টিয়ার টিম কর্তৃক যাচাই ও ভেরিফাইড (Verified Genuine) হিসেবে অনুমোদিত হয়েছে।`
+        : `<strong>${safeHospital}</strong>-এ রোগী <strong>${safePatient}</strong>-এর জন্য আপনার আবেদনটি যাচাই প্রক্রিয়ায় বাতিল করা হয়েছে। কারণ: <strong>${safeReason}</strong>।`}</p>
+      <div style="text-align: center; margin: 22px 0;">
+        <a href="${caseUrl}" style="background: ${isVerified ? "#2563eb" : "#475569"}; color: #ffffff; padding: 12px 26px; text-decoration: none; border-radius: 10px; font-weight: 700;">বিস্তারিত দেখুন</a>
+      </div>
+      ${EMAIL_FOOTER_HTML}
+    </td></tr>
+  </table>
+</body>
+</html>`;
+
+  const text = `${isVerified ? "আবেদন ভেরিফাইড" : "আবেদন বাতিল"} — রোগী: ${patientName}, হাসপাতাল: ${hospital}${!isVerified ? `, কারণ: ${rejectReason || ""}` : ""}\nলিংক: ${caseUrl}\n${EMAIL_FOOTER_TEXT}`.trim();
+  return { html, text };
+}
+
+/**
+ * 8. Recipient Donation Recognition & Certificate Email to Donor
+ */
+export function buildDonationVerifiedEmailTemplate({
+  donorName,
+  patientName,
+  hospital,
+  bloodGroup,
+  rating,
+  certificateId,
+}: {
+  donorName: string;
+  patientName: string;
+  hospital: string;
+  bloodGroup: string;
+  rating: number;
+  certificateId: string;
+}): { html: string; text: string } {
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000").replace(/\/$/, "");
+  const certUrl = `${appUrl}/verify-cert/${encodeURIComponent(certificateId)}`;
+  const safeDonor = sanitizeHtml(donorName || "সম্মানিত রক্তদাতা");
+  const safePatient = sanitizeHtml(patientName);
+  const safeHospital = sanitizeHtml(hospital);
+  const safeBlood = sanitizeHtml(bloodGroup);
+  const safeCert = sanitizeHtml(certificateId);
+
+  const html = `<!DOCTYPE html>
+<html lang="bn">
+<head><meta charset="UTF-8"><title>ভেরিফাইড রক্তদান সনদ — BLOOD&LIFE</title></head>
+<body style="margin: 0; padding: 20px 0; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;">
+  <table role="presentation" width="100%" style="max-width: 580px; margin: 0 auto; background: #ffffff; border-radius: 14px; overflow: hidden; border: 1px solid #e2e8f0;" border="0" cellspacing="0" cellpadding="0">
+    <tr><td style="background: linear-gradient(135deg, #d97706 0%, #b45309 100%); padding: 24px; text-align: center; color: #ffffff;">
+      <h1 style="margin: 0; font-size: 20px; font-weight: 800;">🏆 আপনার রক্তদান ভেরিফাইড হয়েছে!</h1>
+    </td></tr>
+    <tr><td style="padding: 24px; color: #0f172a; font-size: 14px; line-height: 1.6;">
+      <p style="margin-top: 0;">প্রিয় <strong>${safeDonor}</strong>,</p>
+      <p><strong>${safeHospital}</strong>-এ রোগী <strong>${safePatient}</strong>-এর জন্য আপনার মহৎ <strong>${safeBlood}</strong> রক্তদান রোগীর পরিবার কর্তৃক কৃতজ্ঞতার সাথে ভেরিফাই করা হয়েছে এবং আপনাকে <strong>${rating}★ ট্রাস্ট রেটিং</strong> দেওয়া হয়েছে।</p>
+      <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; padding: 14px; text-align: center; margin: 18px 0;">
+        <span style="font-size: 11px; color: #92400e; font-weight: 700; display: block;">অফিসিয়াল সনদপত্র আইডি</span>
+        <span style="font-family: monospace; font-size: 16px; font-weight: 900; color: #b45309;">${safeCert}</span>
+      </div>
+      <div style="text-align: center; margin: 22px 0;">
+        <a href="${certUrl}" style="background: #d97706; color: #ffffff; padding: 12px 26px; text-decoration: none; border-radius: 10px; font-weight: 700;">সার্টিফিকেট দেখুন (Verify Certificate)</a>
+      </div>
+      ${EMAIL_FOOTER_HTML}
+    </td></tr>
+  </table>
+</body>
+</html>`;
+
+  const text = `অভিনন্দন ${donorName}! ${hospital}-এ ${patientName}-এর জন্য আপনার ${bloodGroup} রক্তদান ভেরিফাইড হয়েছে (${rating}★)। সার্টিফিকেট: ${certUrl}\n${EMAIL_FOOTER_TEXT}`.trim();
+  return { html, text };
+}
