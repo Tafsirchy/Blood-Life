@@ -11,8 +11,16 @@ import {
   Droplet,
   Lock,
   Info,
+  Trash2,
+  BellRing,
 } from "lucide-react";
 import Link from "next/link";
+import {
+  isPushSupported,
+  getCurrentPushSubscription,
+  subscribeToBrowserPush,
+  unsubscribeFromBrowserPush,
+} from "@/lib/notifications/pushClient";
 
 interface NotificationItem {
   id: string;
@@ -59,13 +67,17 @@ export function NotificationBell() {
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState<number>(0);
-  const [loading, setLoading] = useState<boolean>(false);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [pushEnabled, setPushEnabled] = useState<boolean>(false);
+  const [pushBusy, setPushBusy] = useState<boolean>(false);
 
   const fetchNotifications = useCallback(async () => {
     try {
+      if (typeof document !== "undefined" && document.visibilityState !== "visible") return;
       const res = await fetch("/api/notifications");
       if (!res.ok) return;
       const data = await res.json();
+      setIsAuthenticated(Boolean(data.authenticated));
       setNotifications(data.notifications || []);
       setUnreadCount(data.unreadCount || 0);
     } catch {
@@ -76,9 +88,30 @@ export function NotificationBell() {
   useEffect(() => {
     setMounted(true);
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 30000); // 30s poll
-    return () => clearInterval(interval);
+    getCurrentPushSubscription().then((sub) => setPushEnabled(Boolean(sub)));
   }, [fetchNotifications]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const interval = setInterval(fetchNotifications, 30000);
+    return () => clearInterval(interval);
+  }, [isAuthenticated, fetchNotifications]);
+
+  const handleTogglePush = async () => {
+    setPushBusy(true);
+    try {
+      if (pushEnabled) {
+        await unsubscribeFromBrowserPush();
+        setPushEnabled(false);
+      } else {
+        const res = await subscribeToBrowserPush();
+        if (res.success) setPushEnabled(true);
+        else if (res.error) alert(res.error);
+      }
+    } finally {
+      setPushBusy(false);
+    }
+  };
 
   const markAllAsRead = async () => {
     try {
@@ -91,6 +124,31 @@ export function NotificationBell() {
       });
     } catch {
       // Revert if error
+      fetchNotifications();
+    }
+  };
+
+  const handleClearAll = async () => {
+    try {
+      setNotifications([]);
+      setUnreadCount(0);
+      await fetch("/api/notifications", { method: "DELETE" });
+    } catch {
+      fetchNotifications();
+    }
+  };
+
+  const handleDeleteOne = async (e: React.MouseEvent, id: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const target = notifications.find((n) => n.id === id);
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
+    if (target && !target.isRead) {
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+    }
+    try {
+      await fetch(`/api/notifications?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+    } catch {
       fetchNotifications();
     }
   };
@@ -147,14 +205,24 @@ export function NotificationBell() {
               )}
             </div>
 
-            {unreadCount > 0 && (
-              <button
-                onClick={markAllAsRead}
-                className="text-[11px] font-bold text-red-500 hover:text-red-600 cursor-pointer"
-              >
-                {language === "bn" ? "সবগুলো পড়া হয়েছে" : "Mark all read"}
-              </button>
-            )}
+            <div className="flex items-center gap-2.5">
+              {unreadCount > 0 && (
+                <button
+                  onClick={markAllAsRead}
+                  className="text-[11px] font-bold text-red-500 hover:text-red-600 cursor-pointer"
+                >
+                  {language === "bn" ? "সবগুলো পড়া" : "Mark read"}
+                </button>
+              )}
+              {notifications.length > 0 && (
+                <button
+                  onClick={handleClearAll}
+                  className="text-[11px] font-bold text-[var(--text-muted)] hover:text-red-500 cursor-pointer"
+                >
+                  {language === "bn" ? "সব মুছুন" : "Clear all"}
+                </button>
+              )}
+            </div>
           </div>
 
           {/* List */}
@@ -225,9 +293,19 @@ export function NotificationBell() {
                       >
                         {language === "bn" ? item.titleBn : item.titleEn}
                       </h5>
-                      <span className="text-[10px] text-[var(--text-muted)] shrink-0 font-medium">
-                        {formatRelativeTime(item.createdAt, language)}
-                      </span>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className="text-[10px] text-[var(--text-muted)] font-medium">
+                          {formatRelativeTime(item.createdAt, language)}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={(e) => handleDeleteOne(e, item.id)}
+                          className="p-0.5 text-[var(--text-muted)] hover:text-red-500 transition-colors"
+                          title={language === "bn" ? "মুছে ফেলুন" : "Delete notification"}
+                        >
+                          <Trash2 size={11} />
+                        </button>
+                      </div>
                     </div>
                     <p className="text-xs text-[var(--text-secondary)] line-clamp-2 leading-relaxed">
                       {language === "bn" ? item.messageBn : item.messageEn}
@@ -238,13 +316,36 @@ export function NotificationBell() {
             )}
           </div>
 
-          <div className="p-2.5 bg-[var(--bg-main)] border-t border-[var(--border-subtle)] text-center">
+          <div className="p-2.5 bg-[var(--bg-main)] border-t border-[var(--border-subtle)] flex items-center justify-between gap-2">
+            {mounted && isPushSupported() && isAuthenticated ? (
+              <button
+                type="button"
+                disabled={pushBusy}
+                onClick={handleTogglePush}
+                className={`text-[11px] font-bold inline-flex items-center gap-1 px-2 py-1 rounded-lg border transition-colors ${
+                  pushEnabled
+                    ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400"
+                    : "border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-red-500"
+                }`}
+              >
+                <BellRing size={12} />
+                <span>
+                  {pushBusy
+                    ? "..."
+                    : pushEnabled
+                    ? language === "bn" ? "পুশ অ্যালার্ট চালু" : "Push Alerts On"
+                    : language === "bn" ? "পুশ অ্যালার্ট চালু করুন" : "Enable Push"}
+                </span>
+              </button>
+            ) : (
+              <span />
+            )}
             <Link
               href="/search"
               onClick={() => setIsOpen(false)}
               className="text-xs font-bold text-red-500 hover:text-red-400"
             >
-              {language === "bn" ? "সব জরুরী আবেদন দেখুন →" : "View Emergency Queue →"}
+              {language === "bn" ? "সব জরুরী আবেদন →" : "Emergency Queue →"}
             </Link>
           </div>
         </div>
