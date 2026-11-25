@@ -43,7 +43,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(
       {
         error: "Failed to execute auto-expiration cron",
-        details: error instanceof Error ? error.message : "Unknown error",
+        ...(process.env.NODE_ENV !== "production" && {
+          details: error instanceof Error ? error.message : "Unknown error",
+        }),
       },
       { status: 500 }
     );
