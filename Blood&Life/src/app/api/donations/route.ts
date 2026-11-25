@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
     await connectDB();
     const userId = session.userId;
 
-    // Fetch verified transfusion logs completed by this donor
+    // Fetch transfusion logs completed by this donor
     const logs = await TransfusionLog.find({ donorId: userId })
       .sort({ completedAt: -1 })
       .lean();
@@ -28,12 +28,15 @@ export async function GET(req: NextRequest) {
       .sort({ createdAt: -1 })
       .lean();
 
-    const user = await User.findById(userId).select("totalDonations lastDonationDate cooldownUntil bloodGroup").lean();
+    const user = await User.findById(userId)
+      .select("totalDonations verifiedDonations lastDonationDate cooldownUntil bloodGroup")
+      .lean();
 
     return NextResponse.json({
       transfusionLogs: logs || [],
       pledgedRequests: pledgedRequests || [],
       totalDonations: user?.totalDonations || logs.length || 0,
+      verifiedDonations: user?.verifiedDonations || 0,
       lastDonationDate: user?.lastDonationDate || (logs[0]?.completedAt ?? null),
       cooldownUntil: user?.cooldownUntil || null,
       bloodGroup: user?.bloodGroup || "O+",
@@ -68,6 +71,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const parsedUnits = Math.min(3, Math.max(1, Number(units) || 1));
+    const donationDate = new Date(completedAt);
+    if (isNaN(donationDate.getTime()) || donationDate.getTime() > Date.now() + 24 * 60 * 60 * 1000) {
+      return NextResponse.json({ error: "Invalid donation completion date." }, { status: 400 });
+    }
+
     await connectDB();
     const userId = session.userId;
 
@@ -76,8 +85,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const donationDate = new Date(completedAt);
-    const cooldownDate = new Date(donationDate.getTime() + 90 * 24 * 60 * 60 * 1000);
     const certificateId = `BL-CERT-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
     const newLog = await TransfusionLog.create({
@@ -86,14 +93,22 @@ export async function POST(req: NextRequest) {
       recipientName: sanitizeText(recipientName, 100),
       bloodGroup: bloodGroup || user.bloodGroup || "O+",
       hospital: sanitizeText(hospital, 150),
+      district: district ? sanitizeText(district, 60) : user.district,
+      units: parsedUnits,
       completedAt: donationDate,
       certificateId,
+      recipientVerified: false,
     });
 
-    // Update user stats and 90-day cooldown
-    user.totalDonations = (user.totalDonations || 0) + Number(units);
-    user.lastDonationDate = donationDate;
-    user.cooldownUntil = cooldownDate;
+    // Update user stats and recalculate 90-day cooldown if this is the most recent donation
+    user.totalDonations = (user.totalDonations || 0) + parsedUnits;
+    if (!user.lastDonationDate || donationDate.getTime() >= new Date(user.lastDonationDate).getTime()) {
+      user.lastDonationDate = donationDate;
+      const cooldownDate = new Date(donationDate.getTime() + 90 * 24 * 60 * 60 * 1000);
+      const inCooldown = cooldownDate > new Date();
+      user.cooldownUntil = inCooldown ? cooldownDate : undefined;
+      user.isAvailable = !inCooldown;
+    }
     await user.save();
 
     return NextResponse.json({
