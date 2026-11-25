@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
 import { DonorRegistration } from "@/models/DonorRegistration";
 import { User } from "@/models/User";
+import { getValidatedSession } from "@/lib/auth/session";
+import { checkRateLimit, getClientIp } from "@/lib/security/rateLimiter";
 import { z } from "zod";
 
 const donorRegistrationSchema = z.object({
@@ -54,12 +56,72 @@ const donorRegistrationSchema = z.object({
   }),
 });
 
+export async function GET(req: NextRequest) {
+  try {
+    const session = await getValidatedSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    await connectDB();
+    const { searchParams } = new URL(req.url);
+    const status = searchParams.get("status");
+    const isStaff = session.role === "Admin" || session.role === "Volunteer";
+
+    const filter: Record<string, unknown> = {};
+    if (!isStaff) {
+      filter.email = session.email.toLowerCase();
+    } else if (status && status !== "all") {
+      filter.eligibilityStatus = status;
+    }
+
+    const registrations = await DonorRegistration.find(filter)
+      .sort({ createdAt: -1 })
+      .limit(100)
+      .lean();
+
+    return NextResponse.json({
+      success: true,
+      count: registrations.length,
+      registrations,
+    });
+  } catch {
+    return NextResponse.json({ error: "Failed to load clinical screening records" }, { status: 500 });
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
+    const ip = getClientIp(req);
+    const rateLimit = await checkRateLimit(`donor-register-ip:${ip}`, 10, 3600);
+    if (!rateLimit.success) {
+      return NextResponse.json(
+        { error: "Too many screening submissions. Please wait before submitting again." },
+        { status: 429 }
+      );
+    }
+
+    const session = await getValidatedSession();
     const body = await req.json();
     const validated = donorRegistrationSchema.parse(body);
 
     await connectDB();
+
+    const normalizedEmail = validated.email.toLowerCase();
+    const existingUser = await User.findOne({ email: normalizedEmail }).select("+password");
+
+    // Guard against unauthenticated tampering with an existing registered user's clinical availability
+    const isStaff = session && (session.role === "Admin" || session.role === "Volunteer");
+    const isOwnAccount = session && session.email.toLowerCase() === normalizedEmail;
+    if (existingUser && existingUser.password && !isOwnAccount && !isStaff) {
+      return NextResponse.json(
+        {
+          error:
+            "An account with this email already exists. Please sign in before updating your clinical donor screening.",
+        },
+        { status: 401 }
+      );
+    }
 
     // Clinical Eligibility Calculation
     let eligibilityStatus: "eligible" | "temporary_deferral" | "permanent_deferral" = "eligible";
@@ -96,29 +158,31 @@ export async function POST(req: NextRequest) {
       const lastDate = new Date(validated.lastDonationDate);
       const now = new Date();
       const diffDays = Math.floor((now.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
-      
+
       if (diffDays < 90) {
         if (eligibilityStatus !== "permanent_deferral") eligibilityStatus = "temporary_deferral";
         const daysRemaining = 90 - diffDays;
         cooldownDate = new Date(lastDate.getTime() + 90 * 24 * 60 * 60 * 1000);
-        deferralReasons.push(`Last donation was ${diffDays} days ago. Mandatory 90-day rest period active (${daysRemaining} days remaining / শেষ রক্তদানের পর ৯০ দিন পূর্ণ হয়নি)`);
+        deferralReasons.push(
+          `Last donation was ${diffDays} days ago. Mandatory 90-day rest period active (${daysRemaining} days remaining / শেষ রক্তদানের পর ৯০ দিন পূর্ণ হয়নি)`
+        );
       }
     }
 
-    const eligibilityNotes = deferralReasons.length > 0 ? deferralReasons.join("; ") : "Clinically approved for voluntary donation.";
+    const eligibilityNotes =
+      deferralReasons.length > 0 ? deferralReasons.join("; ") : "Clinically approved for voluntary donation.";
 
     // Save full clinical registration
     const registration = await DonorRegistration.create({
       ...validated,
+      email: normalizedEmail,
       eligibilityStatus,
       eligibilityNotes,
     });
 
     // Safely update or create User record without overwriting roles or passwords
     if (validated.bloodGroup !== "Unknown") {
-      const existingUser = await User.findOne({ email: validated.email.toLowerCase() });
       if (existingUser) {
-        // Clinical update: do NOT overwrite role, password, status, or phone
         existingUser.isAvailable = eligibilityStatus === "eligible";
         if (cooldownDate) {
           existingUser.cooldownUntil = cooldownDate;
@@ -130,7 +194,7 @@ export async function POST(req: NextRequest) {
       } else {
         await User.create({
           name: validated.fullName,
-          email: validated.email.toLowerCase(),
+          email: normalizedEmail,
           phone: validated.phone,
           bloodGroup: validated.bloodGroup,
           division: validated.division,
