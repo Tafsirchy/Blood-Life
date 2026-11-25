@@ -70,7 +70,9 @@ export async function POST(
     return NextResponse.json(
       {
         error: "Failed to extend request deadline",
-        details: error instanceof Error ? error.message : "Unknown error",
+        ...(process.env.NODE_ENV !== "production" && {
+          details: error instanceof Error ? error.message : "Unknown error",
+        }),
       },
       { status: 500 }
     );
