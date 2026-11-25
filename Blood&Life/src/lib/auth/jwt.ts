@@ -1,19 +1,36 @@
 import { SignJWT, jwtVerify } from "jose";
 import { UserRole } from "@/types";
 
-const secretString = process.env.AUTH_SECRET;
-
-if (process.env.NODE_ENV === "production") {
-  if (!secretString || secretString.length < 32) {
-    throw new Error(
-      "FATAL: AUTH_SECRET must be set and at least 32 characters long in production environment."
-    );
-  }
+declare global {
+  // eslint-disable-next-line no-var
+  var __ephemeralDevJwtSecret: string | undefined;
 }
 
-const JWT_SECRET = new TextEncoder().encode(
-  secretString || "development_secret_key_change_in_production_32char"
-);
+function getJwtSecretKey(): Uint8Array {
+  const secretString = process.env.AUTH_SECRET || process.env.JWT_SECRET;
+
+  if (process.env.NODE_ENV === "production") {
+    if (!secretString || secretString.length < 32) {
+      throw new Error(
+        "FATAL: AUTH_SECRET (min 32 chars) must be set in production environment."
+      );
+    }
+    return new TextEncoder().encode(secretString);
+  }
+
+  if (secretString && secretString.length >= 16) {
+    return new TextEncoder().encode(secretString);
+  }
+
+  // Runtime-generated ephemeral key for local dev when no env secret is configured (never a hardcoded static literal)
+  if (!global.__ephemeralDevJwtSecret) {
+    const bytes = new Uint8Array(32);
+    crypto.getRandomValues(bytes);
+    global.__ephemeralDevJwtSecret = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+  }
+
+  return new TextEncoder().encode(global.__ephemeralDevJwtSecret);
+}
 
 export interface SessionPayload {
   userId: string;
@@ -31,12 +48,12 @@ export async function signSessionJWT(payload: SessionPayload): Promise<string> {
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("7d")
-    .sign(JWT_SECRET);
+    .sign(getJwtSecretKey());
 }
 
 export async function verifySessionJWT(token: string): Promise<SessionPayload | null> {
   try {
-    const { payload } = await jwtVerify(token, JWT_SECRET, {
+    const { payload } = await jwtVerify(token, getJwtSecretKey(), {
       algorithms: ["HS256"],
     });
     return payload as unknown as SessionPayload;
