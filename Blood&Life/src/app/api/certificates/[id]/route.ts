@@ -4,6 +4,12 @@ import { TransfusionLog } from "@/models/TransfusionLog";
 import { User } from "@/models/User";
 import { getDonorTier, DONOR_TIERS } from "@/lib/badges";
 
+const DEMO_SAMPLE_CERTS = new Set([
+  "BL-CERT-DMCH-881",
+  "BL-CERT-BSMMU-720",
+  "BL-CERT-DSH-615",
+]);
+
 export async function GET(
   req: NextRequest,
   context: { params: Promise<{ id: string }> }
@@ -29,7 +35,9 @@ export async function GET(
       // Find donor user details
       let donorUser = null;
       if (log.donorId && log.donorId.match(/^[0-9a-fA-F]{24}$/)) {
-        donorUser = await User.findById(log.donorId).select("name bloodGroup totalDonations verifiedDonations division district").lean();
+        donorUser = await User.findById(log.donorId)
+          .select("name bloodGroup totalDonations verifiedDonations division district")
+          .lean();
       }
 
       const totalDonations = donorUser?.totalDonations || 1;
@@ -42,11 +50,11 @@ export async function GET(
           type: "TRANSFUSION_CERTIFICATE",
           donorName: donorUser?.name || "স্বেচ্ছাসেবী রক্তদাতা (Verified Donor)",
           bloodGroup: log.bloodGroup || donorUser?.bloodGroup || "O+",
-          units: 1,
+          units: log.units || 1,
           hospital: log.hospital,
-          district: donorUser?.district || "বাংলাদেশ",
+          district: log.district || donorUser?.district || "বাংলাদেশ",
           date: log.completedAt,
-          recipientVerified: log.recipientVerified || true,
+          recipientVerified: Boolean(log.recipientVerified),
           rating: log.rating || 5,
           recipientFeedback: log.recipientFeedback || "স্বেচ্ছায় রক্তদান সফলভাবে সম্পন্ন হয়েছে।",
           tier: tier || DONOR_TIERS[0],
@@ -55,16 +63,21 @@ export async function GET(
       });
     }
 
-    // 2. Fallback check for simulated / demo certificate codes
-    if (id.startsWith("BL-CERT-") || id.startsWith("BL-TIER-") || id.startsWith("DEMO-")) {
-      const isTitanium = id.includes("15") || id.toLowerCase().includes("titanium");
-      const isDiamond = id.includes("25") || id.toLowerCase().includes("diamond");
+    // 2. Strict allowlist check for simulated / demo showcase certificate codes
+    const normalizedId = id.toUpperCase();
+    if (
+      DEMO_SAMPLE_CERTS.has(normalizedId) ||
+      normalizedId.startsWith("BL-TIER-") ||
+      normalizedId.startsWith("DEMO-")
+    ) {
+      const isTitanium = normalizedId.includes("15") || normalizedId.toLowerCase().includes("titanium");
+      const isDiamond = normalizedId.includes("25") || normalizedId.toLowerCase().includes("diamond");
       const defaultTier = isDiamond ? DONOR_TIERS[5] : isTitanium ? DONOR_TIERS[4] : DONOR_TIERS[2];
 
       return NextResponse.json({
         verified: true,
         certificate: {
-          certificateId: id.toUpperCase(),
+          certificateId: normalizedId,
           type: "MILESTONE_AWARD_CERTIFICATE",
           donorName: "ফারহান আহমেদ (Farhan Ahmed)",
           bloodGroup: "O+",
