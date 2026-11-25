@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
 import { Notification } from "@/models/Notification";
-import { getServerSession } from "@/lib/auth/session";
+import { getValidatedSession } from "@/lib/auth/session";
 import { isValidObjectId } from "@/lib/security/validators";
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession();
+    const session = await getValidatedSession();
     if (!session) {
-      return NextResponse.json({ notifications: [], unreadCount: 0 });
+      return NextResponse.json({ authenticated: false, notifications: [], unreadCount: 0 });
     }
 
     await connectDB();
@@ -24,6 +24,7 @@ export async function GET(req: NextRequest) {
     });
 
     return NextResponse.json({
+      authenticated: true,
       notifications: notifications.map((n: any) => ({
         id: String(n._id),
         category: n.category,
@@ -45,7 +46,7 @@ export async function GET(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   try {
-    const session = await getServerSession();
+    const session = await getValidatedSession();
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -79,5 +80,39 @@ export async function PATCH(req: NextRequest) {
   } catch (error: any) {
     console.error("Notification update error:", error);
     return NextResponse.json({ error: "Failed to update notification" }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const session = await getValidatedSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id");
+
+    await connectDB();
+
+    if (id) {
+      if (!isValidObjectId(id)) {
+        return NextResponse.json({ error: "Invalid notification ID format" }, { status: 400 });
+      }
+      const deleted = await Notification.findOneAndDelete({
+        _id: id,
+        recipientId: session.userId,
+      });
+      if (!deleted) {
+        return NextResponse.json({ error: "Notification not found" }, { status: 404 });
+      }
+      return NextResponse.json({ success: true, message: "Notification deleted." });
+    }
+
+    await Notification.deleteMany({ recipientId: session.userId });
+    return NextResponse.json({ success: true, message: "All notifications cleared." });
+  } catch (error: any) {
+    console.error("Notification delete error:", error);
+    return NextResponse.json({ error: "Failed to delete notifications" }, { status: 500 });
   }
 }
