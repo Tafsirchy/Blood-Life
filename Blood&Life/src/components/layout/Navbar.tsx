@@ -141,7 +141,10 @@ export function Navbar({ onOpenSos }: NavbarProps) {
             globalCachedUser = u;
             setCurrentUser(u);
             try {
-              localStorage.setItem("bloodlife_cached_user", JSON.stringify(u));
+              localStorage.setItem(
+                "bloodlife_cached_user",
+                JSON.stringify({ name: u.name, role: u.role, bloodGroup: u.bloodGroup })
+              );
             } catch {}
           } else {
             globalCachedUser = null;
