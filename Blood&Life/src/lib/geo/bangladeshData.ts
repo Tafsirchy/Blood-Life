@@ -166,3 +166,104 @@ export function getUnionsForUpazila(upazilaIdOrName: string): BDUnionItem[] {
   ];
 }
 
+const SPELLING_SYNONYMS: Record<string, string[]> = {
+  chittagong: ["Chittagong", "Chattogram", "চট্টগ্রাম"],
+  chattogram: ["Chittagong", "Chattogram", "চট্টগ্রাম"],
+  barishal: ["Barishal", "Barisal", "বরিশাল"],
+  barisal: ["Barishal", "Barisal", "বরিশাল"],
+  comilla: ["Comilla", "Cumilla", "কুমিল্লা"],
+  cumilla: ["Comilla", "Cumilla", "কুমিল্লা"],
+  bogra: ["Bogra", "Bogura", "বগুড়া"],
+  bogura: ["Bogra", "Bogura", "বগুড়া"],
+  jessore: ["Jessore", "Jashore", "যশোর"],
+  jashore: ["Jessore", "Jashore", "যশোর"],
+};
+
+/**
+ * Returns all known bilingual/spelling aliases (English, Bangla, ID, spelling variants)
+ * for a given division, district, or upazila name.
+ */
+export function getLocationAliases(
+  level: "division" | "district" | "upazila",
+  input?: string | null
+): string[] {
+  const raw = (input || "").trim();
+  if (!raw || raw.toLowerCase() === "all") return [];
+
+  const aliases = new Set<string>([raw]);
+  const lower = raw.toLowerCase();
+
+  if (SPELLING_SYNONYMS[lower]) {
+    SPELLING_SYNONYMS[lower].forEach((s) => aliases.add(s));
+  }
+
+  if (level === "division") {
+    const d1 = DIVISIONS.find(
+      (d) => d.id.toLowerCase() === lower || d.nameEn.toLowerCase() === lower || d.nameBn === raw
+    );
+    if (d1) {
+      aliases.add(d1.id);
+      aliases.add(d1.nameEn);
+      aliases.add(d1.nameBn);
+    }
+    const d2 = BD_DIVISIONS.find(
+      (d) => d.id === raw || d.name.toLowerCase() === lower || d.bn_name === raw
+    );
+    if (d2) {
+      aliases.add(d2.name);
+      aliases.add(d2.bn_name);
+    }
+  } else if (level === "district") {
+    const d1 = DISTRICTS.find(
+      (d) => d.id.toLowerCase() === lower || d.nameEn.toLowerCase() === lower || d.nameBn === raw
+    );
+    if (d1) {
+      aliases.add(d1.id);
+      aliases.add(d1.nameEn);
+      aliases.add(d1.nameBn);
+    }
+    const d2 = BD_DISTRICTS.find(
+      (d) => d.id === raw || d.name.toLowerCase() === lower || d.bn_name === raw
+    );
+    if (d2) {
+      aliases.add(d2.name);
+      aliases.add(d2.bn_name);
+    }
+  } else {
+    const u = BD_UPAZILAS.find(
+      (item) => item.id === raw || item.name.toLowerCase() === lower || item.bn_name === raw
+    );
+    if (u) {
+      aliases.add(u.name);
+      aliases.add(u.bn_name);
+    }
+  }
+
+  return Array.from(aliases).filter(Boolean);
+}
+
+/**
+ * Resolves the parent division name (English) for a district name or ID.
+ */
+export function resolveDivisionForDistrict(districtInput?: string | null): string | null {
+  const raw = (districtInput || "").trim();
+  if (!raw) return null;
+  const lower = raw.toLowerCase();
+
+  const d1 = DISTRICTS.find(
+    (d) => d.id.toLowerCase() === lower || d.nameEn.toLowerCase() === lower || d.nameBn === raw
+  );
+  if (d1) return d1.division;
+
+  const d2 = BD_DISTRICTS.find(
+    (d) => d.id === raw || d.name.toLowerCase() === lower || d.bn_name === raw
+  );
+  if (d2) {
+    const div = BD_DIVISIONS.find((dv) => dv.id === d2.division_id);
+    if (div) return div.name;
+  }
+
+  return null;
+}
+
+
