@@ -169,7 +169,12 @@ export async function GET(req: NextRequest) {
     });
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to query donors", details: error instanceof Error ? error.message : "Unknown error" },
+      {
+        error: "Failed to query donors",
+        ...(process.env.NODE_ENV !== "production" && {
+          details: error instanceof Error ? error.message : "Unknown error",
+        }),
+      },
       { status: 500 }
     );
   }
