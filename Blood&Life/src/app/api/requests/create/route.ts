@@ -129,16 +129,26 @@ export async function POST(req: NextRequest) {
       requesterPhone: validated.requesterPhone.trim(),
     });
 
-    // Fire non-blocking multi-channel alert dispatch (In-App, Push, Telegram)
+    // Fire non-blocking multi-channel alert dispatch (Matched Email, In-App, Push, Telegram)
     dispatchEmergencyRequestAlerts({
       requestId: String(newRequest._id),
       recipientName: newRequest.recipientName,
       bloodGroup: newRequest.bloodGroup,
       unitsNeeded: newRequest.unitsNeeded,
       hospital: newRequest.hospital,
+      division: newRequest.division,
       district: newRequest.district,
+      upazila: newRequest.upazila,
       urgency: newRequest.urgency,
+      bloodComponent: newRequest.bloodComponent,
+      scheduledDate: newRequest.scheduledDate,
+      scheduledTime: newRequest.scheduledTime,
+      medicalReason: newRequest.medicalReason,
+      message: newRequest.message,
       requesterId: session.userId,
+      requesterName: session.name,
+      requesterPhone: newRequest.requesterPhone,
+      isVerifiedGenuine: newRequest.isVerifiedGenuine,
     }).catch((e) => console.error("Async emergency alert error:", e));
 
     return NextResponse.json({
