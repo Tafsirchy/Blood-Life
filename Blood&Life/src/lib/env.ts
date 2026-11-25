@@ -1,8 +1,12 @@
 import { z } from "zod";
 
+const isProd = process.env.NODE_ENV === "production";
+
 const envSchema = z.object({
   MONGODB_URI: z.string().min(1).default("mongodb://localhost:27017/blood-lagbe"),
-  AUTH_SECRET: z.string().min(1).default("development_secret_key_change_in_production_32char"),
+  AUTH_SECRET: isProd
+    ? z.string().min(32, "AUTH_SECRET must be at least 32 characters in production")
+    : z.string().optional(),
   NEXTAUTH_URL: z.string().url().default("http://localhost:3000"),
   UPSTASH_REDIS_REST_URL: z.string().optional(),
   UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
@@ -16,7 +20,7 @@ const envSchema = z.object({
 
 export const env = envSchema.parse({
   MONGODB_URI: process.env.MONGODB_URI,
-  AUTH_SECRET: process.env.AUTH_SECRET,
+  AUTH_SECRET: process.env.AUTH_SECRET || process.env.JWT_SECRET,
   NEXTAUTH_URL: process.env.NEXTAUTH_URL,
   UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL,
   UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
