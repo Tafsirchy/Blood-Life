@@ -33,7 +33,9 @@ export async function GET() {
     return NextResponse.json(
       {
         status: "degraded",
-        error: error instanceof Error ? error.message : "Database connection failed",
+        error: process.env.NODE_ENV !== "production" && error instanceof Error
+          ? error.message
+          : "Database connection failed",
       },
       { status: 500 }
     );
