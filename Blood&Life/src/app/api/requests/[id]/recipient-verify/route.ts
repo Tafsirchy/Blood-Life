@@ -6,6 +6,7 @@ import { TransfusionLog } from "@/models/TransfusionLog";
 import { getValidatedSession } from "@/lib/auth/session";
 import { isValidObjectId } from "@/lib/security/validators";
 import { sanitizeText } from "@/lib/security/sanitize";
+import { dispatchDonationVerifiedAlerts } from "@/lib/notifications/dispatcher";
 
 export async function POST(
   req: NextRequest,
@@ -137,6 +138,19 @@ export async function POST(
       transfusionLog.recipientFeedback = cleanFeedback;
       if (targetDonorId) transfusionLog.donorId = targetDonorId;
       await transfusionLog.save();
+    }
+
+    if (donorUser) {
+      dispatchDonationVerifiedAlerts({
+        donorId: String(donorUser._id),
+        donorName: donorUser.name,
+        donorEmail: donorUser.email,
+        patientName: request.recipientName,
+        hospital: request.hospital,
+        bloodGroup: request.bloodGroup,
+        rating: numericRating,
+        certificateId: transfusionLog.certificateId,
+      }).catch((e) => console.error("Donation verified dispatch error:", e));
     }
 
     return NextResponse.json({
