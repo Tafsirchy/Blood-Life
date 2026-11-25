@@ -146,10 +146,19 @@ export default function GeoDirectoryPage() {
       const userData = await userRes.json();
 
       const mergedList: DonorItem[] = [];
+      const seenPhones = new Set<string>();
+
+      const normalizePhoneKey = (phone: string) => {
+        const digits = phone.replace(/[^0-9]/g, "");
+        return digits.length >= 8 ? digits.slice(-8) : phone;
+      };
 
       if (userData.donors) {
         userData.donors.forEach((d: any) => {
           const rawPhone = d.phone || d.maskedPhone || "";
+          if (rawPhone && !rawPhone.includes("•")) {
+            seenPhones.add(normalizePhoneKey(rawPhone));
+          }
           mergedList.push({
             id: String(d._id || d.id),
             name: d.name,
@@ -171,6 +180,19 @@ export default function GeoDirectoryPage() {
       if (commData.donors) {
         commData.donors.forEach((c: any) => {
           const rawPhone = c.donorPhone || "";
+          const phoneKey = rawPhone && !rawPhone.includes("•") ? normalizePhoneKey(rawPhone) : "";
+          const isDuplicate =
+            (phoneKey && seenPhones.has(phoneKey)) ||
+            mergedList.some(
+              (existing) =>
+                existing.name.trim().toLowerCase() === (c.donorName || "").trim().toLowerCase() &&
+                existing.bloodGroup === c.bloodGroup &&
+                existing.district.toLowerCase() === (c.district || "").toLowerCase()
+            );
+
+          if (isDuplicate) return;
+
+          if (phoneKey) seenPhones.add(phoneKey);
           mergedList.push({
             id: String(c.id),
             name: c.donorName,
