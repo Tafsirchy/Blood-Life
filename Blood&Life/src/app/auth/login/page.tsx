@@ -6,6 +6,7 @@ import { BloodLagbeLogo } from "@/components/brand/BloodLagbeLogo";
 import { LogIn, ArrowRight, ShieldCheck, Mail, Lock, ArrowLeft, Home } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { sanitizeRedirectPath } from "@/lib/security/validators";
 
 function LoginForm() {
   const { language } = useLanguage();
@@ -52,7 +53,7 @@ function LoginForm() {
           window.dispatchEvent(new Event("bloodlife-auth-changed"));
         } catch {}
       }
-      const destination = from.startsWith("/") ? from : "/dashboard";
+      const destination = sanitizeRedirectPath(from, "/dashboard");
       router.push(destination);
       router.refresh();
     } catch (err: any) {
