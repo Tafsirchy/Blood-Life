@@ -3,7 +3,7 @@ import { connectDB } from "@/lib/db";
 import { DonationRequest } from "@/models/DonationRequest";
 import { User } from "@/models/User";
 import { getValidatedSession } from "@/lib/auth/session";
-import { dispatchPledgeAlerts } from "@/lib/notifications/dispatcher";
+import { dispatchPledgeAlerts, dispatchPledgeWithdrawnAlerts } from "@/lib/notifications/dispatcher";
 import { checkRateLimit } from "@/lib/security/rateLimiter";
 import { isValidObjectId } from "@/lib/security/validators";
 import { SAMPLE_EMERGENCY_CASES } from "@/lib/emergencyDeadlines";
@@ -96,7 +96,7 @@ export async function POST(
       );
     }
 
-    // Multi-unit pledge tracking with atomic concurrency control
+    // Multi-unit pledge tracking with atomic concurrency control & duplicate pledge guard
     const newPledge = {
       donorId: session.userId,
       donorName: donor.name,
@@ -106,11 +106,11 @@ export async function POST(
       timestamp: new Date(),
     };
 
-    // Atomic conditional increment: ensures concurrent clicks cannot oversaturate unitsNeeded
     const updatedCase = await DonationRequest.findOneAndUpdate(
       {
         _id: requestId,
         status: "pending",
+        "pledges.donorId": { $ne: session.userId },
         $expr: { $lt: [{ $ifNull: ["$pledgedUnits", 0] }, "$unitsNeeded"] },
       },
       {
@@ -125,8 +125,13 @@ export async function POST(
     );
 
     if (!updatedCase) {
+      const alreadyPledged = donationCase.pledges?.some((p) => p.donorId === session.userId);
       return NextResponse.json(
-        { error: "This emergency request has already been fully pledged by other donors." },
+        {
+          error: alreadyPledged
+            ? "You have already pledged a unit for this emergency request."
+            : "This emergency request has already been fully pledged by other donors.",
+        },
         { status: 409 }
       );
     }
@@ -146,6 +151,7 @@ export async function POST(
       requesterId: updatedCase.requesterId,
       donorName: donor.name,
       donorBloodGroup: donor.bloodGroup,
+      donorPhone: donor.phone,
       hospital: updatedCase.hospital,
     }).catch((e) => console.error("Async pledge notification error:", e));
 
@@ -163,5 +169,81 @@ export async function POST(
     });
   } catch {
     return NextResponse.json({ error: "Failed to process donation pledge" }, { status: 500 });
+  }
+}
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id: requestId } = await params;
+
+    const session = await getValidatedSession();
+    if (!session) {
+      return NextResponse.json(
+        { error: "Please log in with an active account to withdraw your pledge" },
+        { status: 401 }
+      );
+    }
+
+    if (!isValidObjectId(requestId)) {
+      return NextResponse.json({ error: "Invalid request ID format" }, { status: 400 });
+    }
+
+    await connectDB();
+
+    const donationCase = await DonationRequest.findById(requestId);
+    if (!donationCase) {
+      return NextResponse.json({ error: "Request record not found" }, { status: 404 });
+    }
+
+    if (donationCase.status === "done" || donationCase.status === "canceled") {
+      return NextResponse.json(
+        { error: "Cannot withdraw a pledge from a completed or canceled request" },
+        { status: 400 }
+      );
+    }
+
+    const existingPledge = donationCase.pledges?.find((p) => p.donorId === session.userId);
+    if (!existingPledge) {
+      return NextResponse.json({ error: "No active pledge found for your account on this request" }, { status: 404 });
+    }
+
+    const unitsToDecrement = existingPledge.units || 1;
+    const remainingPledges = (donationCase.pledges || []).filter((p) => p.donorId !== session.userId);
+    const updatedPledgedUnits = Math.max(0, (donationCase.pledgedUnits || 0) - unitsToDecrement);
+
+    donationCase.pledges = remainingPledges;
+    donationCase.pledgedUnits = updatedPledgedUnits;
+
+    if (donationCase.assignedDonorId === session.userId) {
+      const lastRemaining = remainingPledges[remainingPledges.length - 1];
+      donationCase.assignedDonorId = lastRemaining?.donorId || undefined;
+      donationCase.assignedDonorName = lastRemaining?.donorName || undefined;
+    }
+
+    if (donationCase.status === "inprogress" && updatedPledgedUnits < donationCase.unitsNeeded) {
+      donationCase.status = "pending";
+    }
+
+    await donationCase.save();
+
+    dispatchPledgeWithdrawnAlerts({
+      requestId: String(donationCase._id),
+      recipientName: donationCase.recipientName,
+      requesterId: donationCase.requesterId,
+      donorName: session.name || "A donor",
+      hospital: donationCase.hospital,
+    }).catch((e) => console.error("Async pledge withdrawn notification error:", e));
+
+    return NextResponse.json({
+      success: true,
+      message: "Your blood donation pledge has been withdrawn.",
+      pledgedUnits: donationCase.pledgedUnits,
+      status: donationCase.status,
+    });
+  } catch {
+    return NextResponse.json({ error: "Failed to withdraw pledge" }, { status: 500 });
   }
 }
