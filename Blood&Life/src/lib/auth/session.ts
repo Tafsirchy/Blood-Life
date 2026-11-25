@@ -53,9 +53,10 @@ export async function getValidatedSession(): Promise<SessionPayload | null> {
       isEmailVerified: userDoc.isEmailVerified,
       tokenVersion: userDoc.tokenVersion,
     };
-  } catch {
-    // If DB is temporarily unreachable, fallback to verified JWT payload
-    return session;
+  } catch (err) {
+    // Fail closed: never trust an unvalidated JWT when session verification against DB fails
+    console.error("Session DB validation error (fail-closed):", err instanceof Error ? err.message : "unknown");
+    return null;
   }
 }
 
