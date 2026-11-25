@@ -182,11 +182,23 @@ export async function POST(req: NextRequest) {
       </div>
     `;
 
-    await sendTransactionalEmail({
+    const emailResult = await sendTransactionalEmail({
       to: cleanEmail,
       subject: emailSubject,
       html: emailHtml,
     });
+
+    if (!emailResult.success) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: emailResult.isSandboxRestricted
+            ? "ইমেইল স্যান্ডবক্স সীমাবদ্ধতার কারণে বর্তমানে এই ঠিকানায় ইমেইল পাঠানো যাচ্ছে না। অনুগ্রহ করে অ্যাডমিন ডোমেইন ভেরিফাই করুন।"
+            : "ইমেইল সার্ভারে সংযোগ ত্রুটির কারণে তালিকা পাঠানো সম্ভব হয়নি।",
+        },
+        { status: 502 }
+      );
+    }
 
     // Record Audit Log
     await AuditLog.create({
